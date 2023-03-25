@@ -1,3 +1,4 @@
+import datetime
 import discord
 import os
 from discord.ext import commands
@@ -18,23 +19,15 @@ async def on_ready():
         print(f"Commands Synced")
     except Exception as e:
         print(e)
-    await client.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name="Your Mum"))
+    await client.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name="NexusBot"))
 
 #!help
 @client.command(pass_context=True,name="help")
 async def help(ctx):
-    embed=discord.Embed(
-        title="NexusBot",
-        color=0x1364a1
-    )
-    embed.add_field(
-        name="CSGO Lifetime Stats",
-        value="`!csgo`"
-    )
-    embed.add_field(
-    name="Apex Legends Lifetime Stats",
-    value="`!apex`"
-    )
+    embed=discord.Embed(title="NexusBot", color=0x1364a1)
+    embed.add_field(name="CSGO Lifetime Stats", value="`!csgo`")
+    embed.add_field(name="Apex Legends Lifetime Stats", value="`!apex`")
+    embed.set_footer(text="Built By Goldiez" "\u2764\uFE0F")
     await ctx.channel.send(embed=embed)
 
 #!csgo
@@ -45,19 +38,19 @@ async def csgo(ctx, user_identifier=None):
         return
 
     # Make the API request
-    r = requests.get(os.getenv('CSGO_API_URL').format(user_identifier), headers={"TRN-Api-Key": os.getenv('API_KEY')})
+    response = requests.get(os.getenv('CSGO_API_URL').format(user_identifier), headers={"TRN-Api-Key": os.getenv('API_KEY')})
 
-    if r.status_code == 200:
-        data = r.json()
+    if response.status_code == 200:
+        data = response.json()
         segments = data['data']['segments'][0]
         stats = segments['stats']
 
-        embed = discord.Embed(title=f"CS:GO - Lifetime Overview", color=0x1364a1)
+        embed = discord.Embed(title=f"CS:GO - Lifetime Overview", url=os.getenv('CSGO_PROFILE_URL').format(user_identifier), color=0x1364a1)
         for key, value in stats.items():
             print(f'{client.user} has retrieved your CSGO stats!')
             if isinstance(stats, dict):
                     embed.add_field(name=value['displayName'], value=value['displayValue'], inline=True)
-                    embed.set_footer(text="Bot By Goldiez")
+                    embed.set_footer(text="Built By Goldiez" "\u2764\uFE0F")
         await ctx.channel.send(embed=embed) 
     else:
         await ctx.send("`!csgo <steamid_64>`")
@@ -79,12 +72,13 @@ async def apex(ctx, user_identifier=None, platform=None):
         segments = data['data']['segments'][0]
         stats = segments['stats']
 
-        embed = discord.Embed(title=f"Apex Legends - Lifetime Overview", color=0x1364a1)
+        embed = discord.Embed(title=f"Apex Legends - Lifetime Overview", url=os.getenv('APEX_PROFILE_URL').format(platform, user_identifier), color=0x1364a1)
         for key, value in stats.items():
             print(f'{client.user} has retrieved your Apex stats!')
             if isinstance(stats, dict):
                     embed.add_field(name=value['displayName'], value=value['displayValue'], inline=True)
-                    embed.set_footer(text="Bot By Goldiez")
+                    embed.timestamp = datetime.datetime.utcnow()
+                    embed.set_footer(text="Built By Goldiez" "\u2764\uFE0F")
         await ctx.channel.send(embed=embed) 
     else:
         await ctx.send("`!apex <steamid_64>`")
