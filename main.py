@@ -4,12 +4,16 @@ import os
 from discord.ext import commands
 import requests
 from dotenv import load_dotenv
+from riotwatcher import LolWatcher
 
 intents = discord.Intents.default()
 intents.message_content = True
 client = commands.Bot(command_prefix = "!", help_command=None, intents=intents) 
 
 load_dotenv()
+
+key = os.getenv('RIOT_API')
+watcher = LolWatcher(key)
 
 @client.event
 async def on_ready():
@@ -82,5 +86,35 @@ async def apex(ctx, user_identifier=None, platform=None):
         await ctx.channel.send(embed=embed) 
     else:
         await ctx.send("`!apex <steamid_64>`")
+
+#!lol
+@client.command(aliases=['lolstats'])
+async def lol(ctx, *,summonerName):
+    summoner = watcher.summoner.by_name('euw1',summonerName)
+    stats = watcher.league.by_summoner('euw1', summoner['id'])
+    num = 0
+    if (stats[0]['queueType'] == 'RANKED_SOLO_5x5'):
+        num = 0
+    else:
+        num = 1
+    tier = stats[num]['tier']
+    rank = stats[num]['rank']
+    lp = stats[num]['leaguePoints']
+    wins= int(stats[num]['wins'])
+    losses = int(stats[num]['losses'])
+    wr = int((wins/(wins+losses))* 100)
+    #await ctx.send(f'{summonerName} is currently ranked in {str(tier)}, {str(rank)} with {str(lp)} LP and a {str(wr)}% winrate.')
+    embed = discord.Embed(title=f"League of Legends - Player Stats", color=0x1364a1)
+    print(f'{client.user} has retrieved your LoL stats!')
+    embed.add_field(name="Rank", value=f'{str(tier)} {str(rank)} {str(lp)} LP')
+    embed.add_field(name="Winrate", value=f'{str(wr)}%')
+    embed.timestamp = datetime.datetime.utcnow()
+    embed.set_footer(text="Built By Goldiez" "\u2764\uFE0F")
+    await ctx.channel.send(embed=embed) 
+
+@client.event
+async def p_error(ctx, error):
+    if isinstance(error,commands.MissingRequiredArguments):
+        await ctx.send('Please specify a summoner name')
 
 client.run(os.getenv('TOKEN'))
