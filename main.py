@@ -1,6 +1,7 @@
 import datetime
 import discord
 import os
+import json
 from discord.ext import commands
 import requests
 from dotenv import load_dotenv
@@ -69,7 +70,7 @@ async def apex(ctx, user_identifier=None, platform=None):
         return
 
     # Make the API request
-    response = requests.get(os.getenv('APEX_API_URL').format(platform, user_identifier), headers={"TRN-Api-Key": os.getenv('API_KEY')})
+    response = requests.get(os.getenv('APEX_API_URL').format(platform, user_identifier), headers={"TRN-Api-Key": os.getenv('API_KEY')}) 
 
     if response.status_code == 200:
         data = response.json()
@@ -103,11 +104,14 @@ async def lol(ctx, *,summonerName):
     wins= int(stats[num]['wins'])
     losses = int(stats[num]['losses'])
     wr = int((wins/(wins+losses))* 100)
-    #await ctx.send(f'{summonerName} is currently ranked in {str(tier)}, {str(rank)} with {str(lp)} LP and a {str(wr)}% winrate.')
+    hotStreak = int(stats[num]['hotStreak'])
+    level = int(summoner['summonerLevel'])
     embed = discord.Embed(title=f"League of Legends - Player Stats", color=0x1364a1)
     print(f'{client.user} has retrieved your LoL stats!')
+    embed.add_field(name="Level", value=f'{str(level)}')
     embed.add_field(name="Rank", value=f'{str(tier)} {str(rank)} {str(lp)} LP')
     embed.add_field(name="Winrate", value=f'{str(wr)}%')
+    embed.add_field(name="Hot Streak", value=f'{str(hotStreak)}')
     embed.timestamp = datetime.datetime.utcnow()
     embed.set_footer(text="Built By Goldiez" "\u2764\uFE0F")
     await ctx.channel.send(embed=embed) 
