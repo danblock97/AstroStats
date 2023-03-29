@@ -30,6 +30,7 @@ async def help(interaction: discord.Interaction):
     embed.add_field(name="CSGO Lifetime Stats", value="`/csgo`")
     embed.add_field(name="Apex Legends Lifetime Stats", value="`/apex`")
     embed.add_field(name="LoL Player Stats", value="`/lol`")
+    embed.timestamp = datetime.datetime.utcnow()
     embed.set_footer(text="Built By Goldiez" "\u2764\uFE0F")
     await interaction.response.send_message(embed=embed)
 
@@ -53,6 +54,7 @@ async def csgo(interaction: discord.Interaction, name: str = None):
             print(f'{client.user} has retrieved your CSGO stats!')
             if isinstance(stats, dict):
                     embed.add_field(name=value['displayName'], value=value['displayValue'], inline=True)
+                    embed.timestamp = datetime.datetime.utcnow()
                     embed.set_footer(text="Built By Goldiez" "\u2764\uFE0F")
         await interaction.response.send_message(embed=embed) 
     else:
