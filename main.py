@@ -25,8 +25,6 @@ async def on_ready():
         print(e)
     await client.change_presence(activity=discord.Activity(type=discord.ActivityType.playing, name="/help"))
 
-# /help
-
 
 @client.tree.command(name="help", description="Lists all available commands")
 async def help(interaction: discord.Interaction):
@@ -99,7 +97,7 @@ async def apex(interation: discord.Interaction, name: str = None, platform: str 
         await interation.response.send_message("`/apex <username>`")
 
 
-@client.tree.command(name="lol", description="Check your LoL Player Stats")
+@client.tree.command(name="profile", description="Check your LoL Player Stats")
 async def profile(interactions: discord.Interaction, *, summoner: str):
     summoner = lolWatcher.summoner.by_name('euw1', summoner)
     stats = lolWatcher.league.by_summoner('euw1', summoner['id'])
