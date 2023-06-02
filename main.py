@@ -40,61 +40,59 @@ async def help(interaction: discord.Interaction):
 
 
 @client.tree.command(name="csgo", description="Check your CSGO Lifetime Stats")
-async def csgo(interaction: discord.Interaction, name: str = None):
+async def apex(interation: discord.Interaction, name: str = None):
     if name is None:
-        await interaction.response.send_message("`/csgo <username>`")
+        await interation.response.send_message("`/apex <username>`")
         return
 
-    response = requests.get(os.getenv('CSGO_API_URL').format(
-        name), headers={"TRN-Api-Key": os.getenv('API_KEY')})
+    response = requests.get(f"https://public-api.tracker.gg/v2/csgo/standard/profile/steam/{name}", 
+                            headers={"TRN-Api-Key": os.getenv('TRN-Api-Key')})
 
     if response.status_code == 200:
         data = response.json()
         segments = data['data']['segments'][0]
         stats = segments['stats']
 
-        embed = discord.Embed(title=f"CS:GO - Lifetime Overview",
-                              url=os.getenv('CSGO_PROFILE_URL').format(name), color=0x1364a1)
+        embed = discord.Embed(title=f"CSGO - Lifetime Overview", url=f"https://tracker.gg/csgo/profile/steam/{name}", color=0x1364a1)
         for key, value in stats.items():
             print(f'{client.user} has retrieved your CSGO stats!')
-            if isinstance(stats, dict):
-                embed.add_field(
-                    name=value['displayName'], value=value['displayValue'], inline=True)
-                embed.timestamp = datetime.datetime.utcnow()
-                embed.set_footer(text="Built By Goldiez" "\u2764\uFE0F")
-        await interaction.response.send_message(embed=embed)
+            if isinstance(value, dict):
+                embed.add_field(name=value['displayName'], value=value['displayValue'], inline=True)
+            embed.timestamp = datetime.datetime.utcnow()
+            embed.set_footer(text="Built By Goldiez" "\u2764\uFE0F")
+        await interation.response.send_message(embed=embed)
     else:
-        await interaction.response.send_message("`/csgo <steamid_64>`")
+        await interation.response.send_message("`/csgo <username>`")
 
 
 @client.tree.command(name="apex", description="Check your Apex Lifetime Stats")
 async def apex(interation: discord.Interaction, name: str = None, platform: str = None):
     if name is None:
         await interation.response.send_message("`/apex <username>`")
-        if platform is None:
-         await interation.response.send_message("`/apex <xbl/psn/origin>`")
+        return
+    if platform is None:
+        await interation.response.send_message("`/apex <xbl/psn/origin>`")
         return
 
-    response = requests.get(os.getenv('APEX_API_URL').format(
-        platform, name), headers={"TRN-Api-Key": os.getenv('API_KEY')})
+    response = requests.get(f"https://public-api.tracker.gg/v2/apex/standard/profile/{platform}/{name}", 
+                            headers={"TRN-Api-Key": os.getenv('TRN-Api-Key')})
 
     if response.status_code == 200:
         data = response.json()
         segments = data['data']['segments'][0]
         stats = segments['stats']
 
-        embed = discord.Embed(title=f"Apex Legends - Lifetime Overview", url=os.getenv(
-            'APEX_PROFILE_URL').format(platform, name), color=0x1364a1)
+        embed = discord.Embed(title=f"Apex Legends - Lifetime Overview", url=f"https://apex.tracker.gg/apex/profile/{platform}/{name}", color=0x1364a1)
         for key, value in stats.items():
             print(f'{client.user} has retrieved your Apex stats!')
-            if isinstance(stats, dict):
-                embed.add_field(
-                    name=value['displayName'], value=value['displayValue'], inline=True)
-                embed.timestamp = datetime.datetime.utcnow()
-                embed.set_footer(text="Built By Goldiez" "\u2764\uFE0F")
+            if isinstance(value, dict):
+                embed.add_field(name=value['displayName'], value=value['displayValue'], inline=True)
+            embed.timestamp = datetime.datetime.utcnow()
+            embed.set_footer(text="Built By Goldiez" "\u2764\uFE0F")
         await interation.response.send_message(embed=embed)
     else:
         await interation.response.send_message("`/apex <username>`")
+
 
 
 @client.tree.command(name="profile", description="Check your LoL Player Stats")
