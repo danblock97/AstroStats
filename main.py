@@ -62,7 +62,7 @@ async def apex(interation: discord.Interaction, name: str = None):
             embed.set_footer(text="Built By Goldiez" "\u2764\uFE0F")
         await interation.response.send_message(embed=embed)
     else:
-        await interation.response.send_message("`/csgo <username>`")
+        await interation.response.send_message("The TRN API for CSGO Currently has a bug which stops this command from working with usernames.")
 
 
 @client.tree.command(name="apex", description="Check your Apex Lifetime Stats")
