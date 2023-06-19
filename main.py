@@ -40,7 +40,7 @@ async def help(interaction: discord.Interaction):
 
 
 @client.tree.command(name="csgo", description="Check your CSGO Lifetime Stats")
-async def apex(interation: discord.Interaction, name: str = None):
+async def csgo(interation: discord.Interaction, name: str = None):
     if name is None:
         await interation.response.send_message("`/apex <username>`")
         return
@@ -64,7 +64,7 @@ async def apex(interation: discord.Interaction, name: str = None):
             embed.set_footer(text="Built By Goldiez" "\u2764\uFE0F")
         await interation.response.send_message(embed=embed)
     else:
-        await interation.response.send_message("The TRN API for CSGO Currently has a bug which stops this command from working with usernames.")
+        await interation.response.send_message("`/csgo <username>`")
 
 
 @client.tree.command(name="apex", description="Check your Apex Lifetime Stats")
@@ -98,8 +98,8 @@ async def apex(interation: discord.Interaction, name: str = None, platform: str 
         await interation.response.send_message("`/apex <username>`")
 
 
-@client.tree.command(name="profile", description="Check your LoL Player Stats")
-async def profile(interactions: discord.Interaction, *, summoner: str):
+@client.tree.command(name="league", description="Check your LoL Player Stats")
+async def league(interactions: discord.Interaction, *, summoner: str):
     summoner = lolWatcher.summoner.by_name('euw1', summoner)
     stats = lolWatcher.league.by_summoner('euw1', summoner['id'])
     num = 0
