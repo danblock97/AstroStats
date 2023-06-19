@@ -156,8 +156,8 @@ async def fortnite(interactions: discord.Interaction, *, name: str):
     embed.add_field(
         name="Account", value=f'Name: {account["name"]} \n Level: {battlePass["level"]}')
     embed.add_field(name="Season Stats", 
-                    value=f'Matches: {stats["stats"]["all"]["overall"]["matches"]} \n Kills: {stats["stats"]["all"]["overall"]["kills"]} \n Wins: {stats["stats"]["all"]["overall"]["wins"]} \n Top 5: {stats["stats"]["all"]["overall"]["top5"]} \n Top 12: {stats["stats"]["all"]["overall"]["top12"]}')
-
+                    value=f'Matches: {stats["stats"]["all"]["overall"]["matches"]} \n Kills: {stats["stats"]["all"]["overall"]["kills"]} \n Wins: {stats["stats"]["all"]["overall"]["wins"]}')
+    embed.add_field(name="Match Placements", value=f'Top 5: {stats["stats"]["all"]["overall"]["top5"]} \n Top 12: {stats["stats"]["all"]["overall"]["top12"]}')
     embed.timestamp = datetime.datetime.utcnow()
     embed.set_footer(text="Built By Goldiez" "\u2764\uFE0F")
     await interactions.response.send_message(embed=embed)
