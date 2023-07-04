@@ -171,15 +171,4 @@ async def p_error(interactions: discord.Interaction, error):
     if isinstance(error, commands.MissingRequiredArguments):
         await interactions.response.send_message('Please specify a player name')
 
-
-@client.tree.command()
-async def translate(interactions: discord.Interaction, source_lang: str, target_lang: str, *, text: str):
-    translation = translator.translate(text, src=source_lang, dest=target_lang)
-    await interactions.response.send_message(f'Translation ({source_lang} to {target_lang}): {translation.text}')
-
-@client.event
-async def p_error(interactions: discord.Interaction, error):
-    if isinstance(error, commands.MissingRequiredArguments):
-        await interactions.response.send_message('Uh Oh')
-
 client.run(os.getenv('TOKEN'))
