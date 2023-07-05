@@ -5,9 +5,6 @@ from discord.ext import commands
 import requests
 from dotenv import load_dotenv
 from riotwatcher import LolWatcher
-from googletrans import Translator
-
-translator = Translator()
 
 client = commands.Bot(command_prefix="!", help_command=None,
                       intents=discord.Intents.all())
