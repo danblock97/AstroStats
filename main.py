@@ -40,40 +40,46 @@ async def help(interaction: discord.Interaction):
 
 
 @client.tree.command(name="csgo", description="Check your CSGO Lifetime Stats")
-async def csgo(interation: discord.Interaction, name: str = None):
+async def csgo(interaction: discord.Interaction, name: str = None):
     if name is None:
-        await interation.response.send_message("`/apex <username>`")
+        await interaction.response.send_message("`/apex <username>`")
         return
 
     response = requests.get(f"https://public-api.tracker.gg/v2/csgo/standard/profile/steam/{name}",
                             headers={"TRN-Api-Key": os.getenv('TRN-Api-Key')})
 
     if response.status_code == 200:
-        data = response.json()
-        segments = data['data']['segments'][0]
-        stats = segments['stats']
+        try:
+            data = response.json()
+            segments = data['data']['segments'][0]
+            stats = segments['stats']
 
-        embed = discord.Embed(title=f"CSGO - Lifetime Overview",
-                              url=f"https://tracker.gg/csgo/profile/steam/{name}", color=0x1364a1)
-        for key, value in stats.items():
-            print(f'{client.user} has retrieved your CSGO stats!')
-            if isinstance(value, dict):
-                embed.add_field(
-                    name=value['displayName'], value=value['displayValue'], inline=True)
+            embed = discord.Embed(title=f"CSGO - Lifetime Overview",
+                                  url=f"https://tracker.gg/csgo/profile/steam/{name}", color=0x1364a1)
+
+            for key, value in stats.items():
+                if isinstance(value, dict):
+                    embed.add_field(
+                        name=value['displayName'], value=value['displayValue'], inline=True)
+
             embed.timestamp = datetime.datetime.utcnow()
             embed.set_footer(text="Built By Goldiez" "\u2764\uFE0F")
-        await interation.response.send_message(embed=embed)
+
+            await interaction.response.send_message(embed=embed)
+
+        except (KeyError, ValueError):
+            await interaction.response.send_message("Failed to retrieve CSGO stats.")
     else:
-        await interation.response.send_message("`/csgo <username>`")
+        await interaction.response.send_message("`/csgo <username>`")
 
 
 @client.tree.command(name="apex", description="Check your Apex Lifetime Stats")
-async def apex(interation: discord.Interaction, name: str = None, platform: str = None):
+async def apex(interaction: discord.Interaction, name: str = None, platform: str = None):
     if name is None:
-        await interation.response.send_message("`/apex <username>`")
+        await interaction.response.send_message("`/apex <username>`")
         return
     if platform is None:
-        await interation.response.send_message("`/apex <xbl/psn/origin>`")
+        await interaction.response.send_message("`/apex <xbl/psn/origin>`")
         return
 
     response = requests.get(f"https://public-api.tracker.gg/v2/apex/standard/profile/{platform}/{name}",
@@ -93,13 +99,13 @@ async def apex(interation: discord.Interaction, name: str = None, platform: str 
                     name=value['displayName'], value=value['displayValue'], inline=True)
             embed.timestamp = datetime.datetime.utcnow()
             embed.set_footer(text="Built By Goldiez" "\u2764\uFE0F")
-        await interation.response.send_message(embed=embed)
+        await interaction.response.send_message(embed=embed)
     else:
-        await interation.response.send_message("`/apex <username>`")
+        await interaction.response.send_message("`/apex <username>`")
 
 
 @client.tree.command(name="league", description="Check your LoL Player Stats")
-async def league(interactions: discord.Interaction, *, summoner: str):
+async def league(interaction: discord.Interaction, *, summoner: str):
     summoner = lolWatcher.summoner.by_name('euw1', summoner)
     stats = lolWatcher.league.by_summoner('euw1', summoner['id'])
     num = 0
@@ -126,46 +132,50 @@ async def league(interactions: discord.Interaction, *, summoner: str):
     embed.add_field(name="Level", value=f'{str(level)}')
     embed.timestamp = datetime.datetime.utcnow()
     embed.set_footer(text="Built By Goldiez" "\u2764\uFE0F")
-    await interactions.response.send_message(embed=embed)
+    await interaction.response.send_message(embed=embed)
 
 
 @client.event
-async def p_error(interactions: discord.Interaction, error):
+async def p_error(interaction: discord.Interaction, error):
     if isinstance(error, commands.MissingRequiredArguments):
-        await interactions.response.send_message('Please specify a summoner name')
+        await interaction.response.send_message('Please specify a summoner name')
 
 
 @client.tree.command(name="fortnite", description="Check your Fortnite Player Stats")
-async def fortnite(interactions: discord.Interaction, *, name: str):
+async def fortnite(interaction: discord.Interaction, *, name: str):
     response = requests.get(f"https://fortnite-api.com/v2/stats/br/v2?timeWindow=season&name={name}",
                             headers={"Authorization": os.getenv('FORTNITE_API_KEY')})
 
-    data = response.json()
+    try:
+        data = response.json()
 
-    if 'data' not in data:
-        await interactions.response.send_message('Player not found')
-        return
+        if 'data' not in data:
+            await interaction.response.send_message('Player not found')
+            return
 
-    stats = data['data']
-    account = stats['account']
-    battlePass = stats['battlePass']
+        stats = data['data']
+        account = stats['account']
+        battlePass = stats['battlePass']
 
-    embed = discord.Embed(title=f"Fortnite - Player Stats", color=0x1364a1)
-    print(f'{client.user} has retrieved Fortnite stats!')
+        embed = discord.Embed(title=f"Fortnite - Player Stats", color=0x1364a1)
+        print(f'{client.user} has retrieved Fortnite stats!')
 
-    embed.add_field(
-        name="Account", value=f'Name: {account["name"]} \n Level: {battlePass["level"]}')
-    embed.add_field(name="Season Stats", 
-                    value=f'Matches: {stats["stats"]["all"]["overall"]["matches"]} \n Kills: {stats["stats"]["all"]["overall"]["kills"]} \n Wins: {stats["stats"]["all"]["overall"]["wins"]}')
-    embed.add_field(name="Match Placements", value=f'Top 5: {stats["stats"]["all"]["overall"]["top5"]} \n Top 12: {stats["stats"]["all"]["overall"]["top12"]}')
-    embed.timestamp = datetime.datetime.utcnow()
-    embed.set_footer(text="Built By Goldiez" "\u2764\uFE0F")
-    await interactions.response.send_message(embed=embed)
+        embed.add_field(name="Account", value=f"Name: {account['name']}\nLevel: {battlePass['level']}")
+        embed.add_field(name="Season Stats",
+                        value=f"Matches: {stats['stats']['all']['overall']['matches']}\nKills: {stats['stats']['all']['overall']['kills']}\nWins: {stats['stats']['all']['overall']['wins']}")
+        embed.add_field(name="Match Placements",
+                        value=f"Top 5: {stats['stats']['all']['overall']['top5']}\nTop 12: {stats['stats']['all']['overall']['top12']}")
+        embed.timestamp = datetime.datetime.utcnow()
+        embed.set_footer(text="Built By Goldiez" "\u2764\uFE0F")
+        await interaction.response.send_message(embed=embed)
+
+    except (KeyError, ValueError):
+        await interaction.response.send_message("Failed to retrieve Fortnite stats.")
 
 
 @client.event
-async def p_error(interactions: discord.Interaction, error):
+async def p_error(interaction: discord.Interaction, error):
     if isinstance(error, commands.MissingRequiredArguments):
-        await interactions.response.send_message('Please specify a player name')
+        await interaction.response.send_message("Please specify a player name")
 
 client.run(os.getenv('TOKEN'))
