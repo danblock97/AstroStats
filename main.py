@@ -23,12 +23,16 @@ async def on_ready():
         print(f"Commands Synced")
     except Exception as e:
         print(e)
-    await client.change_presence(activity=discord.Activity(type=discord.ActivityType.playing, name="/help"))
+    guild_count = len(client.guilds)
+    presence = discord.Activity(type=discord.ActivityType.playing, name=f"on {guild_count} servers")
+    await client.change_presence(activity=presence)
+
 
 
 @client.tree.command(name="help", description="Lists all available commands")
 async def help(interaction: discord.Interaction):
-    embed = discord.Embed(title="NexusBot", color=0x1364a1)
+    guild_count = len(client.guilds)
+    embed = discord.Embed(title=f"NexusBot - Trusted by {guild_count} servers", color=0x1364a1)
     embed.add_field(name="CSGO Lifetime Stats", value="`/csgo <username>`")
     embed.add_field(name="Apex Legends Lifetime Stats",
                     value="`/apex <username> <xbl/psn/origin>`")
@@ -58,6 +62,8 @@ async def csgo(interaction: discord.Interaction, name: str = None):
 
             embed = discord.Embed(title=f"CSGO - Lifetime Overview",
                                   url=f"https://tracker.gg/csgo/profile/steam/{name}", color=0x1364a1)
+            
+            print(f'{client.user} has retrieved your CSGO stats!')
 
             for key, value in stats.items():
                 if isinstance(value, dict):
@@ -94,8 +100,10 @@ async def apex(interaction: discord.Interaction, name: str = None, platform: str
 
         embed = discord.Embed(title=f"Apex Legends - Lifetime Overview",
                               url=f"https://apex.tracker.gg/apex/profile/{platform}/{name}", color=0x1364a1)
+        
+        print(f'{client.user} has retrieved your Apex stats!')
+
         for key, value in stats.items():
-            print(f'{client.user} has retrieved your Apex stats!')
             if isinstance(value, dict):
                 embed.add_field(
                     name=value['displayName'], value=value['displayValue'], inline=True)
