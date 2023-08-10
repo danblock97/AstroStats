@@ -78,7 +78,7 @@ async def csgo(interaction: discord.Interaction, name: str = None):
         except (KeyError, ValueError):
             await interaction.response.send_message("Failed to retrieve CSGO stats.")
     else:
-        await interaction.response.send_message("`/csgo <username>`")
+        await interaction.response.send_message("Failed to retrieve your CSGO stats. The TRN API is Currently Unavailable")
 
 
 @client.tree.command(name="apex", description="Check your Apex Lifetime Stats")
@@ -111,7 +111,7 @@ async def apex(interaction: discord.Interaction, name: str = None, platform: str
             embed.set_footer(text="Built By Goldiez" "\u2764\uFE0F")
         await interaction.response.send_message(embed=embed)
     else:
-        await interaction.response.send_message("`/apex <username>`")
+        await interaction.response.send_message("Failed to retrieve your Apex stats. The TRN API is Currently Unavailable")
 
 
 @client.tree.command(name="league", description="Check your LoL Player Stats")
@@ -180,7 +180,7 @@ async def fortnite(interaction: discord.Interaction, *, name: str):
         await interaction.response.send_message(embed=embed)
 
     except (KeyError, ValueError):
-        await interaction.response.send_message("Failed to retrieve Fortnite stats.")
+        await interaction.response.send_message("Failed to retrieve Fortnite stats. The Fortnite API is Currently Unavailable")
 
 
 @client.event
