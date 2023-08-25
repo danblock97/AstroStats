@@ -160,7 +160,7 @@ async def fortnite(interaction: discord.Interaction, *, name: str):
         data = response.json()
 
         if 'data' not in data:
-            await interaction.response.send_message('Player not found')
+            await interaction.response.send_message('Failed to retrieve Fortnite stats. The Fortnite API is Currently Unavailable')
             return
 
         stats = data['data']
@@ -186,6 +186,6 @@ async def fortnite(interaction: discord.Interaction, *, name: str):
 @client.event
 async def p_error(interaction: discord.Interaction, error):
     if isinstance(error, commands.MissingRequiredArguments):
-        await interaction.response.send_message("Please specify a player name")
+        await interaction.response.send_message("Failed to retrieve LoL stats. The Riot API is Currently Unavailable")
 
 client.run(os.getenv('TOKEN'))
