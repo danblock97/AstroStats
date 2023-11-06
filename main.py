@@ -5,6 +5,23 @@ from discord.ext import commands
 import requests
 from dotenv import load_dotenv
 from riotwatcher import LolWatcher
+from bs4 import BeautifulSoup
+import requests
+
+signs = {
+    "aries": 1,
+    "taurus": 2,
+    "gemini": 3,
+    "cancer": 4,
+    "leo": 5,
+    "virgo": 6,
+    "libra": 7,
+    "scorpio": 8,
+    "sagittarius": 9,
+    "capricorn": 10,
+    "aquarius": 11,
+    "pisces": 12,
+}
 
 client = commands.Bot(command_prefix="!", help_command=None,
                       intents=discord.Intents.all())
@@ -182,10 +199,30 @@ async def fortnite(interaction: discord.Interaction, *, name: str):
     except (KeyError, ValueError):
         await interaction.response.send_message("Failed to retrieve Fortnite stats. The Fortnite API is Currently Unavailable")
 
-
 @client.event
 async def p_error(interaction: discord.Interaction, error):
     if isinstance(error, commands.MissingRequiredArguments):
         await interaction.response.send_message("Failed to retrieve LoL stats. The Riot API is Currently Unavailable")
+
+@client.tree.command(name="horoscope", description="Check your horoscope for a specific star sign")
+async def horoscope(interaction: discord.Interaction, sign: str):
+    given_sign = sign.lower()  # Convert to lowercase to match the dictionary
+
+    if given_sign in signs:
+        URL = "https://www.horoscope.com/us/horoscopes/general/horoscope-general-daily-today.aspx?sign=" + str(signs[given_sign])
+        r = requests.get(URL)
+        soup = BeautifulSoup(r.text, 'html.parser')
+
+        container = soup.find("p")
+
+        horoscope_text = container.text.strip()
+
+        embed = discord.Embed(title=f"Horoscope for {sign.capitalize()}", color=0x1364a1)
+        embed.add_field(name="Today's Horoscope", value=horoscope_text, inline=False)
+        embed.timestamp = datetime.datetime.utcnow()
+        embed.set_footer(text="Built By Goldiez" "\u2764\uFE0F")
+        await interaction.response.send_message(embed=embed)
+    else:
+        await interaction.response.send_message(f"Invalid star sign. Please choose one of the valid star signs.")
 
 client.run(os.getenv('TOKEN'))
