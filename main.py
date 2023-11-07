@@ -49,7 +49,7 @@ async def on_ready():
 @client.tree.command(name="help", description="Lists all available commands")
 async def help(interaction: discord.Interaction):
     guild_count = len(client.guilds)
-    embed = discord.Embed(title=f"NexusBot - Trusted by {guild_count} servers", color=0x1364a1)
+    embed = discord.Embed(title=f"NexusBot - Trusted by {guild_count} servers", color=0xdd4f7a)
     embed.add_field(name="CSGO Lifetime Stats", value="`/csgo <username>`")
     embed.add_field(name="Apex Legends Lifetime Stats",
                     value="`/apex <username> <xbl/psn/origin>`")
@@ -78,7 +78,7 @@ async def csgo(interaction: discord.Interaction, name: str = None):
             stats = segments['stats']
 
             embed = discord.Embed(title=f"CSGO - Lifetime Overview",
-                                  url=f"https://tracker.gg/csgo/profile/steam/{name}", color=0x1364a1)
+                                  url=f"https://tracker.gg/csgo/profile/steam/{name}", color=0xdd4f7a)
             
             print(f'{client.user} has retrieved your CSGO stats!')
 
@@ -116,7 +116,7 @@ async def apex(interaction: discord.Interaction, name: str = None, platform: str
         stats = segments['stats']
 
         embed = discord.Embed(title=f"Apex Legends - Lifetime Overview",
-                              url=f"https://apex.tracker.gg/apex/profile/{platform}/{name}", color=0x1364a1)
+                              url=f"https://apex.tracker.gg/apex/profile/{platform}/{name}", color=0xdd4f7a)
         
         print(f'{client.user} has retrieved your Apex stats!')
 
@@ -150,7 +150,7 @@ async def league(interaction: discord.Interaction, *, summoner: str):
     level = int(summoner['summonerLevel'])
     icon = int(summoner['profileIconId'])
     embed = discord.Embed(
-        title=f"League of Legends - Player Stats", color=0x1364a1)
+        title=f"League of Legends - Player Stats", color=0xdd4f7a)
     print(f'{client.user} has retrieved your LoL stats!')
     embed.set_thumbnail(
         url=f"https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/{icon}.jpg")
@@ -184,7 +184,7 @@ async def fortnite(interaction: discord.Interaction, *, name: str):
         account = stats['account']
         battlePass = stats['battlePass']
 
-        embed = discord.Embed(title=f"Fortnite - Player Stats", color=0x1364a1)
+        embed = discord.Embed(title=f"Fortnite - Player Stats", color=0xdd4f7a)
         print(f'{client.user} has retrieved Fortnite stats!')
 
         embed.add_field(name="Account", value=f"Name: {account['name']}\nLevel: {battlePass['level']}")
@@ -217,7 +217,7 @@ async def horoscope(interaction: discord.Interaction, sign: str):
 
         horoscope_text = container.text.strip()
 
-        embed = discord.Embed(title=f"Horoscope for {sign.capitalize()}", color=0x1364a1)
+        embed = discord.Embed(title=f"Horoscope for {sign.capitalize()}", color=0xdd4f7a)
         embed.add_field(name="Today's Horoscope", value=horoscope_text, inline=False)
         embed.timestamp = datetime.datetime.utcnow()
         embed.set_footer(text="Built By Goldiez" "\u2764\uFE0F")
