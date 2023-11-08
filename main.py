@@ -3,6 +3,7 @@ import discord
 import os
 from discord.ext import commands
 import requests
+from typing import Literal
 from dotenv import load_dotenv
 from riotwatcher import LolWatcher
 from bs4 import BeautifulSoup
@@ -205,24 +206,22 @@ async def p_error(interaction: discord.Interaction, error):
         await interaction.response.send_message("Failed to retrieve LoL stats. The Riot API is Currently Unavailable")
 
 @client.tree.command(name="horoscope", description="Check your horoscope for a specific star sign")
-async def horoscope(interaction: discord.Interaction, sign: str):
-    given_sign = sign.lower()  # Convert to lowercase to match the dictionary
+async def horoscope(interaction: discord.Interaction, sign: Literal['aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces']):
+    given_sign = sign.lower()  # Convert to lowercase to match the URL format
 
-    if given_sign in signs:
-        URL = "https://www.horoscope.com/us/horoscopes/general/horoscope-general-daily-today.aspx?sign=" + str(signs[given_sign])
-        r = requests.get(URL)
-        soup = BeautifulSoup(r.text, 'html.parser')
+    URL = "https://www.horoscope.com/us/horoscopes/general/horoscope-general-daily-today.aspx?sign=" + str(signs[given_sign])
 
-        container = soup.find("p")
+    r = requests.get(URL)
+    soup = BeautifulSoup(r.text, 'html.parser')
 
-        horoscope_text = container.text.strip()
+    container = soup.find("p")
 
-        embed = discord.Embed(title=f"Horoscope for {sign.capitalize()}", color=0xdd4f7a)
-        embed.add_field(name="Today's Horoscope", value=horoscope_text, inline=False)
-        embed.timestamp = datetime.datetime.utcnow()
-        embed.set_footer(text="Built By Goldiez" "\u2764\uFE0F")
-        await interaction.response.send_message(embed=embed)
-    else:
-        await interaction.response.send_message(f"Invalid star sign. Please choose one of the valid star signs.")
+    horoscope_text = container.text.strip()
+
+    embed = discord.Embed(title=f"Horoscope for {sign.capitalize()}", color=0xdd4f7a)
+    embed.add_field(name="Today's Horoscope", value=horoscope_text, inline=False)
+    embed.timestamp = datetime.datetime.utcnow()
+    embed.set_footer(text="Built By Goldiez" "\u2764\uFE0F")
+    await interaction.response.send_message(embed=embed)
 
 client.run(os.getenv('TOKEN'))
