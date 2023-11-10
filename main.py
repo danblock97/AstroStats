@@ -51,7 +51,6 @@ async def on_ready():
 async def help(interaction: discord.Interaction):
     guild_count = len(client.guilds)
     embed = discord.Embed(title=f"NexusBot - Trusted by {guild_count} servers", color=0xdd4f7a)
-    embed.add_field(name="CSGO Lifetime Stats", value="`/csgo <username>`")
     embed.add_field(name="Apex Legends Lifetime Stats",
                     value="`/apex <username> <xbl/psn/origin>`")
     embed.add_field(name="LoL Player Stats",
@@ -61,42 +60,6 @@ async def help(interaction: discord.Interaction):
     embed.timestamp = datetime.datetime.utcnow()
     embed.set_footer(text="Built By Goldiez" "\u2764\uFE0F")
     await interaction.response.send_message(embed=embed)
-
-
-@client.tree.command(name="csgo", description="Check your CSGO Lifetime Stats")
-async def csgo(interaction: discord.Interaction, name: str = None):
-    if name is None:
-        await interaction.response.send_message("`/apex <username>`")
-        return
-
-    response = requests.get(f"https://public-api.tracker.gg/v2/csgo/standard/profile/steam/{name}",
-                            headers={"TRN-Api-Key": os.getenv('TRN-Api-Key')})
-
-    if response.status_code == 200:
-        try:
-            data = response.json()
-            segments = data['data']['segments'][0]
-            stats = segments['stats']
-
-            embed = discord.Embed(title=f"CSGO - Lifetime Overview",
-                                  url=f"https://tracker.gg/csgo/profile/steam/{name}", color=0xdd4f7a)
-            
-            print(f'{client.user} has retrieved your CSGO stats!')
-
-            for key, value in stats.items():
-                if isinstance(value, dict):
-                    embed.add_field(
-                        name=value['displayName'], value=value['displayValue'], inline=True)
-
-            embed.timestamp = datetime.datetime.utcnow()
-            embed.set_footer(text="Built By Goldiez" "\u2764\uFE0F")
-
-            await interaction.response.send_message(embed=embed)
-
-        except (KeyError, ValueError):
-            await interaction.response.send_message("Failed to retrieve CSGO stats.")
-    else:
-        await interaction.response.send_message("Failed to retrieve your CSGO stats. The TRN API is Currently Unavailable")
 
 
 @client.tree.command(name="apex", description="Check your Apex Lifetime Stats")
