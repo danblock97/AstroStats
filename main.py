@@ -1,7 +1,8 @@
 import datetime
 import discord
 import os
-from discord.ext import commands, tasks
+from discord.ext import commands
+import requests
 from typing import Literal
 from dotenv import load_dotenv
 from riotwatcher import LolWatcher
@@ -31,9 +32,6 @@ load_dotenv()
 key = os.getenv('RIOT_API')
 lolWatcher = LolWatcher(key)
 
-# Dictionary to store message counts and channel names for each server
-server_info = {}
-
 
 @client.event
 async def on_ready():
@@ -47,33 +45,6 @@ async def on_ready():
     presence = discord.Activity(type=discord.ActivityType.playing, name=f"on {guild_count} servers")
     await client.change_presence(activity=presence)
 
-    # Start the background task to check message count every 5 minutes
-    check_message_count.start()
-
-
-@tasks.loop(minutes=5)
-async def check_message_count():
-    for guild_id, info in server_info.items():
-        count, channel_name = info
-        if count % 5 == 0:
-            guild = client.get_guild(guild_id)
-            if guild:
-                channel = discord.utils.get(guild.text_channels, name=channel_name)
-                if channel:
-                    await channel.send("If you're enjoying AstroStats, please consider leaving a review on Top.gg! "
-                                       "https://top.gg/bot/1088929834748616785#reviews")
-
-
-@client.event
-async def on_message(message):
-    # Increment the message count and store channel name for the server
-    guild_id = message.guild.id
-    channel_name = message.channel.name
-    server_info[guild_id] = server_info.get(guild_id, [0, channel_name])
-    server_info[guild_id][0] += 1
-
-    # Process commands
-    await client.process_commands(message)
 
 
 @client.tree.command(name="help", description="Lists all available commands")
@@ -90,6 +61,11 @@ async def help(interaction: discord.Interaction):
     embed.set_footer(text="Built By Goldiez" "\u2764\uFE0F")
     await interaction.response.send_message(embed=embed)
 
+@client.tree.command(name="review", description="Leave a review on Top.gg")
+async def review(interaction: discord.Interaction):
+    review_message = "If you're enjoying AstroStats, please consider leaving a review on Top.gg! " \
+                     "https://top.gg/bot/1088929834748616785#reviews"
+    await interaction.response.send_message(review_message)
 
 @client.tree.command(name="apex", description="Check your Apex Lifetime Stats")
 async def apex(interaction: discord.Interaction, name: str = None, platform: str = None):
@@ -215,9 +191,5 @@ async def horoscope(interaction: discord.Interaction, sign: Literal['aries', 'ta
     embed.timestamp = datetime.datetime.utcnow()
     embed.set_footer(text="Built By Goldiez" "\u2764\uFE0F")
     await interaction.response.send_message(embed=embed)
-
-@client.event
-async def on_disconnect():
-    check_message_count.stop()
 
 client.run(os.getenv('TOKEN'))
