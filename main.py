@@ -36,6 +36,11 @@ lolWatcher = LolWatcher(key)
 @client.event
 async def on_ready():
     print(f'{client.user} has connected to Discord!')
+
+    # Get the list of servers the bot is a member of
+    servers = client.guilds
+    for server in servers:
+        print(f'Bot is a member of: {server.name} ({server.id})')
     try:
         synced = await client.tree.sync()
         print(f"Commands Synced")
@@ -45,7 +50,14 @@ async def on_ready():
     presence = discord.Activity(type=discord.ActivityType.playing, name=f"on {guild_count} servers")
     await client.change_presence(activity=presence)
 
-
+@client.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandNotFound):
+        # Log the guild ID and the command that was not found
+        print(f'CommandNotFound in Guild {ctx.guild.id}: {ctx.message.content}')
+    else:
+        # Handle other errors as needed
+        pass
 
 @client.tree.command(name="help", description="Lists all available commands")
 async def help(interaction: discord.Interaction):
