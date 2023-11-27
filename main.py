@@ -56,9 +56,18 @@ async def on_command_error(ctx, error):
         # Log the guild ID and the command that was not found
         print(f'CommandNotFound in Guild {ctx.guild.id}: {ctx.message.content}')
     else:
-        # Handle other errors as needed
         pass
+    
+# Get the blacklisted server IDs from the .env file
+blacklisted_server_ids = [int(server_id) for server_id in os.getenv('BLACKLISTED_SERVER_IDS', '').split(',')]
 
+@client.event
+async def on_invite_create(invite):
+    # Check if the server ID is in the whitelist
+    if invite.guild.id not in blacklisted_server_ids:
+        await invite.delete()
+        print(f"Removed invite for server {invite.guild.id} from {invite.inviter.id} due to blacklist restrictions.")
+    
 @client.tree.command(name="help", description="Lists all available commands")
 async def help(interaction: discord.Interaction):
     guild_count = len(client.guilds)
