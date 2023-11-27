@@ -24,7 +24,7 @@ signs = {
     "pisces": 12,
 }
 
-client = commands.Bot(command_prefix="!", help_command=None,
+client = commands.Bot(command_prefix="/", help_command=None,
                       intents=discord.Intents.all())
 
 load_dotenv()
