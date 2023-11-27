@@ -71,7 +71,7 @@ async def on_invite_create(invite):
 @client.tree.command(name="help", description="Lists all available commands")
 async def help(interaction: discord.Interaction):
     guild_count = len(client.guilds)
-    embed = discord.Embed(title=f"NexusBot - Trusted by {guild_count} servers", color=0xdd4f7a)
+    embed = discord.Embed(title=f"AstroStats - Trusted by {guild_count} servers", color=0xdd4f7a)
     embed.add_field(name="Apex Legends Lifetime Stats",
                     value="`/apex <username> <xbl/psn/origin>`")
     embed.add_field(name="LoL Player Stats",
