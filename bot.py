@@ -2,8 +2,8 @@ import discord
 from discord.ext import commands
 import os
 from dotenv import load_dotenv
+import asyncio
 from commands import apex, league, fortnite, horoscope, help, review
-# Import other command modules as needed
 
 # Load environment variables
 load_dotenv()
@@ -35,9 +35,15 @@ async def on_ready():
     except Exception as e:
         print(e)
 
-    guild_count = len(client.guilds)
-    presence = discord.Activity(type=discord.ActivityType.playing, name=f"on {guild_count} servers")
-    await client.change_presence(activity=presence)
+    await update_presence()  # Call the function to set initial presence
+
+# Function to update the bot's presence
+async def update_presence():
+    while True:
+        guild_count = len(client.guilds)
+        presence = discord.Activity(type=discord.ActivityType.playing, name=f"on {guild_count} servers")
+        await client.change_presence(activity=presence)
+        await asyncio.sleep(18000)  # Update every 5 hours
 
 # Event for handling command errors
 @client.event
