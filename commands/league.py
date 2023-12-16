@@ -32,3 +32,7 @@ async def league(interaction: discord.Interaction, *, summoner: str):
     except Exception as e:
         error_message = "Please use your old Summoner Name for now.. Riot Names are not implemented yet."
         await interaction.response.send_message(error_message)
+
+
+def setup(client):
+    client.tree.command(name="league", description="Check your LoL Player Stats")(league)
