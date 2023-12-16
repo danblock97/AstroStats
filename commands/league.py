@@ -3,11 +3,39 @@ import datetime
 from riotwatcher import LolWatcher
 import os
 
-async def league(interaction: discord.Interaction, *, summoner: str):
+async def league(interaction: discord.Interaction, region: str, *, summoner: str):
+    # Define a dictionary to map region names to Riot API region codes
+    region_mapping = {
+        "b1": "br1",
+        "eun": "eun1",
+        "euw": "euw1",
+        "jp": "jp1",
+        "kr": "kr",
+        "lan": "la1",
+        "las": "la2",
+        "na": "na1",
+        "oc": "oc1",
+        "tr": "tr1",
+        "ru": "ru",
+        "ph": "ph2",
+        "sg": "sg2",
+        "th": "th2",
+        "tw": "tw2",
+        "vn": "vn2",
+    }
+
+    # Check if the provided region is valid
+    if region.lower() not in region_mapping:
+        await interaction.response.send_message("Invalid region. Please use a valid region code (e.g., 'na', 'euw').")
+        return
+
     try:
+        # Get the Riot API region code from the dictionary
+        riot_region = region_mapping[region.lower()]
+
         lolWatcher = LolWatcher(os.getenv('RIOT_API'))
-        summoner = lolWatcher.summoner.by_name('euw1', summoner)
-        stats = lolWatcher.league.by_summoner('euw1', summoner['id'])
+        summoner = lolWatcher.summoner.by_name(riot_region, summoner)
+        stats = lolWatcher.league.by_summoner(riot_region, summoner['id'])
 
         num = 0 if stats[0]['queueType'] == 'RANKED_SOLO_5x5' else 1
         tier = stats[num]['tier']
@@ -32,6 +60,7 @@ async def league(interaction: discord.Interaction, *, summoner: str):
     except Exception as e:
         error_message = "Please use your old Summoner Name for now.. Riot Names are not implemented yet."
         await interaction.response.send_message(error_message)
+
 
 
 def setup(client):
