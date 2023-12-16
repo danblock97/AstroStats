@@ -7,6 +7,7 @@ async def help(interaction: discord.Interaction):
     embed.add_field(name="Apex Legends Lifetime Stats", value="`/apex <username> <xbl/psn/origin>`")
     embed.add_field(name="LoL Player Stats", value="`/profile <summoner name>`")
     embed.add_field(name="Fortnite Player Stats", value="`/fortnite <name>`")
+    embed.add_field(name="Horoscope", value="`/horoscope <sign>`")
     embed.timestamp = datetime.datetime.utcnow()
     embed.set_footer(text="Built By Goldiez" "\u2764\uFE0F")
     await interaction.response.send_message(embed=embed)
