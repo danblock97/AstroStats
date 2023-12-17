@@ -3,10 +3,14 @@ from discord.ext import commands
 import os
 from dotenv import load_dotenv
 import asyncio
+import logging
 from commands import apex, league, fortnite, horoscope, help, review
 
 # Load environment variables
 load_dotenv()
+
+# Set the logging level to WARNING
+logging.basicConfig(level=logging.WARNING)
 
 # Create the bot instance
 client = commands.Bot(command_prefix="/", help_command=None, intents=discord.Intents.all())
