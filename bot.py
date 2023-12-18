@@ -9,8 +9,8 @@ from commands import apex, league, fortnite, horoscope, help, review
 # Load environment variables
 load_dotenv()
 
-# Set the logging level to WARNING
-logging.basicConfig(level=logging.WARNING)
+logger = logging.getLogger('discord.gateway')
+logger.setLevel(logging.ERROR)  # Maybe fix as server grows
 
 # Create the bot instance
 client = commands.Bot(command_prefix="/", help_command=None, intents=discord.Intents.all())
