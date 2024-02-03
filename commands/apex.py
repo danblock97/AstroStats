@@ -4,7 +4,6 @@ import requests
 import os
 
 async def apex(interaction: discord.Interaction, name: str = None, platform: str = None):
-    print(f"Apex command called with username: {name} and platform: {platform}")
     if name is None:
         await interaction.response.send_message("`/apex <username>`")
         return

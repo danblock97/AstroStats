@@ -4,7 +4,6 @@ from riotwatcher import LolWatcher
 import os
 
 async def league(interaction: discord.Interaction, region: str, *, summoner: str):
-    print(f"League command called with region: {region} and summoner: {summoner}")
     # Define a dictionary to map region names to Riot API region codes
     region_mapping = {
         "b1": "br1",

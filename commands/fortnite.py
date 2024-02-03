@@ -5,7 +5,6 @@ import requests
 import os
 
 async def fortnite(interaction: discord.Interaction, *, name: str):
-    print(f"Fortnite command called with username: {name}")
     response = requests.get(f"https://fortnite-api.com/v2/stats/br/v2?timeWindow=season&name={name}",
                             headers={"Authorization": os.getenv('FORTNITE_API_KEY')})
 

@@ -49,24 +49,6 @@ async def update_presence():
         await client.change_presence(activity=presence)
         await asyncio.sleep(18000)  # Update every 5 hours
 
-# Event for handling command errors
-@client.event
-async def on_command_error(ctx, error):
-    if isinstance(error, commands.CommandNotFound):
-        print(f'CommandNotFound in Guild {ctx.guild.id}: {ctx.message.content}')
-    else:
-        pass
-
-# Get blacklisted server IDs from the .env file
-blacklisted_server_ids = [int(server_id) for server_id in os.getenv('BLACKLISTED_SERVER_IDS', '').split(',')]
-
-# Event for handling invite creation
-@client.event
-async def on_invite_create(invite):
-    if invite.guild.id not in blacklisted_server_ids:
-        await invite.delete()
-        print(f"Removed invite for server {invite.guild.id} from {invite.inviter.id} due to blacklist restrictions.")
-
 # Event for handling interaction errors
 @client.event
 async def p_error(interaction: discord.Interaction, error):

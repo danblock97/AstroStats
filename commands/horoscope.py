@@ -20,7 +20,6 @@ signs = {
 }
 
 async def horoscope(interaction: discord.Interaction, sign: Literal['aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces']):
-    print(f"Horoscope command called with sign: {sign}")
     given_sign = sign.lower()  # Convert to lowercase to match the URL format
 
     URL = "https://www.horoscope.com/us/horoscopes/general/horoscope-general-daily-today.aspx?sign=" + str(signs[given_sign])

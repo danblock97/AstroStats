@@ -1,7 +1,6 @@
 import discord
 
 async def review(interaction: discord.Interaction):
-    print(f"Review Command Called")
     review_message = "If you're enjoying AstroStats, please consider leaving a review on Top.gg! " \
                      "https://top.gg/bot/1088929834748616785#reviews"
     await interaction.response.send_message(review_message)
