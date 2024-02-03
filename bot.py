@@ -28,11 +28,6 @@ review.setup(client)
 async def on_ready():
     print(f'{client.user} has connected to Discord!')
 
-    # Get the list of servers the bot is a member of
-    servers = client.guilds
-    for server in servers:
-        print(f'Bot is a member of: {server.name} ({server.id})')
-
     try:
         synced = await client.tree.sync()
         print(f"Commands Synced")
