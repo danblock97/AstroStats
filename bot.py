@@ -4,7 +4,7 @@ import os
 from dotenv import load_dotenv
 import asyncio
 import logging
-from commands import apex, league, fortnite, horoscope, help, review
+from commands import apex, league, fortnite, horoscope, help, review, servers, kick
 
 # Load environment variables
 load_dotenv()
@@ -13,13 +13,16 @@ logger = logging.getLogger('discord.gateway')
 logger.setLevel(logging.ERROR)  # Maybe fix as server grows
 
 # Create the bot instance
-client = commands.Bot(command_prefix="/", help_command=None, intents=discord.Intents.all())
+intents = discord.Intents.all()
+client = commands.Bot(command_prefix="/", help_command=None, intents=intents)
 
 # Setup command modules
 apex.setup(client)
 league.setup(client)
 fortnite.setup(client)
 horoscope.setup(client)
+# servers.setup(client)
+# kick.setup(client)
 help.setup(client)
 review.setup(client)
 
@@ -29,6 +32,7 @@ async def on_ready():
     print(f'{client.user} has connected to Discord!')
 
     try:
+        await client.wait_until_ready()  # Wait until the bot is fully connected
         synced = await client.tree.sync()
         print(f"Commands Synced")
     except Exception as e:
