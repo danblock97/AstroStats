@@ -1,9 +1,11 @@
 import discord
 import datetime
 import requests
+from typing import Literal
 import os
 
-async def apex(interaction: discord.Interaction, name: str = None, platform: str = None):
+async def apex(interaction: discord.Interaction, platform: Literal['xbl', 'psn', 'origin'], name: str = None,):
+    format
     if name is None:
         await interaction.response.send_message("`/apex <username>`")
         return
@@ -30,7 +32,7 @@ async def apex(interaction: discord.Interaction, name: str = None, platform: str
             embed.set_footer(text="Built By Goldiez" "\u2764\uFE0F")
         await interaction.response.send_message(embed=embed)
     else:
-        await interaction.response.send_message("Failed to retrieve your Apex stats. The TRN API is Currently Unavailable")
+        await interaction.response.send_message("Failed to retrieve your Apex stats. Please ensure your name matches what you see in game and platform matches the platform you play on.")
 
 def setup(client):
     client.tree.command(name="apex", description="Check your Apex Lifetime Stats")(apex)
