@@ -9,6 +9,9 @@ from commands import apex, league, fortnite, horoscope, help, review, servers, k
 # Load environment variables
 load_dotenv()
 
+# Get the blacklisted guild IDs from the environment variable
+blacklisted_guilds = set(map(int, os.getenv('BLACKLISTED_GUILDS', '').split(',')))
+
 logger = logging.getLogger('discord.gateway')
 logger.setLevel(logging.ERROR)  # Maybe fix as server grows
 
@@ -53,6 +56,13 @@ async def update_presence():
 async def p_error(interaction: discord.Interaction, error):
     if isinstance(error, commands.MissingRequiredArguments):
         await interaction.response.send_message('Missing required arguments.')
+
+# Event for checking if the guild is blacklisted before joining
+@client.event
+async def on_guild_join(guild):
+    if guild.id in blacklisted_guilds:
+        await guild.leave()
+        print(f"Left blacklisted guild: {guild.name} ({guild.id})")
 
 # Start the bot
 client.run(os.getenv('TOKEN'))
