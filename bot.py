@@ -10,7 +10,8 @@ from commands import apex, league, fortnite, horoscope, help, review, servers, k
 load_dotenv()
 
 # Get the blacklisted guild IDs from the environment variable
-blacklisted_guilds = set(map(int, os.getenv('BLACKLISTED_GUILDS', '').split(',')))
+blacklisted_guilds = set(map(int, os.getenv('BLACKLISTED_GUILDS', None).split(','))) if os.getenv('BLACKLISTED_GUILDS') else set()
+
 
 logger = logging.getLogger('discord.gateway')
 logger.setLevel(logging.ERROR)  # Maybe fix as server grows
