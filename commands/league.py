@@ -1,37 +1,37 @@
 import discord
 import datetime
 from riotwatcher import LolWatcher
+from typing import Literal
 import os
 
-async def league(interaction: discord.Interaction, region: str, *, summoner: str):
-    # Define a dictionary to map region names to Riot API region codes
+Region = Literal['Brazil', 'Europe Nordic & East', 'Europe', 'Japan', 'Korea', 'Latin America North', 'Latin America South', 'North America', 'Oceania', 'Turkey', 'Russia', 'Philippines', 'Singapore']
+
+async def league(interaction: discord.Interaction, region: Region, *, summoner: str):
+    # Define a dictionary to map display names to Riot API region codes
     region_mapping = {
-        "b1": "br1",
-        "eun": "eun1",
-        "euw": "euw1",
-        "jp": "jp1",
-        "kr": "kr",
-        "lan": "la1",
-        "las": "la2",
-        "na": "na1",
-        "oc": "oc1",
-        "tr": "tr1",
-        "ru": "ru",
-        "ph": "ph2",
-        "sg": "sg2",
-        "th": "th2",
-        "tw": "tw2",
-        "vn": "vn2",
+        "Brazil": "br1",
+        "Europe Nordic & East": "eun1",
+        "Europe": "euw1",
+        "Japan": "jp1",
+        "Korea": "kr",
+        "Latin America North": "la1",
+        "Latin America South": "la2",
+        "North America": "na1",
+        "Oceania": "oc1",
+        "Turkey": "tr1",
+        "Russia": "ru",
+        "Philippines": "ph2",
+        "Singapore": "sg2",
     }
 
     # Check if the provided region is valid
-    if region.lower() not in region_mapping:
-        await interaction.response.send_message("Invalid region. Please use a valid region code (e.g., 'na', 'euw').")
+    if region not in region_mapping:
+        await interaction.response.send_message("Invalid region. Please use a valid region name.")
         return
 
     try:
         # Get the Riot API region code from the dictionary
-        riot_region = region_mapping[region.lower()]
+        riot_region = region_mapping[region]
 
         lolWatcher = LolWatcher(os.getenv('RIOT_API'))
         summoner = lolWatcher.summoner.by_name(riot_region, summoner)
@@ -60,8 +60,6 @@ async def league(interaction: discord.Interaction, region: str, *, summoner: str
     except Exception as e:
         error_message = "Please use your old Summoner Name for now.. Riot Names are not implemented yet."
         await interaction.response.send_message(error_message)
-
-
 
 def setup(client):
     client.tree.command(name="league", description="Check your LoL Player Stats")(league)
