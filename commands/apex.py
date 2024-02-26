@@ -50,14 +50,14 @@ async def Apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
 
         if active_legend_data:
             # Extract specific legend stats and cast to integers
-            LegendHeadshots = int(active_legend_data['stats']['headshots']['value']) if 'headshots' in active_legend_data['stats'] and active_legend_data['stats']['headshots']['value'] != 'N/A' else 'N/A'
-            LegendDamage = int(active_legend_data['stats']['damage']['value']) if 'damage' in active_legend_data['stats'] and active_legend_data['stats']['damage']['value'] != 'N/A' else 'N/A'
-            LegendKills = int(active_legend_data['stats']['kills']['value']) if 'kills' in active_legend_data['stats'] and active_legend_data['stats']['kills']['value'] != 'N/A' else 'N/A'
+            LegendHeadshots = int(active_legend_data['stats']['headshots']['value']) if 'headshots' in active_legend_data['stats'] and active_legend_data['stats']['headshots']['value'] != 0 else 0
+            LegendDamage = int(active_legend_data['stats']['damage']['value']) if 'damage' in active_legend_data['stats'] and active_legend_data['stats']['damage']['value'] != 0 else 0
+            LegendKills = int(active_legend_data['stats']['kills']['value']) if 'kills' in active_legend_data['stats'] and active_legend_data['stats']['kills']['value'] != 0 else 0
 
 
         else:
             # If no matching legend is found, set stats to N/A
-            LegendHeadshots = LegendDamage = LegendKills = 'N/A'
+            LegendHeadshots = LegendDamage = LegendKills = 0
 
         # Function to determine if the percentile is in the top or bottom
         def get_percentile_label(percentile):
@@ -67,25 +67,25 @@ async def Apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
                 else:
                     return 'Top' if percentile >= 50 else 'Bottom'
             else:
-                return 'N/A'
+                return 0
 
         embed = discord.Embed(color=0xdd4f7a)
-        embed.set_author(name="Apex Legends - Lifetime Overview", url=f"https://apex.tracker.gg/apex/profile/{api_platform}/{name}/overview")
+        embed.set_author(name=f"Apex Legends - {name}", url=f"https://apex.tracker.gg/apex/profile/{api_platform}/{name}/overview")
 
         embed.set_thumbnail(url=f"{ranked['metadata']['iconUrl']}")
 
-        embed.add_field(name="Lifetime", value=f"Level: **{int(lifetime.get('level', {}).get('value', 'N/A')):,}** ({get_percentile_label(lifetime.get('level', {}).get('percentile', 'N/A'))} {int(lifetime.get('level', {}).get('percentile', 'N/A'))}%)"
-                                               f"\nKills: **{int(lifetime.get('kills', {}).get('value', 'N/A')):,}** ({get_percentile_label(lifetime.get('kills', {}).get('percentile', 'N/A'))} {int(lifetime.get('kills', {}).get('percentile', 'N/A'))}%)"
-                                               f"\nDamage: **{int(lifetime.get('damage', {}).get('value', 'N/A')):,}** ({get_percentile_label(lifetime.get('damage', {}).get('percentile', 'N/A'))} {int(lifetime.get('damage', {}).get('percentile', 'N/A'))}%)"
-                                               f"\nMatches Played: **{int(lifetime.get('matchesPlayed', {}).get('value', 'N/A')):,}**"
-                                               f"\nArena Winstreak: **{int(lifetime.get('arenaWinStreak', {}).get('value', 'N/A')):,}**", inline=True)
+        embed.add_field(name="Lifetime", value=f"Level: **{int(lifetime.get('level', {}).get('value', 0)):,}** ({get_percentile_label(lifetime.get('level', {}).get('percentile', 0))} {int(lifetime.get('level', {}).get('percentile', 0))}%)"
+                                               f"\nKills: **{int(lifetime.get('kills', {}).get('value', 0)):,}** ({get_percentile_label(lifetime.get('kills', {}).get('percentile', 0))} {int(lifetime.get('kills', {}).get('percentile', 0))}%)"
+                                               f"\nDamage: **{int(lifetime.get('damage', {}).get('value', 0)):,}** ({get_percentile_label(lifetime.get('damage', {}).get('percentile', 0))} {int(lifetime.get('damage', {}).get('percentile', 0))}%)"
+                                               f"\nMatches Played: **{int(lifetime.get('matchesPlayed', {}).get('value', 0)):,}**"
+                                               f"\nArena Winstreak: **{int(lifetime.get('arenaWinStreak', {}).get('value', 0)):,}**", inline=True)
         embed.add_field(name="Ranked",
-                        value=f"**_Battle Royale Rank_**\n{ranked.get('metadata', {}).get('rankName', 'N/A')}: **{int(ranked.get('value', 'N/A')):,}**"
-                              f"\n# {int(ranked.get('rank', 'N/A')):,} • {int(ranked.get('percentile', 'N/A'))}%", inline=True)
+                        value=f"**_Battle Royale Rank_**\n{ranked.get('metadata', {}).get('rankName', 0)}: **{int(ranked.get('value', 0)):,}**"
+                              f"\n# {int(ranked.get('rank', 0)):,} • {int(ranked.get('percentile', 0))}%", inline=True)
         embed.add_field(name=f"{activeLegendName} - Currently Selected",
-                        value=f"Headshots: **{LegendHeadshots:,}** ({get_percentile_label(active_legend_data.get('stats', {}).get('kills', {}).get('percentile', 'N/A'))} {int(active_legend_data.get('stats', {}).get('kills', {}).get('percentile', 'N/A'))}%)"
-                              f"\nDamage: **{LegendDamage:,}** ({get_percentile_label(active_legend_data.get('stats', {}).get('damage', {}).get('percentile', 'N/A'))} {int(active_legend_data.get('stats', {}).get('damage', {}).get('percentile', 'N/A'))}%)"
-                              f"\nKills: **{LegendKills:,}** ({get_percentile_label(active_legend_data.get('stats', {}).get('headshots', {}).get('percentile', 'N/A'))} {int(active_legend_data.get('stats', {}).get('headshots', {}).get('percentile', 'N/A'))}%)", inline=False)
+                        value=f"Headshots: **{LegendHeadshots:,}** ({get_percentile_label(active_legend_data.get('stats', {}).get('kills', {}).get('percentile', 0))} {int(active_legend_data.get('stats', {}).get('kills', {}).get('percentile', 0))}%)"
+                              f"\nDamage: **{LegendDamage:,}** ({get_percentile_label(active_legend_data.get('stats', {}).get('damage', {}).get('percentile', 0))} {int(active_legend_data.get('stats', {}).get('damage', {}).get('percentile', 0))}%)"
+                              f"\nKills: **{LegendKills:,}** ({get_percentile_label(active_legend_data.get('stats', {}).get('headshots', {}).get('percentile', 0))} {int(active_legend_data.get('stats', {}).get('headshots', {}).get('percentile', 0))}%)", inline=False)
         embed.timestamp = datetime.datetime.utcnow()
         embed.set_footer(text="Built By Goldiez" "\u2764\uFE0F")
         await interaction.response.send_message(embed=embed)
