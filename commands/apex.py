@@ -77,8 +77,7 @@ async def Apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
                 return 0
 
         embed = discord.Embed(color=0xdd4f7a)
-        embed.set_author(name=f"Apex Legends - {
-                         name}", url=f"https://apex.tracker.gg/apex/profile/{api_platform}/{name}/overview")
+        embed.set_author(name=f"Apex Legends - {name}", url=f"https://apex.tracker.gg/apex/profile/{api_platform}/{name}/overview")
 
         embed.set_thumbnail(url=f"{ranked['metadata']['iconUrl']}")
 
