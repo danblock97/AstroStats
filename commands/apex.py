@@ -74,10 +74,12 @@ async def Apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
             else:
                 return 0
 
-        embed = discord.Embed(color=0xdd4f7a)
+        legend_color = active_legend_data.get('metadata', {}).get('legendColor', '#9B8651')
+        embed = discord.Embed(color=int(legend_color[1:], 16))
+
         embed.set_author(name=f"Apex Legends - {name}", url=f"https://apex.tracker.gg/apex/profile/{api_platform}/{name}/overview")
 
-        embed.set_thumbnail(url=f"{ranked['metadata']['iconUrl']}")
+        embed.set_thumbnail(url=f"{active_legend_data['metadata']['portraitImageUrl']}")
 
         embed.add_field(name="Lifetime", value=f"Level: **{int(lifetime.get('level', {}).get('value', 0)):,}** ({get_percentile_label(lifetime.get('level', {}).get('percentile', 0))} {int(lifetime.get('level', {}).get('percentile', 0))}%)"
                         f"\nKills: **{int(lifetime.get('kills', {}).get('value', 0)):,}** ({get_percentile_label(lifetime.get('kills', {}).get('percentile', 0))} {int(lifetime.get('kills', {}).get('percentile', 0))}%)"
@@ -97,10 +99,9 @@ async def Apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
         embed.add_field(name="Peak Rank",
                         value=f"**_Battle Royale Rank_**\n{peakRank.get('metadata', {}).get('rankName', 0)}: **{int(ranked.get('value', 0)):,}**", inline=True)
         
-        embed.add_field(name='**Need Support?**', value='**Join our** [\u200BDiscord Server](https://discord.gg/7vxSR9DMF7)', inline=False)
 
         embed.timestamp = datetime.datetime.utcnow()
-        embed.set_footer(text="Built By Goldiez ❤️")
+        embed.set_footer(text="Join our Discord Server for support. | Built By Goldiez ❤️")
         await interaction.response.send_message(embed=embed)
 
     except KeyError as e:

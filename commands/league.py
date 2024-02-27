@@ -57,9 +57,8 @@ async def league(interaction: discord.Interaction, region: Region, *, summoner: 
         embed.add_field(name="Ranked Solo/Duo",
                         value=f'{str(tier)} {str(rank)} {str(lp)} LP \n Winrate: {str(wr)}% \n Winstreak: {str(hotStreak)}')
         embed.add_field(name="Level", value=f'{str(level)}')
-        embed.add_field(name='**Need Support?**', value='**Join our** [\u200BDiscord Server](https://discord.gg/7vxSR9DMF7)', inline=False)
         embed.timestamp = datetime.datetime.utcnow()
-        embed.set_footer(text="Built By Goldiez ❤️")
+        embed.set_footer(text="Join our Discord Server for support. | Built By Goldiez ❤️")
 
         await interaction.response.send_message(embed=embed)
     except Exception as e:
