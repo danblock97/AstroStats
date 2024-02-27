@@ -36,10 +36,8 @@ async def horoscope(interaction: discord.Interaction, sign: SignLiteral):
 
     horoscope_text = container.text.strip()
 
-    embed = discord.Embed(title=f"Horoscope for {
-                          signs[given_sign]['display']}", color=0xdd4f7a)
-    embed.add_field(name="Today's Horoscope",
-                    value=horoscope_text, inline=False)
+    embed = discord.Embed(title=f"Horoscope for {signs[given_sign]['display']}", color=0xdd4f7a)
+    embed.add_field(name="Today's Horoscope", value=horoscope_text, inline=False)
     embed.timestamp = datetime.datetime.utcnow()
     embed.set_footer(text="Built By Goldiez" "\u2764\uFE0F")
     await interaction.response.send_message(embed=embed)
@@ -47,4 +45,5 @@ async def horoscope(interaction: discord.Interaction, sign: SignLiteral):
 
 def setup(client):
     client.tree.command(
-        name="horoscope", description="Check your Daily Horoscope")(horoscope)
+        name="horoscope", description="Check your Daily Horoscope"
+    )(horoscope)

@@ -6,8 +6,10 @@ import os
 
 
 async def fortnite(interaction: discord.Interaction, *, name: str):
-    response = requests.get(f"https://fortnite-api.com/v2/stats/br/v2?timeWindow=season&name={name}",
-                            headers={"Authorization": os.getenv('FORTNITE_API_KEY')})
+    response = requests.get(
+        f"https://fortnite-api.com/v2/stats/br/v2?timeWindow=season&name={name}",
+        headers={"Authorization": os.getenv('FORTNITE_API_KEY')}
+    )
 
     try:
         data = response.json()
@@ -22,8 +24,7 @@ async def fortnite(interaction: discord.Interaction, *, name: str):
 
         embed = discord.Embed(title=f"Fortnite - Player Stats", color=0xdd4f7a)
 
-        embed.add_field(name="Account", value=f"Name: {
-                        account['name']}\nLevel: {battlePass['level']}")
+        embed.add_field(name="Account", value=f"Name: {account['name']}\nLevel: {battlePass['level']}")
         embed.add_field(name="Season Stats",
                         value=f"Matches: {stats['stats']['all']['overall']['matches']}\nKills: {stats['stats']['all']['overall']['kills']}\nWins: {stats['stats']['all']['overall']['wins']}")
         embed.add_field(name="Match Placements",
@@ -38,4 +39,5 @@ async def fortnite(interaction: discord.Interaction, *, name: str):
 
 def setup(client):
     client.tree.command(
-        name="fortnite", description="Check your Fortnite Player Stats")(fortnite)
+        name="fortnite", description="Check your Fortnite Player Stats"
+    )(fortnite)

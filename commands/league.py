@@ -67,4 +67,5 @@ async def league(interaction: discord.Interaction, region: Region, *, summoner: 
 
 def setup(client):
     client.tree.command(
-        name="league", description="Check your LoL Player Stats")(league)
+        name="league", description="Check your LoL Player Stats"
+    )(league)

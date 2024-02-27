@@ -3,13 +3,11 @@ import os
 
 
 async def list_servers(interaction: discord.Interaction):
-    guild_info = [(guild.name, str(guild.id))
-                  for guild in interaction.client.guilds]
+    guild_info = [(guild.name, str(guild.id)) for guild in interaction.client.guilds]
     guild_list = "\n".join([f"{name} (ID: {id})" for name, id in guild_info])
 
     # Specify the file path within the "Documents" directory
-    file_path = os.path.join(os.path.expanduser(
-        "~"), "Documents", "server_list.txt")
+    file_path = os.path.join(os.path.expanduser("~"), "Documents", "server_list.txt")
 
     try:
         with open(file_path, "w", encoding="utf-8") as file:
@@ -21,4 +19,5 @@ async def list_servers(interaction: discord.Interaction):
 
 def setup(client):
     client.tree.command(
-        name="list_servers", description="List all servers the bot is in")(list_servers)
+        name="list_servers", description="List all servers the bot is in"
+    )(list_servers)

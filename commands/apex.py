@@ -31,8 +31,7 @@ async def Apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
         data = response.json()
 
         if 'data' not in data or 'segments' not in data['data']:
-            print(
-                f"Error: Invalid data structure in API response. Response: {data}")
+            print(f"Error: Invalid data structure in API response. Response: {data}")
             await interaction.response.send_message('Failed to retrieve Apex stats. The Apex API is Currently Unavailable')
             return
 
@@ -46,8 +45,7 @@ async def Apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
         ranked = segments[0]['stats']['rankScore']
         peakRank = segments[0]['stats']['lifetimePeakRankScore']
 
-        activeLegendName = data['data'].get(
-            'metadata', {}).get('activeLegendName', 'Unknown')
+        activeLegendName = data['data'].get('metadata', {}).get('activeLegendName', 'Unknown')
 
         # Find the legend in segments data whose name matches activeLegendName
         active_legend_data = next(
@@ -83,27 +81,21 @@ async def Apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
 
         embed.add_field(name="Lifetime", value=f"Level: **{int(lifetime.get('level', {}).get('value', 0)):,}** ({get_percentile_label(lifetime.get('level', {}).get('percentile', 0))} {int(lifetime.get('level', {}).get('percentile', 0))}%)"
                         f"\nKills: **{int(lifetime.get('kills', {}).get('value', 0)):,}** ({get_percentile_label(lifetime.get('kills', {}).get('percentile', 0))} {int(lifetime.get('kills', {}).get('percentile', 0))}%)"
-                        f"\nDamage: **{int(lifetime.get('damage', {}).get('value', 0)):,}** ({get_percentile_label(lifetime.get(
-                            'damage', {}).get('percentile', 0))} {int(lifetime.get('damage', {}).get('percentile', 0))}%)"
-                        f"\nMatches Played: **{
-                            int(lifetime.get('matchesPlayed', {}).get('value', 0)):,}**"
+                        f"\nDamage: **{int(lifetime.get('damage', {}).get('value', 0)):,}** ({get_percentile_label(lifetime.get('damage', {}).get('percentile', 0))} {int(lifetime.get('damage', {}).get('percentile', 0))}%)"
+                        f"\nMatches Played: **{int(lifetime.get('matchesPlayed', {}).get('value', 0)):,}**"
                         f"\nArena Winstreak: **{int(lifetime.get('arenaWinStreak', {}).get('value', 0)):,}**", inline=True)
 
         embed.add_field(name=f"{activeLegendName} - Currently Selected",
-                        value=f"Headshots: **{LegendHeadshots:,}** ({get_percentile_label(active_legend_data.get('stats', {}).get(
-                            'kills', {}).get('percentile', 0))} {int(active_legend_data.get('stats', {}).get('kills', {}).get('percentile', 0))}%)"
-                        f"\nDamage: **{LegendDamage:,}** ({get_percentile_label(active_legend_data.get('stats', {}).get('damage', {}).get(
-                            'percentile', 0))} {int(active_legend_data.get('stats', {}).get('damage', {}).get('percentile', 0))}%)"
+                        value=f"Headshots: **{LegendHeadshots:,}** ({get_percentile_label(active_legend_data.get('stats', {}).get('kills', {}).get('percentile', 0))} {int(active_legend_data.get('stats', {}).get('kills', {}).get('percentile', 0))}%)"
+                        f"\nDamage: **{LegendDamage:,}** ({get_percentile_label(active_legend_data.get('stats', {}).get('damage', {}).get('percentile', 0))} {int(active_legend_data.get('stats', {}).get('damage', {}).get('percentile', 0))}%)"
                         f"\nKills: **{LegendKills:,}** ({get_percentile_label(active_legend_data.get('stats', {}).get('headshots', {}).get('percentile', 0))} {int(active_legend_data.get('stats', {}).get('headshots', {}).get('percentile', 0))}%)", inline=True)
 
         embed.add_field(name="Current Rank",
-                        value=f"**_Battle Royale Rank_**\n{ranked.get('metadata', {}).get(
-                            'rankName', 0)}: **{int(ranked.get('value', 0)):,}**"
+                        value=f"**_Battle Royale Rank_**\n{ranked.get('metadata', {}).get('rankName', 0)}: **{int(ranked.get('value', 0)):,}**"
                         f"\n# {int(ranked.get('rank', 0)):,} • {int(ranked.get('percentile', 0))}%", inline=False)
 
         embed.add_field(name="Peak Rank",
-                        value=f"**_Battle Royale Rank_**\n{peakRank.get('metadata', {}).get(
-                            'rankName', 0)}: **{int(ranked.get('value', 0)):,}**", inline=True)
+                        value=f"**_Battle Royale Rank_**\n{peakRank.get('metadata', {}).get('rankName', 0)}: **{int(ranked.get('value', 0)):,}**", inline=True)
 
         embed.timestamp = datetime.datetime.utcnow()
         embed.set_footer(text="Built By Goldiez" "\u2764\uFE0F")
@@ -116,5 +108,4 @@ async def Apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
 
 
 def setup(client):
-    client.tree.command(
-        name="apex", description="Lists all available commands")(Apex)
+    client.tree.command(name="apex", description="Lists all available commands")(Apex)

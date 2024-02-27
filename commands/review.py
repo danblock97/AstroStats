@@ -9,4 +9,5 @@ async def review(interaction: discord.Interaction):
 
 def setup(client):
     client.tree.command(
-        name="review", description="Leave a review on Top.gg")(review)
+        name="review", description="Leave a review on Top.gg"
+    )(review)

@@ -15,4 +15,5 @@ async def kick_server(interaction: discord.Interaction, guild_id: str):
 
 def setup(client):
     client.tree.command(
-        name="kick_server", description="Kick the bot from a specific server")(kick_server)
+        name="kick_server", description="Kick the bot from a specific server"
+    )(kick_server)
