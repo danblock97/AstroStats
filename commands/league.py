@@ -58,7 +58,7 @@ async def league(interaction: discord.Interaction, region: Region, *, summoner: 
                         value=f'{str(tier)} {str(rank)} {str(lp)} LP \n Winrate: {str(wr)}% \n Winstreak: {str(hotStreak)}')
         embed.add_field(name="Level", value=f'{str(level)}')
         embed.timestamp = datetime.datetime.utcnow()
-        embed.set_footer(text="Built By Goldiez" "\u2764\uFE0F")
+        embed.set_footer(text="Built By Goldiez \u2764\uFE0F | Need support? Join our Discord server: [Click Here](https://discord.gg/7vxSR9DMF7)")
         await interaction.response.send_message(embed=embed)
     except Exception as e:
         error_message = "Please use your old Summoner Name for now.. Riot Names are not implemented yet."

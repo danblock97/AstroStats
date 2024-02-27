@@ -11,7 +11,7 @@ async def help(interaction: discord.Interaction):
     embed.add_field(name="Fortnite Player Stats", value="`/fortnite <name>`")
     embed.add_field(name="Horoscope", value="`/horoscope <sign>`")
     embed.timestamp = datetime.datetime.utcnow()
-    embed.set_footer(text="Built By Goldiez" "\u2764\uFE0F")
+    embed.set_footer(text="Built By Goldiez \u2764\uFE0F | Need support? Join our Discord server: [Click Here](https://discord.gg/7vxSR9DMF7)")
     await interaction.response.send_message(embed=embed)
 
 
