@@ -98,7 +98,7 @@ async def Apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
                         value=f"**_Battle Royale Rank_**\n{peakRank.get('metadata', {}).get('rankName', 0)}: **{int(ranked.get('value', 0)):,}**", inline=True)
 
         embed.timestamp = datetime.datetime.utcnow()
-        embed.set_footer(text="Built By Goldiez \u2764\uFE0F | Need support? Join our Discord server: [Click Here](https://discord.gg/7vxSR9DMF7)")
+        embed.set_footer(text="Built By Goldiez \u2764\uFE0F | Need support? Join our Discord server https://discord.gg/7vxSR9DMF7")
         await interaction.response.send_message(embed=embed)
 
     except KeyError as e:
