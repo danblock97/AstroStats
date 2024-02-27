@@ -29,8 +29,9 @@ async def fortnite(interaction: discord.Interaction, *, name: str):
                         value=f"Matches: {stats['stats']['all']['overall']['matches']}\nKills: {stats['stats']['all']['overall']['kills']}\nWins: {stats['stats']['all']['overall']['wins']}")
         embed.add_field(name="Match Placements",
                         value=f"Top 5: {stats['stats']['all']['overall']['top5']}\nTop 12: {stats['stats']['all']['overall']['top12']}")
+        embed.add_field(name='**Need Support?**', value='**Join our** [\u200BDiscord Server](https://discord.gg/7vxSR9DMF7)', inline=False)
         embed.timestamp = datetime.datetime.utcnow()
-        embed.set_footer(text="Built By Goldiez \u2764\uFE0F | Need support? Join our Discord server https://discord.gg/7vxSR9DMF7")
+        embed.set_footer(text="Built By Goldiez ❤️")
         await interaction.response.send_message(embed=embed)
 
     except (KeyError, ValueError):

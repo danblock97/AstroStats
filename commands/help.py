@@ -10,8 +10,9 @@ async def help(interaction: discord.Interaction):
     embed.add_field(name="LoL Player Stats", value="`/profile <summoner name>`")
     embed.add_field(name="Fortnite Player Stats", value="`/fortnite <name>`")
     embed.add_field(name="Horoscope", value="`/horoscope <sign>`")
+    embed.add_field(name='**Need Support?**', value='**Join our** [\u200BDiscord Server](https://discord.gg/7vxSR9DMF7)', inline=False)
     embed.timestamp = datetime.datetime.utcnow()
-    embed.set_footer(text="Built By Goldiez \u2764\uFE0F | Need support? Join our Discord server https://discord.gg/7vxSR9DMF7")
+    embed.set_footer(text="Built By Goldiez ❤️")
     await interaction.response.send_message(embed=embed)
 
 
