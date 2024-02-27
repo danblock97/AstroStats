@@ -1,5 +1,6 @@
 import discord
 
+
 async def kick_server(interaction: discord.Interaction, guild_id: str):
     try:
         guild = interaction.client.get_guild(int(guild_id))
@@ -11,5 +12,7 @@ async def kick_server(interaction: discord.Interaction, guild_id: str):
     except Exception as e:
         await interaction.response.send_message(f"Error kicking the bot from the server: {e}")
 
+
 def setup(client):
-    client.tree.command(name="kick_server", description="Kick the bot from a specific server")(kick_server)
+    client.tree.command(
+        name="kick_server", description="Kick the bot from a specific server")(kick_server)

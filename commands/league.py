@@ -4,7 +4,9 @@ from riotwatcher import LolWatcher
 from typing import Literal
 import os
 
-Region = Literal['Brazil', 'Europe Nordic & East', 'Europe', 'Japan', 'Korea', 'Latin America North', 'Latin America South', 'North America', 'Oceania', 'Turkey', 'Russia', 'Philippines', 'Singapore']
+Region = Literal['Brazil', 'Europe Nordic & East', 'Europe', 'Japan', 'Korea', 'Latin America North',
+                 'Latin America South', 'North America', 'Oceania', 'Turkey', 'Russia', 'Philippines', 'Singapore']
+
 
 async def league(interaction: discord.Interaction, region: Region, *, summoner: str):
     # Define a dictionary to map display names to Riot API region codes
@@ -48,7 +50,8 @@ async def league(interaction: discord.Interaction, region: Region, *, summoner: 
         level = int(summoner['summonerLevel'])
         icon = int(summoner['profileIconId'])
 
-        embed = discord.Embed(title=f"League of Legends - Player Stats", color=0xdd4f7a)
+        embed = discord.Embed(
+            title=f"League of Legends - Player Stats", color=0xdd4f7a)
         embed.set_thumbnail(
             url=f"https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/{icon}.jpg")
         embed.add_field(name="Ranked Solo/Duo",
@@ -61,5 +64,7 @@ async def league(interaction: discord.Interaction, region: Region, *, summoner: 
         error_message = "Please use your old Summoner Name for now.. Riot Names are not implemented yet."
         await interaction.response.send_message(error_message)
 
+
 def setup(client):
-    client.tree.command(name="league", description="Check your LoL Player Stats")(league)
+    client.tree.command(
+        name="league", description="Check your LoL Player Stats")(league)

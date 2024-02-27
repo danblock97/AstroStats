@@ -10,7 +10,8 @@ from commands import apex, league, fortnite, horoscope, help, review, servers, k
 load_dotenv()
 
 # Get the blacklisted guild IDs from the environment variable
-blacklisted_guilds = set(map(int, os.getenv('BLACKLISTED_GUILDS', None).split(','))) if os.getenv('BLACKLISTED_GUILDS') else set()
+blacklisted_guilds = set(map(int, os.getenv('BLACKLISTED_GUILDS', None).split(
+    ','))) if os.getenv('BLACKLISTED_GUILDS') else set()
 
 
 logger = logging.getLogger('discord.gateway')
@@ -31,6 +32,8 @@ help.setup(client)
 review.setup(client)
 
 # Event for when the bot is ready
+
+
 @client.event
 async def on_ready():
     print(f'{client.user} has connected to Discord!')
@@ -45,20 +48,27 @@ async def on_ready():
     await update_presence()  # Call the function to set initial presence
 
 # Function to update the bot's presence
+
+
 async def update_presence():
     while True:
         guild_count = len(client.guilds)
-        presence = discord.Activity(type=discord.ActivityType.playing, name=f"on {guild_count} servers")
+        presence = discord.Activity(
+            type=discord.ActivityType.playing, name=f"on {guild_count} servers")
         await client.change_presence(activity=presence)
         await asyncio.sleep(18000)  # Update every 5 hours
 
 # Event for handling interaction errors
+
+
 @client.event
 async def p_error(interaction: discord.Interaction, error):
     if isinstance(error, commands.MissingRequiredArguments):
         await interaction.response.send_message('Missing required arguments.')
 
 # Event for checking if the guild is blacklisted before joining
+
+
 @client.event
 async def on_guild_join(guild):
     if guild.id in blacklisted_guilds:
