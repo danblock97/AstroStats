@@ -82,8 +82,7 @@ async def Apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
         embed.set_thumbnail(url=f"{ranked['metadata']['iconUrl']}")
 
         embed.add_field(name="Lifetime", value=f"Level: **{int(lifetime.get('level', {}).get('value', 0)):,}** ({get_percentile_label(lifetime.get('level', {}).get('percentile', 0))} {int(lifetime.get('level', {}).get('percentile', 0))}%)"
-                        f"\nKills: **{int(lifetime.get('kills', {}).get('value', 0)):,}** ({get_percentile_label(lifetime.get(
-                            'kills', {}).get('percentile', 0))} {int(lifetime.get('kills', {}).get('percentile', 0))}%)"
+                        f"\nKills: **{int(lifetime.get('kills', {}).get('value', 0)):,}** ({get_percentile_label(lifetime.get('kills', {}).get('percentile', 0))} {int(lifetime.get('kills', {}).get('percentile', 0))}%)"
                         f"\nDamage: **{int(lifetime.get('damage', {}).get('value', 0)):,}** ({get_percentile_label(lifetime.get(
                             'damage', {}).get('percentile', 0))} {int(lifetime.get('damage', {}).get('percentile', 0))}%)"
                         f"\nMatches Played: **{
