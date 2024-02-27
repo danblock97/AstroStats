@@ -100,18 +100,20 @@ async def Apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
             await interaction.response.send_message(embed=embed)
 
     except ValueError as e:
+        print(f"Error: {e}")
         if not interaction.response.is_done():
-            await interaction.response.send_message(f"Failed to retrieve Apex Legends stats. {e}")
+            await interaction.response.send_message(f"Oops! Something went wrong. {e}")
+
     except requests.exceptions.RequestException as e:
-        error_message = f"Failed to retrieve Apex Legends stats. Error: {e}"
-        print(f"Error: {error_message}")
-        if not interaction.response.is_done():
-            await interaction.response.send_message(error_message)
+     print(f"Error: {e}")
+     if not interaction.response.is_done():
+            await interaction.response.send_message("Sorry, I couldn't retrieve Apex Legends stats at the moment. Please try again later.")
+
     except Exception as e:
-        error_message = f"An unexpected error occurred: {e}"
-        print(f"Error: {error_message}")
+        print(f"Error: {e}")
         if not interaction.response.is_done():
-            await interaction.response.send_message(error_message)
+            await interaction.response.send_message("Oops! An unexpected error occurred while processing your request. Please try again later.")
+
 
 def setup(client):
     client.tree.command(name="apex", description="Lists all available commands")(Apex)
