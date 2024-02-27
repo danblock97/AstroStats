@@ -10,30 +10,29 @@ PLATFORM_MAPPING = {
     'Origin (PC)': 'origin',
 }
 
-
 async def Apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Playstation', 'Origin (PC)'], name: str = None):
-    if name is None:
-        await interaction.response.send_message("`/Apex <username>`")
-        return
-    if platform is None:
-        await interaction.response.send_message("`/Apex <Xbox/Playstation/Origin>`")
-        return
-
-    api_platform = PLATFORM_MAPPING.get(platform)
-    if not api_platform:
-        await interaction.response.send_message("Invalid platform. Please use Xbox, Playstation, or Origin.")
-        return
-
-    response = requests.get(f"https://public-api.tracker.gg/v2/apex/standard/profile/{api_platform}/{name}",
-                            headers={"TRN-Api-Key": os.getenv('TRN-Api-Key')})
-
     try:
+        if name is None:
+            raise ValueError("Please provide a username.")
+
+        if platform is None:
+            raise ValueError("Please provide a platform (Xbox, Playstation, Origin).")
+
+        api_platform = PLATFORM_MAPPING.get(platform)
+        if not api_platform:
+            raise ValueError("Invalid platform. Please use Xbox, Playstation, or Origin.")
+
+        response = requests.get(f"https://public-api.tracker.gg/v2/apex/standard/profile/{api_platform}/{name}",
+                                headers={"TRN-Api-Key": os.getenv('TRN-Api-Key')})
+
+        response.raise_for_status()
+
         data = response.json()
 
         if 'data' not in data or 'segments' not in data['data']:
-            print(f"Error: Invalid data structure in API response. Response: {data}")
-            await interaction.response.send_message('Failed to retrieve Apex stats. The Apex API is Currently Unavailable')
-            return
+            error_message = f"Invalid data structure in API response. Response: {data}"
+            print(f"Error: {error_message}")
+            raise ValueError(error_message)
 
         segments = data['data']['segments']
 
@@ -46,25 +45,19 @@ async def Apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
         peakRank = segments[0]['stats']['lifetimePeakRankScore']
 
         activeLegendName = data['data'].get('metadata', {}).get('activeLegendName', 'Unknown')
-
-        # Find the legend in segments data whose name matches activeLegendName
         active_legend_data = next(
             (legend for legend in segments if legend['metadata']['name'] == activeLegendName), None)
 
         if active_legend_data:
-            # Extract specific legend stats and cast to integers
             LegendHeadshots = int(active_legend_data['stats']['headshots']['value']
                                   ) if 'headshots' in active_legend_data['stats'] and active_legend_data['stats']['headshots']['value'] != 0 else 0
             LegendDamage = int(active_legend_data['stats']['damage']['value']
                                ) if 'damage' in active_legend_data['stats'] and active_legend_data['stats']['damage']['value'] != 0 else 0
             LegendKills = int(active_legend_data['stats']['kills']['value']
                               ) if 'kills' in active_legend_data['stats'] and active_legend_data['stats']['kills']['value'] != 0 else 0
-
         else:
-            # If no matching legend is found, set stats to N/A
             LegendHeadshots = LegendDamage = LegendKills = 0
 
-        # Function to determine if the percentile is in the top or bottom
         def get_percentile_label(percentile):
             if percentile is not None:
                 if percentile >= 90:
@@ -76,7 +69,6 @@ async def Apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
 
         legend_color = active_legend_data.get('metadata', {}).get('legendColor', '#9B8651')
         embed = discord.Embed(color=int(legend_color[1:], 16))
-
         embed.set_author(name=f"Apex Legends - {name}", url=f"https://apex.tracker.gg/apex/profile/{api_platform}/{name}/overview")
 
         embed.set_thumbnail(url=f"{active_legend_data['metadata']['portraitImageUrl']}")
@@ -104,11 +96,22 @@ async def Apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
         embed.set_footer(text="Join our Discord Server for support. | Built By Goldiez ❤️")
         await interaction.response.send_message(embed=embed)
 
-    except KeyError as e:
-        await interaction.response.send_message(f"Failed to retrieve Apex Legends stats. Key error: {e}")
-    except (ValueError, requests.exceptions.RequestException) as e:
-        await interaction.response.send_message(f"Failed to retrieve Apex Legends stats. Error: {e}")
+        if not interaction.response.is_done():
+            await interaction.response.send_message(embed=embed)
 
+    except ValueError as e:
+        if not interaction.response.is_done():
+            await interaction.response.send_message(f"Failed to retrieve Apex Legends stats. {e}")
+    except requests.exceptions.RequestException as e:
+        error_message = f"Failed to retrieve Apex Legends stats. Error: {e}"
+        print(f"Error: {error_message}")
+        if not interaction.response.is_done():
+            await interaction.response.send_message(error_message)
+    except Exception as e:
+        error_message = f"An unexpected error occurred: {e}"
+        print(f"Error: {error_message}")
+        if not interaction.response.is_done():
+            await interaction.response.send_message(error_message)
 
 def setup(client):
     client.tree.command(name="apex", description="Lists all available commands")(Apex)
