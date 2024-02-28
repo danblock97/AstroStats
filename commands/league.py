@@ -63,7 +63,7 @@ async def league(interaction: discord.Interaction, region: Region, *, summoner: 
                         value=f'{str(tier)} {str(rank)} {str(lp)} LP \n Winrate: {str(wr)}% \n Winstreak: {str(hotStreak)}')
         embed.add_field(name="Level", value=f'{str(level)}')
         embed.timestamp = datetime.datetime.utcnow()
-        embed.set_footer(text="Join our Discord Server for support. | Built By Goldiez ❤️")
+        embed.set_footer(text="Need Support? | Visit astrostats.vercel.app | Built By Goldiez ❤️")
 
         await interaction.response.send_message(embed=embed)
 

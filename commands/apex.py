@@ -93,7 +93,7 @@ async def Apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
         
 
         embed.timestamp = datetime.datetime.utcnow()
-        embed.set_footer(text="Join our Discord Server for support. | Built By Goldiez ❤️")
+        embed.set_footer(text="Need Support? | Visit astrostats.vercel.app | Built By Goldiez ❤️")
         await interaction.response.send_message(embed=embed)
 
         if not interaction.response.is_done():
