@@ -48,16 +48,7 @@ async def Apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
         active_legend_data = next(
             (legend for legend in segments if legend['metadata']['name'] == activeLegendName), None)
 
-        if active_legend_data:
-            LegendHeadshots = int(active_legend_data['stats']['headshots']['value']
-                                  ) if 'headshots' in active_legend_data['stats'] and active_legend_data['stats']['headshots']['value'] != 0 else 0
-            LegendDamage = int(active_legend_data['stats']['damage']['value']
-                               ) if 'damage' in active_legend_data['stats'] and active_legend_data['stats']['damage']['value'] != 0 else 0
-            LegendKills = int(active_legend_data['stats']['kills']['value']
-                              ) if 'kills' in active_legend_data['stats'] and active_legend_data['stats']['kills']['value'] != 0 else 0
-        else:
-            LegendHeadshots = LegendDamage = LegendKills = 0
-
+        # Helper function to get the percentile label
         def get_percentile_label(percentile):
             if percentile is not None:
                 if percentile >= 90:
@@ -65,28 +56,64 @@ async def Apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
                 else:
                     return 'Top' if percentile >= 50 else 'Bottom'
             else:
-                return 0
+                return 'N/A'
 
+        def format_stat_value(stat_data, stat_name):
+            stat_value = stat_data.get('value')
+            if stat_value is not None:
+                percentile_label = get_percentile_label(stat_data.get('percentile', 0))
+                percentile_value = int(stat_data.get('percentile', 0)) if percentile_label != 'N/A' else 0
+                return f"{int(stat_value):,} ({percentile_label} {percentile_value}%)"
+            else:
+                return 'N/A'
+
+
+        # Main lifetime stats
+        level_data = lifetime.get('level', {})
+        kills_data = lifetime.get('kills', {})
+        damage_data = lifetime.get('damage', {})
+        matches_played_data = lifetime.get('matchesPlayed', {})
+        arena_winstreak_data = lifetime.get('arenaWinStreak', {})
+
+        formatted_level = format_stat_value(level_data, "Level")
+        formatted_kills = format_stat_value(kills_data, "Kills")
+        formatted_damage = format_stat_value(damage_data, "Damage")
+        formatted_matches_played = format_stat_value(matches_played_data, "Matches Played")
+        formatted_arena_winstreak = format_stat_value(arena_winstreak_data, "Arena Winstreak")
+
+        # Legend stats
+        if active_legend_data and 'stats' in active_legend_data:
+            headshots_data = active_legend_data['stats'].get('headshots')
+            damage_data = active_legend_data['stats'].get('damage')
+            kills_data = active_legend_data['stats'].get('kills')
+
+            LegendHeadshots = int(headshots_data['value']) if headshots_data and headshots_data.get('value') is not None else 0
+            LegendDamage = int(damage_data['value']) if damage_data and damage_data.get('value') is not None else 0
+            LegendKills = int(kills_data['value']) if kills_data and kills_data.get('value') is not None else 0
+        else:
+            LegendHeadshots = LegendDamage = LegendKills = 0
+
+        # Embed setup
         legend_color = active_legend_data.get('metadata', {}).get('legendColor', '#9B8651')
-        embed = discord.Embed(color=int(legend_color[1:], 16))
-        embed.set_author(name=f"Apex Legends - {name}", url=f"https://apex.tracker.gg/apex/profile/{api_platform}/{name}/overview")
+        embed = discord.Embed(title=f"Apex Legends - {name}", url=f"https://apex.tracker.gg/apex/profile/{api_platform}/{name}/overview", color=int(legend_color[1:], 16))
 
         embed.set_thumbnail(url=f"{active_legend_data['metadata']['portraitImageUrl']}")
 
-        embed.add_field(name="Lifetime", value=f"Level: **{int(lifetime.get('level', {}).get('value', 0)):,}** ({get_percentile_label(lifetime.get('level', {}).get('percentile', 0))} {int(lifetime.get('level', {}).get('percentile', 0))}%)"
-                        f"\nKills: **{int(lifetime.get('kills', {}).get('value', 0)):,}** ({get_percentile_label(lifetime.get('kills', {}).get('percentile', 0))} {int(lifetime.get('kills', {}).get('percentile', 0))}%)"
-                        f"\nDamage: **{int(lifetime.get('damage', {}).get('value', 0)):,}** ({get_percentile_label(lifetime.get('damage', {}).get('percentile', 0))} {int(lifetime.get('damage', {}).get('percentile', 0))}%)"
-                        f"\nMatches Played: **{int(lifetime.get('matchesPlayed', {}).get('value', 0)):,}**"
-                        f"\nArena Winstreak: **{int(lifetime.get('arenaWinStreak', {}).get('value', 0)):,}**", inline=True)
+        # Add fields to the embed only if the corresponding stats are available
+        embed.add_field(name="Lifetime", value=f"Level: **{formatted_level}**"
+                            f"\nKills: **{formatted_kills}**"
+                            f"\nDamage: **{formatted_damage}**"
+                            f"\nMatches Played: **{formatted_matches_played}**"
+                            f"\nArena Winstreak: **{formatted_arena_winstreak}**", inline=True)
 
         embed.add_field(name=f"{activeLegendName} - Currently Selected",
-                        value=f"Headshots: **{LegendHeadshots:,}** ({get_percentile_label(active_legend_data.get('stats', {}).get('kills', {}).get('percentile', 0))} {int(active_legend_data.get('stats', {}).get('kills', {}).get('percentile', 0))}%)"
-                        f"\nDamage: **{LegendDamage:,}** ({get_percentile_label(active_legend_data.get('stats', {}).get('damage', {}).get('percentile', 0))} {int(active_legend_data.get('stats', {}).get('damage', {}).get('percentile', 0))}%)"
-                        f"\nKills: **{LegendKills:,}** ({get_percentile_label(active_legend_data.get('stats', {}).get('headshots', {}).get('percentile', 0))} {int(active_legend_data.get('stats', {}).get('headshots', {}).get('percentile', 0))}%)", inline=True)
+                        value=f"Headshots: **{LegendHeadshots}** ({get_percentile_label(active_legend_data.get('stats', {}).get('headshots', {}).get('percentile', 0))} {int(active_legend_data.get('stats', {}).get('headshots', {}).get('percentile', 0))}%)"
+                        f"\nDamage: **{LegendDamage}** ({get_percentile_label(active_legend_data.get('stats', {}).get('damage', {}).get('percentile', 0))} {int(active_legend_data.get('stats', {}).get('damage', {}).get('percentile', 0))}%)"
+                        f"\nKills: **{LegendKills}** ({get_percentile_label(active_legend_data.get('stats', {}).get('kills', {}).get('percentile', 0))} {int(active_legend_data.get('stats', {}).get('kills', {}).get('percentile', 0))}%)", inline=True)
 
         embed.add_field(name="Current Rank",
                         value=f"**_Battle Royale Rank_**\n{ranked.get('metadata', {}).get('rankName', 0)}: **{int(ranked.get('value', 0)):,}**"
-                        f"\n# {int(ranked.get('rank', 0)):,} • {int(ranked.get('percentile', 0))}%", inline=False)
+                        f"\n# {int(ranked.get('rank', 0) or 0):,} • {int(ranked.get('percentile', 0) or 0)}%", inline=False)
 
         embed.add_field(name="Peak Rank",
                         value=f"**_Battle Royale Rank_**\n{peakRank.get('metadata', {}).get('rankName', 0)}: **{int(ranked.get('value', 0)):,}**", inline=True)
@@ -113,7 +140,8 @@ async def Apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
         print(f"Error: {e}")
         if not interaction.response.is_done():
             await interaction.response.send_message("Oops! An unexpected error occurred while processing your request. Please try again later.")
-
-
+       
 def setup(client):
-    client.tree.command(name="apex", description="Lists all available commands")(Apex)
+    client.tree.command(
+        name="apex", description="Check your Fortnite Player Stats"
+    )(Apex)

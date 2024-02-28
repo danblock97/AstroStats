@@ -21,13 +21,29 @@ async def fortnite(interaction: discord.Interaction, *, name: str):
         account = stats['account']
         battlePass = stats['battlePass']
 
-        embed = discord.Embed(title=f"Fortnite - Player Stats", color=0xdd4f7a)
-
+        embed = discord.Embed(title=f"Fortnite - {name}", color=0xdd4f7a, url=f"https://fortnitetracker.com/profile/all/{name}")
+        embed.set_thumbnail(url="https://seeklogo.com/images/F/fortnite-logo-1F7897BD1E-seeklogo.com.png")
         embed.add_field(name="Account", value=f"Name: {account['name']}\nLevel: {battlePass['level']}")
-        embed.add_field(name="Season Stats",
-                        value=f"Matches: {stats['stats']['all']['overall']['matches']}\nKills: {stats['stats']['all']['overall']['kills']}\nWins: {stats['stats']['all']['overall']['wins']}")
         embed.add_field(name="Match Placements",
                         value=f"Top 5: {stats['stats']['all']['overall']['top5']}\nTop 12: {stats['stats']['all']['overall']['top12']}")
+
+        # Additional Stats
+        embed.add_field(name="Season Stats",
+                        value=f"Total Score: {stats['stats']['all']['overall']['score']:,}\n"
+                              f"Score Per Minute: {stats['stats']['all']['overall']['scorePerMin']:.0f}\n"
+                              f"Score Per Match: {stats['stats']['all']['overall']['scorePerMatch']:.0f}\n"
+                              f"Total Kills: {stats['stats']['all']['overall']['kills']:,}\n"
+                              f"Kills Per Minute: {stats['stats']['all']['overall']['killsPerMin']:.2f}\n"
+                              f"Kills Per Match: {stats['stats']['all']['overall']['killsPerMatch']:.2f}\n"
+                              f"Total Deaths: {stats['stats']['all']['overall']['deaths']:,}\n"
+                              f"KD Ratio: {stats['stats']['all']['overall']['kd']:.2f}\n"
+                              f"Total Matches Played: {stats['stats']['all']['overall']['matches']:,}\n"
+                              f"Win Rate: {stats['stats']['all']['overall']['winRate']:.2%}\n"
+                              f"Total Minutes Played: {stats['stats']['all']['overall']['minutesPlayed']:,}\n"
+                              f"Players Outlived: {stats['stats']['all']['overall']['playersOutlived']:,}", inline=False)
+
+        # Similar fields can be added for Solo, Duo, Trio, Squad, LTMs, Input Methods, etc.
+
         embed.timestamp = datetime.datetime.utcnow()
         embed.set_footer(text="Need Support? | Visit astrostats.vercel.app | Built By Goldiez ❤️")
         await interaction.response.send_message(embed=embed)
