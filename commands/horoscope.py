@@ -24,24 +24,41 @@ SignLiteral = Literal['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
 
 
 async def horoscope(interaction: discord.Interaction, sign: SignLiteral):
-    given_sign = sign.lower()  # Convert to lowercase to match the URL format
+    try:
+        given_sign = sign.lower()  # Convert to lowercase to match the URL format
 
-    URL = "https://www.horoscope.com/us/horoscopes/general/horoscope-general-daily-today.aspx?sign=" + \
-        str(signs[given_sign]["api"])
+        URL = "https://www.horoscope.com/us/horoscopes/general/horoscope-general-daily-today.aspx?sign=" + \
+            str(signs[given_sign]["api"])
 
-    r = requests.get(URL)
-    soup = BeautifulSoup(r.text, 'html.parser')
+        r = requests.get(URL)
+        r.raise_for_status()
 
-    container = soup.find("p")
+        soup = BeautifulSoup(r.text, 'html.parser')
 
-    horoscope_text = container.text.strip()
+        container = soup.find("p")
 
-    embed = discord.Embed(title=f"Horoscope for {signs[given_sign]['display']}", color=0xdd4f7a)
-    embed.add_field(name="Today's Horoscope", value=horoscope_text, inline=False)
-    embed.timestamp = datetime.datetime.utcnow()
-    embed.set_footer(text="Join our Discord Server for support. | Built By Goldiez ❤️")
-    await interaction.response.send_message(embed=embed)
+        if not container:
+            raise ValueError("Failed to find horoscope text on the webpage.")
 
+        horoscope_text = container.text.strip()
+
+        embed = discord.Embed(title=f"Horoscope for {signs[given_sign]['display']}", color=0xdd4f7a)
+        embed.add_field(name="Today's Horoscope", value=horoscope_text, inline=False)
+        embed.timestamp = datetime.datetime.utcnow()
+        embed.set_footer(text="Join our Discord Server for support. | Built By Goldiez ❤️")
+        await interaction.response.send_message(embed=embed)
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error: {e}")
+        await interaction.response.send_message("Sorry, I couldn't retrieve the horoscope at the moment. Please try again later.")
+
+    except (KeyError, ValueError) as e:
+        print(f"Error: {e}")
+        await interaction.response.send_message("Failed to retrieve the horoscope. The service may be currently unavailable.")
+
+    except Exception as e:
+        print(f"Error: {e}")
+        await interaction.response.send_message("Oops! An unexpected error occurred while processing your request. Please try again later.")
 
 def setup(client):
     client.tree.command(

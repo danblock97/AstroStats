@@ -4,19 +4,18 @@ import datetime
 import requests
 import os
 
-
 async def fortnite(interaction: discord.Interaction, *, name: str):
-    response = requests.get(
-        f"https://fortnite-api.com/v2/stats/br/v2?timeWindow=season&name={name}",
-        headers={"Authorization": os.getenv('FORTNITE_API_KEY')}
-    )
-
     try:
+        response = requests.get(
+            f"https://fortnite-api.com/v2/stats/br/v2?timeWindow=season&name={name}",
+            headers={"Authorization": os.getenv('FORTNITE_API_KEY')}
+        )
+
+        response.raise_for_status()
         data = response.json()
 
         if 'data' not in data:
-            await interaction.response.send_message('Failed to retrieve Fortnite stats. The Fortnite API is Currently Unavailable')
-            return
+            raise ValueError("Invalid data structure in API response.")
 
         stats = data['data']
         account = stats['account']
@@ -33,9 +32,17 @@ async def fortnite(interaction: discord.Interaction, *, name: str):
         embed.set_footer(text="Join our Discord Server for support. | Built By Goldiez ❤️")
         await interaction.response.send_message(embed=embed)
 
-    except (KeyError, ValueError):
+    except requests.exceptions.RequestException as e:
+        print(f"Error: {e}")
+        await interaction.response.send_message("Sorry, I couldn't retrieve Fortnite stats at the moment. Please try again later.")
+
+    except (KeyError, ValueError) as e:
+        print(f"Error: {e}")
         await interaction.response.send_message("Failed to retrieve Fortnite stats. The Fortnite API is Currently Unavailable")
 
+    except Exception as e:
+        print(f"Error: {e}")
+        await interaction.response.send_message("Oops! An unexpected error occurred while processing your request. Please try again later.")
 
 def setup(client):
     client.tree.command(

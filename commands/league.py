@@ -1,5 +1,6 @@
 import discord
 import datetime
+import requests
 from riotwatcher import LolWatcher
 from typing import Literal
 import os
@@ -39,7 +40,11 @@ async def league(interaction: discord.Interaction, region: Region, *, summoner: 
         summoner = lolWatcher.summoner.by_name(riot_region, summoner)
         stats = lolWatcher.league.by_summoner(riot_region, summoner['id'])
 
-        num = 0 if stats[0]['queueType'] == 'RANKED_SOLO_5x5' else 1
+        num = 0 if stats and stats[0]['queueType'] == 'RANKED_SOLO_5x5' else 1
+
+        if not stats or not stats[num]:
+            raise ValueError("Invalid data structure in API response.")
+
         tier = stats[num]['tier']
         rank = stats[num]['rank']
         lp = stats[num]['leaguePoints']
@@ -61,9 +66,18 @@ async def league(interaction: discord.Interaction, region: Region, *, summoner: 
         embed.set_footer(text="Join our Discord Server for support. | Built By Goldiez ❤️")
 
         await interaction.response.send_message(embed=embed)
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error: {e}")
+        await interaction.response.send_message("Sorry, I couldn't retrieve League of Legends stats at the moment. Please try again later.")
+
+    except (KeyError, ValueError) as e:
+        print(f"Error: {e}")
+        await interaction.response.send_message("Failed to retrieve League of Legends stats. The service may be currently unavailable.")
+
     except Exception as e:
-        error_message = "Please use your old Summoner Name for now.. Riot Names are not implemented yet."
-        await interaction.response.send_message(error_message)
+        print(f"Error: {e}")
+        await interaction.response.send_message("Oops! An unexpected error occurred while processing your request. Please try again later.")
 
 
 def setup(client):
