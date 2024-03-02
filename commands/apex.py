@@ -104,11 +104,8 @@ async def Apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
                 stat_value = int(stat_data.get('value', 0)) if stat_data.get('value') is not None else 0
                 stat_percentile = stat_data.get('percentile', 0)
 
-                field_str = f"{stat_name}: **{stat_value}** ({get_percentile_label(stat_percentile)} {int(stat_percentile) if stat_percentile is not None else 0})"
+                field_str = f"{stat_name}: **{stat_value} ({get_percentile_label(stat_percentile)} {int(stat_percentile) if stat_percentile is not None else 0}%)**"
                 embed_fields.append(field_str)
-
-            # Default values if no legend is selected
-            LegendHeadshots = LegendDamage = LegendKills = 0
 
             # Add other fields to the embed
             embed.add_field(name="Current Rank",
