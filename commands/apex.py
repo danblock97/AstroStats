@@ -67,8 +67,10 @@ async def Apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
             else:
                 return 'N/A'
 
+        legend_color = active_legend_data.get('metadata', {}).get('legendColor', '#9B8651')
         # Create the embed at the beginning
-        embed = discord.Embed(title=f"Apex Legends - {name}", url=f"https://apex.tracker.gg/apex/profile/{api_platform}/{name}/overview", color=0x9B8651)
+        embed = discord.Embed(title=f"Apex Legends - {name}", url=f"https://apex.tracker.gg/apex/profile/{api_platform}/{name}/overview", color=int(legend_color[1:], 16))
+        
 
         # Main lifetime stats
         level_data = lifetime.get('level', {})
@@ -86,7 +88,6 @@ async def Apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
         # Legend stats
         if active_legend_data and 'stats' in active_legend_data:
             # Embed setup
-            legend_color = active_legend_data.get('metadata', {}).get('legendColor', '#9B8651')
             embed.set_thumbnail(url=f"{active_legend_data['metadata']['portraitImageUrl']}")
 
             # Add fields to the embed only if the corresponding stats are available
