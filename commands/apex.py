@@ -113,7 +113,7 @@ async def Apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
                                     f"\n# {int(ranked.get('rank', 0) or 0):,} • {int(ranked.get('percentile', 0) or 0)}%", inline=True)
 
             embed.add_field(name="Peak Rank",
-                            value=f"**_Battle Royale Rank_**\n{peakRank.get('metadata', {}).get('rankName', 0)}: **{int(ranked.get('value', 0)):,}**", inline=False)
+                            value=f"**_Battle Royale Rank_**\n{peakRank.get('metadata', {}).get('rankName', 0)}: **{int(peakRank.get('value', 0)):,}**", inline=False)
             
             # Add the dynamic fields to the embed
             embed.add_field(name=f"{activeLegendName} - Currently Selected", value='\n'.join(embed_fields), inline=False)
