@@ -119,7 +119,7 @@ async def Apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
             embed.add_field(name=f"{activeLegendName} - Currently Selected", value='\n'.join(embed_fields), inline=False)
 
             embed.timestamp = datetime.datetime.utcnow()
-            embed.set_footer(text="Need Support? | Visit astrostats.vercel.app | Built By Goldiez ❤️")
+            embed.set_footer(text="Built By Goldiez ❤️")
             await interaction.response.send_message(embed=embed)
 
             if not interaction.response.is_done():
