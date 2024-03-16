@@ -10,7 +10,7 @@ REGION_TO_PLATFORM = {
     "ASIA": ["JP1", "KR", "SG2", "TH2", "TW2", "VN2"]
 }
 
-async def league(interaction: discord.Interaction, region: Literal['EUROPE', 'AMERICAS', 'ASIA'], *, summoner: str):
+async def league(interaction: discord.Interaction, region: Literal['EUROPE', 'AMERICAS', 'ASIA'], *, name: str):
     if region not in REGION_TO_PLATFORM:
         await interaction.response.send_message("Invalid region. Please use a valid regional routing value.")
         return
@@ -18,7 +18,7 @@ async def league(interaction: discord.Interaction, region: Literal['EUROPE', 'AM
     try:
         platform_regions = REGION_TO_PLATFORM[region]
 
-        gameName, tagLine = summoner.split("#")
+        gameName, tagLine = name.split("#")
 
         riot_api_key = os.getenv('RIOT_API')
 
@@ -34,7 +34,7 @@ async def league(interaction: discord.Interaction, region: Literal['EUROPE', 'AM
                 puuid = response.json().get('puuid')
                 break
         if puuid is None:
-            await interaction.response.send_message("Failed to retrieve summoner data. The summoner may not exist or the service may be currently unavailable.")
+            await interaction.response.send_message("Failed to retrieve summoner data. The summoner may not exist. Please ensure your name is your full tag for example (gameName#0001)")
             return
 
         summoner_response = requests.get(f"https://{platform_regions[0].lower()}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/{puuid}", headers=headers)
