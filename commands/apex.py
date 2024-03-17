@@ -142,5 +142,5 @@ async def Apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
 
 def setup(client):
     client.tree.command(
-        name="apex", description="Check your Fortnite Player Stats"
+        name="apex", description="Check your Apex Player Stats"
     )(Apex)
