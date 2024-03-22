@@ -3,51 +3,79 @@ import datetime
 import requests
 from typing import Literal
 import os
+import logging
+import asyncio
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 REGION_TO_PLATFORM = {
     "EUROPE": ["EUW1", "EUN1", "TR1", "RU"],
-    "AMERICAS": ["BR1", "LA1", "LA2", "NA1"],
-    "ASIA": ["JP1", "KR", "SG2", "TH2", "TW2", "VN2"]
+    "AMERICAS": ["NA1", "BR1", "LA1", "LA2"],
+    "ASIA": ["JP1", "KR"],
+    "SEA": ["OC1", "PH2", "SG2", "TH2", "TW2", "VN2"]
 }
 
-async def league(interaction: discord.Interaction, region: Literal['EUROPE', 'AMERICAS', 'ASIA'], *, name: str):
+async def league(interaction: discord.Interaction, region: Literal['EUROPE', 'AMERICAS', 'ASIA', 'SEA'], *, name: str):
+    await interaction.response.defer()
+
     if region not in REGION_TO_PLATFORM:
-        await interaction.response.send_message("Invalid region. Please use a valid regional routing value.")
+        await interaction.followup.send("Invalid region. Please use a valid regional routing value.")
         return
 
     try:
         platform_regions = REGION_TO_PLATFORM[region]
-
         gameName, tagLine = name.split("#")
-
-        riot_api_key = os.getenv('RIOT_API')
-
-        headers = {
-            'X-Riot-Token': riot_api_key
-        }
+        riot_api_key = os.getenv('LOL_API')
+        headers = {'X-Riot-Token': riot_api_key}
 
         puuid = None
+        # Fetch PUUID using the regional endpoint
         for platform_region in platform_regions:
             regional_url = f"https://{region.lower()}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{gameName}/{tagLine}"
             response = requests.get(regional_url, headers=headers)
             if response.status_code == 200:
                 puuid = response.json().get('puuid')
                 break
+            else:
+                logging.warning(f"Failed to retrieve PUUID from {regional_url}, status code: {response.status_code}")
+
         if puuid is None:
             await interaction.response.send_message("Failed to retrieve summoner data. The summoner may not exist. Please ensure your name is your full tag for example (gameName#0001)")
             return
 
-        summoner_response = requests.get(f"https://{platform_regions[0].lower()}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/{puuid}", headers=headers)
-        summoner_response.raise_for_status()
-        summoner_data = summoner_response.json()
+        summoner_data = None
+        # Initialize a variable to store the platform where summoner data was found
+        summoner_platform = None
 
-        profile_icon_id = summoner_data['profileIconId']
+        # Find the correct platform for summoner data
+        for platform_region in platform_regions:
+            summoner_url = f"https://{platform_region.lower()}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/{puuid}"
+            summoner_response = requests.get(summoner_url, headers=headers)
+            if summoner_response.status_code == 200:
+                summoner_data = summoner_response.json()
+                summoner_platform = platform_region  # Store the platform where the data was found
+                break
+
+        if not summoner_data:
+            await interaction.response.send_message("Failed to retrieve detailed summoner data.")
+            return
+        
+        # Extract summoner level and profile icon ID from the summoner data
         summoner_level = summoner_data['summonerLevel']
+        profile_icon_id = summoner_data['profileIconId']
 
-        league_response = requests.get(f"https://{platform_regions[0].lower()}.api.riotgames.com/lol/league/v4/entries/by-summoner/{summoner_data['id']}", headers=headers)
-        league_response.raise_for_status()
-        stats = league_response.json()
+        # Now use 'summoner_platform' for league data request to ensure consistency
+        league_url = f"https://{summoner_platform.lower()}.api.riotgames.com/lol/league/v4/entries/by-summoner/{summoner_data['id']}"
+        league_response = requests.get(league_url, headers=headers)
+        if league_response.status_code == 200:
+            stats = league_response.json()
 
+        if not stats:
+            await interaction.response.send_message("Failed to retrieve league data.")
+            return
+
+                # Continue processing league data for the embed message
         league_data_list = []
         for league_data in stats:
             queue_type = league_data['queueType']
@@ -57,38 +85,35 @@ async def league(interaction: discord.Interaction, region: Literal['EUROPE', 'AM
             wins = int(league_data['wins'])
             losses = int(league_data['losses'])
             wr = int((wins / (wins + losses)) * 100)
-            league_data_list.append((queue_type, f"{tier} {rank} {lp} LP \n Win/Loss: {wins}W/{losses}L \n Winrate: {wr}%"))
+            league_data_list.append((queue_type, f"{tier} {rank} {lp} LP \nWin/Loss: {wins}W/{losses}L \nWinrate: {wr}%"))
 
+        # Create and configure the Discord embed
         embed = discord.Embed(
-            title=f"{gameName}#{tagLine} - Level {summoner_level}", color=0xdd4f7a)
-
+            title=f"{gameName}#{tagLine} - Level {summoner_level}", color=0xdd4f7a
+        )
         embed.set_thumbnail(
-            url=f"https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/{profile_icon_id}.jpg")
+            url=f"https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/profile-icons/{profile_icon_id}.jpg"
+        )
 
         for queue_type, league_data_str in league_data_list:
             if queue_type == "RANKED_SOLO_5x5":
-                embed.add_field(name=f"Ranked Solo/Duo",
-                                value=league_data_str)
+                embed.add_field(name="Ranked Solo/Duo", value=league_data_str)
             elif queue_type == "RANKED_FLEX_SR":
-                embed.add_field(name=f"Ranked Flex",
-                                value=league_data_str, inline=True)
+                embed.add_field(name="Ranked Flex", value=league_data_str, inline=True)
 
         embed.timestamp = datetime.datetime.utcnow()
         embed.set_footer(text="Built By Goldiez ❤️")
 
-        await interaction.response.send_message(embed=embed)
+        # Send the embed as a response
+        await interaction.followup.send(embed=embed)
 
     except requests.exceptions.RequestException as e:
-        print(f"Error: {e}")
-        await interaction.response.send_message("Sorry, I couldn't retrieve League of Legends stats at the moment. Please try again later.")
-
-    except (KeyError, ValueError) as e:
-        print(f"Error: {e}")
-        await interaction.response.send_message("Failed to retrieve League of Legends stats. The service may be currently unavailable.")
+        logging.error(f"Network error occurred: {e}")
+        await interaction.followup.send("Sorry, I couldn't retrieve League of Legends stats at the moment. Please try again later.")
 
     except Exception as e:
-        print(f"Error: {e}")
-        await interaction.response.send_message("Oops! An unexpected error occurred while processing your request. Please try again later.")
+        logging.error(f"An unexpected error occurred: {e}")
+        await interaction.followup.send("Oops! An unexpected error occurred while processing your request. Please try again later.")
 
 def setup(client):
     client.tree.command(
