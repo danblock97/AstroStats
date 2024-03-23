@@ -4,7 +4,6 @@ import requests
 from typing import Literal
 import os
 import logging
-import asyncio
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
