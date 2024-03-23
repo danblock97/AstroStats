@@ -15,7 +15,7 @@ REGION_TO_PLATFORM = {
     "SEA": ["OC1", "PH2", "SG2", "TH2", "TW2", "VN2"]
 }
 
-async def league(interaction: discord.Interaction, region: Literal['EUROPE', 'AMERICAS', 'ASIA', 'SEA'], *, name: str):
+async def league(interaction: discord.Interaction, region: Literal['EUROPE', 'AMERICAS', 'ASIA', 'SEA'], riot_id: str):
     await interaction.response.defer()
 
     if region not in REGION_TO_PLATFORM:
@@ -24,7 +24,7 @@ async def league(interaction: discord.Interaction, region: Literal['EUROPE', 'AM
 
     try:
         platform_regions = REGION_TO_PLATFORM[region]
-        gameName, tagLine = name.split("#")
+        gameName, tagLine = riot_id.split("#")
         riot_api_key = os.getenv('LOL_API')
         headers = {'X-Riot-Token': riot_api_key}
 
