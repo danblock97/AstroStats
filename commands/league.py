@@ -17,14 +17,12 @@ REGIONS = [
 QUEUE_TYPE_NAMES = {
     "RANKED_SOLO_5x5": "Ranked Solo/Duo",
     "RANKED_FLEX_SR": "Ranked Flex 5v5",
-    "RANKED_TFT": "Ranked TFT",
-    "RANKED_TFT_DOUBLE_UP": "Ranked TFT Double Up"
 }
 
-async def league(interaction: discord.Interaction, riot_id: str):
+async def league(interaction: discord.Interaction, riotid: str):
     await interaction.response.defer()
     
-    gameName, tagLine = riot_id.split("#")
+    gameName, tagLine = riotid.split("#")
     riot_api_key = os.getenv('LOL_API')  # Make sure to set your environment variable accordingly
     headers = {'X-Riot-Token': riot_api_key}
 
@@ -61,7 +59,7 @@ async def league(interaction: discord.Interaction, riot_id: str):
 
     # Processing league data for the embed message
     embed = discord.Embed(title=f"{gameName}#{tagLine} - Level {summoner_data['summonerLevel']}", color=0x1a78ae)
-    embed.set_thumbnail(url=f"http://ddragon.leagueoflegends.com/cdn/12.19.1/img/profileicon/{summoner_data['profileIconId']}.png")
+    embed.set_thumbnail(url=f"https://raw.communitydragon.org/latest/game/assets/ux/summonericons/profileicon{summoner_data['profileIconId']}.png")
 
     for league_data in stats:
         queue_type = league_data['queueType']
