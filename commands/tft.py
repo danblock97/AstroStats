@@ -19,7 +19,7 @@ TFT_QUEUE_TYPE_NAMES = {
 
 async def tft(interaction: discord.Interaction, riot_id: str):
     await interaction.response.defer()
-    
+
     game_name, tag_line = riot_id.split("#")
     riot_api_key = os.getenv('TFT_API')  # Make sure to set your environment variable accordingly
     headers = {'X-Riot-Token': riot_api_key}
@@ -34,22 +34,45 @@ async def tft(interaction: discord.Interaction, riot_id: str):
         await interaction.followup.send("Failed to retrieve TFT summoner data. Please ensure your Riot ID is correct.")
         return
 
-    tft_stats = None
+    found_ranked_data = False  # Flag to track if any ranked data is found
     for region in TFT_REGIONS:
         summoner_url = f"https://{region.lower()}.api.riotgames.com/tft/summoner/v1/summoners/by-puuid/{puuid}"
         summoner_response = requests.get(summoner_url, headers=headers)
         if summoner_response.status_code == 200:
             summoner_data = summoner_response.json()
-            
+
             # Attempt to fetch TFT league data for the current region
             league_url = f"https://{region.lower()}.api.riotgames.com/tft/league/v1/entries/by-summoner/{summoner_data['id']}"
             league_response = requests.get(league_url, headers=headers)
             if league_response.status_code == 200 and league_response.json():
-                # TFT league data found, store it and break out of the loop
+                # Process and display TFT league data for the first region where it's found
                 tft_stats = league_response.json()
-                break
+                embed = discord.Embed(title=f"{game_name}#{tag_line} - TFT Stats", color=0x1a78ae)
+                embed.set_thumbnail(url=f"https://raw.communitydragon.org/latest/game/assets/ux/summonericons/profileicon{summoner_data['profileIconId']}.png")
+
+                for league_data in tft_stats:
+                    queue_type = league_data['queueType']
+                    user_friendly_queue_type = TFT_QUEUE_TYPE_NAMES.get(queue_type, "Other")
+                    tier = league_data['tier']
+                    rank = league_data['rank']
+                    lp = league_data['leaguePoints']
+                    wins = league_data['wins']
+                    losses = league_data['losses']
+                    winrate = int((wins / (wins + losses)) * 100)
+
+                    league_info = f"{tier} {rank} - {lp} LP\nWins: {wins}\nLosses: {losses}\nWinrate: {winrate}%"
+                    embed.add_field(name=user_friendly_queue_type, value=league_info, inline=True)
+
+                embed.set_footer(text="TFT Stats Powered By Goldiez ❤️")
+                await interaction.followup.send(embed=embed)
+                found_ranked_data = True
+                break  # Exit loop after displaying stats for the first region with data
         else:
             logging.info(f"Trying next region...")
+
+    if not found_ranked_data:
+        # No ranked data found across all regions
+        await interaction.followup.send("This player has no ranked information in any region.")
 
     if not tft_stats:
         await interaction.followup.send("Failed to retrieve TFT league data. Player might not be active in the checked regions.")
