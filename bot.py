@@ -4,7 +4,7 @@ import os
 from dotenv import load_dotenv
 import asyncio
 import logging
-from commands import apex, league, fortnite, horoscope, help, review, servers, kick
+from commands import apex, league, fortnite, horoscope, help, review, tft,  servers, kick
 
 # Load environment variables
 load_dotenv()
@@ -24,6 +24,7 @@ apex.setup(client)
 league.setup(client)
 fortnite.setup(client)
 horoscope.setup(client)
+tft.setup(client)
 # servers.setup(client)
 # kick.setup(client)
 help.setup(client)
