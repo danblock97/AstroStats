@@ -22,6 +22,11 @@ QUEUE_TYPE_NAMES = {
 async def league(interaction: discord.Interaction, riotid: str):
     await interaction.response.defer()
     
+    # Check if the riotid includes both gameName and tagLine
+    if "#" not in riotid:
+        await interaction.followup.send("Please enter both your game name and tag line in the format gameName#tagLine.")
+        return 
+
     gameName, tagLine = riotid.split("#")
     riot_api_key = os.getenv('LOL_API')  # Make sure to set your environment variable accordingly
     headers = {'X-Riot-Token': riot_api_key}
