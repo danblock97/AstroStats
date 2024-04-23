@@ -35,12 +35,13 @@ async def horoscope(interaction: discord.Interaction, sign: SignLiteral):
 
         soup = BeautifulSoup(r.text, 'html.parser')
 
-        container = soup.find("p")
+        container = soup.find("div", class_="main-horoscope")
+
 
         if not container:
             raise ValueError("Failed to find horoscope text on the webpage.")
 
-        horoscope_text = container.text.strip()
+        horoscope_text = container.find("p").text.strip()
 
         embed = discord.Embed(title=f"Horoscope for {signs[given_sign]['display']}", color=0xdd4f7a)
         embed.add_field(name="Today's Horoscope", value=horoscope_text, inline=False)
