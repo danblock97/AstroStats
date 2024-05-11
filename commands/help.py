@@ -6,8 +6,9 @@ async def help(interaction: discord.Interaction):
     guild_count = len(interaction.client.guilds)
     embed = discord.Embed(
         title=f"AstroStats - Trusted by {guild_count} servers", color=0xdd4f7a)
-    embed.add_field(name="Apex Legends Lifetime Stats", value="`/apex <username> <xbl/psn/origin>`")
-    embed.add_field(name="LoL Player Stats", value="`/profile <summoner name>`")
+    embed.add_field(name="Apex Legends Lifetime Stats", value="`/apex <platform> <username>`")
+    embed.add_field(name="LoL Player Stats", value="`/league <Summoner#0001>`")
+    embed.add_field(name="TFT Player Stats", value="`/tft <Summoner#0001>`")
     embed.add_field(name="Fortnite Player Stats", value="`/fortnite <name>`")
     embed.add_field(name="Horoscope", value="`/horoscope <sign>`")
     embed.timestamp = datetime.datetime.utcnow()
