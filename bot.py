@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 import asyncio
 import logging
 from commands import apex, league, fortnite, horoscope, help, review, tft,  servers, kick
+import re
 
 # Load environment variables
 load_dotenv()
@@ -30,6 +31,8 @@ tft.setup(client)
 help.setup(client)
 review.setup(client)
 
+# Regex pattern to match Discord invite links
+invite_link_pattern = re.compile(r"(https?://)?(www\.)?(discord\.gg|discordapp\.com/invite)/[A-Za-z0-9]+")
 
 # Event for when the bot is ready
 @client.event
@@ -53,6 +56,17 @@ async def update_presence():
             type=discord.ActivityType.playing, name=f"on {guild_count} servers")
         await client.change_presence(activity=presence)
         await asyncio.sleep(18000)  # Update every 5 hours
+
+@client.event
+async def on_message(message):
+    if message.author == client.user:
+        return
+
+    # Check if the message contains a Discord invite link
+    if invite_link_pattern.search(message.content):
+        await message.channel.send("Need Horoscopes? Apex Stats? Fortnite Stas? LoL Stats? Idk Add me! <https://astrostats.vercel.app>")
+
+    await client.process_commands(message)
 
 # Event for handling interaction errors
 @client.event
