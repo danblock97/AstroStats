@@ -45,7 +45,7 @@ async def horoscope(interaction: discord.Interaction, sign: SignLiteral):
 
         embed = discord.Embed(title=f"Horoscope for {signs[given_sign]['display']}", color=0xdd4f7a)
         embed.add_field(name="Today's Horoscope", value=horoscope_text, inline=False)
-        embed.timestamp = datetime.datetime.utcnow()
+        embed.timestamp = datetime.datetime.now(datetime.UTC)
         embed.set_footer(text="Built By Goldiez ❤️")
         await interaction.response.send_message(embed=embed)
 

@@ -118,7 +118,7 @@ async def Apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
             # Add the dynamic fields to the embed
             embed.add_field(name=f"{activeLegendName} - Currently Selected", value='\n'.join(embed_fields), inline=False)
 
-            embed.timestamp = datetime.datetime.utcnow()
+            embed.timestamp = datetime.datetime.now(datetime.UTC)
             embed.set_footer(text="Built By Goldiez ❤️")
             await interaction.response.send_message(embed=embed)
 

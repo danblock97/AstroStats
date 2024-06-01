@@ -78,8 +78,8 @@ async def league(interaction: discord.Interaction, riotid: str):
 
         league_info = f"{tier} {rank} {lp} LP\nWins: {wins}\nLosses: {losses}\nWinrate: {winrate}%"
         embed.add_field(name=user_friendly_queue_type, value=league_info, inline=True)
-
-    embed.set_footer(text="Built By Goldiez ❤️")
+        embed.timestamp = datetime.datetime.now(datetime.UTC)
+        embed.set_footer(text="Built By Goldiez ❤️")
 
     await interaction.followup.send(embed=embed)
 
