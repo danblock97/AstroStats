@@ -44,7 +44,7 @@ async def fortnite(interaction: discord.Interaction, *, name: str):
 
         # Similar fields can be added for Solo, Duo, Trio, Squad, LTMs, Input Methods, etc.
 
-        embed.timestamp = datetime.datetime.utcnow()
+        embed.timestamp = datetime.datetime.now(datetime.UTC)
         embed.set_footer(text="Built By Goldiez ❤️")
         await interaction.response.send_message(embed=embed)
 
