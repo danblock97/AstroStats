@@ -4,6 +4,7 @@ import datetime
 import requests
 import os
 
+
 async def fortnite(interaction: discord.Interaction, *, name: str):
     try:
         response = requests.get(
@@ -19,11 +20,12 @@ async def fortnite(interaction: discord.Interaction, *, name: str):
 
         stats = data['data']
         account = stats['account']
-        battlePass = stats['battlePass']
+        battle_pass = stats['battlePass']
 
-        embed = discord.Embed(title=f"Fortnite - {name}", color=0xdd4f7a, url=f"https://fortnitetracker.com/profile/all/{name}")
+        embed = discord.Embed(title=f"Fortnite - {name}", color=0xdd4f7a,
+                              url=f"https://fortnitetracker.com/profile/all/{name}")
         embed.set_thumbnail(url="https://seeklogo.com/images/F/fortnite-logo-1F7897BD1E-seeklogo.com.png")
-        embed.add_field(name="Account", value=f"Name: {account['name']}\nLevel: {battlePass['level']}")
+        embed.add_field(name="Account", value=f"Name: {account['name']}\nLevel: {battle_pass['level']}")
         embed.add_field(name="Match Placements",
                         value=f"Top 5: {stats['stats']['all']['overall']['top5']}\nTop 12: {stats['stats']['all']['overall']['top12']}")
 
@@ -40,7 +42,8 @@ async def fortnite(interaction: discord.Interaction, *, name: str):
                               f"Total Matches Played: {stats['stats']['all']['overall']['matches']:,}\n"
                               f"Win Rate: {stats['stats']['all']['overall']['winRate']:.2%}\n"
                               f"Total Minutes Played: {stats['stats']['all']['overall']['minutesPlayed']:,}\n"
-                              f"Players Outlived: {stats['stats']['all']['overall']['playersOutlived']:,}", inline=False)
+                              f"Players Outlived: {stats['stats']['all']['overall']['playersOutlived']:,}",
+                        inline=False)
 
         # Similar fields can be added for Solo, Duo, Trio, Squad, LTMs, Input Methods, etc.
 
@@ -50,15 +53,19 @@ async def fortnite(interaction: discord.Interaction, *, name: str):
 
     except requests.exceptions.RequestException as e:
         print(f"Error: {e}")
-        await interaction.response.send_message("Sorry, I couldn't retrieve Fortnite stats at the moment. Please try again later.")
+        await interaction.response.send_message(
+            "Sorry, I couldn't retrieve Fortnite stats at the moment. Please try again later.")
 
     except (KeyError, ValueError) as e:
         print(f"Error: {e}")
-        await interaction.response.send_message("Failed to retrieve Fortnite stats. The Fortnite API is Currently Unavailable")
+        await interaction.response.send_message(
+            "Failed to retrieve Fortnite stats. The Fortnite API is Currently Unavailable")
 
     except Exception as e:
         print(f"Error: {e}")
-        await interaction.response.send_message("Oops! An unexpected error occurred while processing your request. Please try again later.")
+        await interaction.response.send_message(
+            "Oops! An unexpected error occurred while processing your request. Please try again later.")
+
 
 def setup(client):
     client.tree.command(

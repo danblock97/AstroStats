@@ -19,20 +19,21 @@ QUEUE_TYPE_NAMES = {
     "RANKED_FLEX_SR": "Ranked Flex 5v5",
 }
 
+
 async def league(interaction: discord.Interaction, riotid: str):
     await interaction.response.defer()
-    
+
     # Check if the riotid includes both gameName and tagLine
     if "#" not in riotid:
         await interaction.followup.send("Please enter both your game name and tag line in the format gameName#tagLine.")
-        return 
+        return
 
-    gameName, tagLine = riotid.split("#")
+    game_name, tag_line = riotid.split("#")
     riot_api_key = os.getenv('LOL_API')  # Make sure to set your environment variable accordingly
     headers = {'X-Riot-Token': riot_api_key}
 
     # Default routing value for account-v1 endpoint set to americas
-    regional_url = f"https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{gameName}/{tagLine}"
+    regional_url = f"https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{game_name}/{tag_line}"
     response = requests.get(regional_url, headers=headers)
     if response.status_code == 200:
         puuid = response.json().get('puuid')
@@ -47,7 +48,7 @@ async def league(interaction: discord.Interaction, riotid: str):
         summoner_response = requests.get(summoner_url, headers=headers)
         if summoner_response.status_code == 200:
             summoner_data = summoner_response.json()
-            
+
             # Attempt to fetch league data for the current region
             league_url = f"https://{region.lower()}.api.riotgames.com/lol/league/v4/entries/by-summoner/{summoner_data['id']}"
             league_response = requests.get(league_url, headers=headers)
@@ -59,12 +60,14 @@ async def league(interaction: discord.Interaction, riotid: str):
             logging.info(f"Trying next region...")
 
     if not stats:
-        await interaction.followup.send("Failed to retrieve league data. Player might not be active in the checked regions.")
+        await interaction.followup.send(
+            "Failed to retrieve league data. Player might not be active in the checked regions.")
         return
 
     # Processing league data for the embed message
-    embed = discord.Embed(title=f"{gameName}#{tagLine} - Level {summoner_data['summonerLevel']}", color=0x1a78ae)
-    embed.set_thumbnail(url=f"https://raw.communitydragon.org/latest/game/assets/ux/summonericons/profileicon{summoner_data['profileIconId']}.png")
+    embed = discord.Embed(title=f"{game_name}#{tag_line} - Level {summoner_data['summonerLevel']}", color=0x1a78ae)
+    embed.set_thumbnail(
+        url=f"https://raw.communitydragon.org/latest/game/assets/ux/summonericons/profileicon{summoner_data['profileIconId']}.png")
 
     for league_data in stats:
         queue_type = league_data['queueType']
@@ -82,6 +85,7 @@ async def league(interaction: discord.Interaction, riotid: str):
         embed.set_footer(text="Built By Goldiez ❤️")
 
     await interaction.followup.send(embed=embed)
+
 
 def setup(client):
     client.tree.command(
