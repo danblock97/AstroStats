@@ -22,30 +22,39 @@ async def fortnite(interaction: discord.Interaction, *, name: str):
         account = stats['account']
         battle_pass = stats['battlePass']
 
+        # Correct win rate calculation
+        wins = stats['stats']['all']['overall']['wins']
+        matches = stats['stats']['all']['overall']['matches']
+        if matches > 0:
+            calculated_win_rate = wins / matches
+        else:
+            calculated_win_rate = 0
+
         embed = discord.Embed(title=f"Fortnite - {name}", color=0xdd4f7a,
                               url=f"https://fortnitetracker.com/profile/all/{name}")
         embed.set_thumbnail(url="https://seeklogo.com/images/F/fortnite-logo-1F7897BD1E-seeklogo.com.png")
-        embed.add_field(name="Account", value=f"Name: {account['name']}\nLevel: {battle_pass['level']}")
+        embed.add_field(name="Account", value=f"Name: {account['name']}\nLevel: {battle_pass['level']}", inline=True)
         embed.add_field(name="Match Placements",
-                        value=f"Top 5: {stats['stats']['all']['overall']['top5']}\nTop 12: {stats['stats']['all']['overall']['top12']}")
+                        value=f"Victory Royales: {wins} \nTop 5: {stats['stats']['all']['overall']['top5']}\nTop 12: {stats['stats']['all']['overall']['top12']}",
+                        inline=True)
 
         # Additional Stats
-        embed.add_field(name="Season Stats",
-                        value=f"Total Score: {stats['stats']['all']['overall']['score']:,}\n"
-                              f"Score Per Minute: {stats['stats']['all']['overall']['scorePerMin']:.0f}\n"
-                              f"Score Per Match: {stats['stats']['all']['overall']['scorePerMatch']:.0f}\n"
-                              f"Total Kills: {stats['stats']['all']['overall']['kills']:,}\n"
+        embed.add_field(name="Kill Stats",
+                        value=f"Kills/Deaths: {stats['stats']['all']['overall']['kills']:,}/{stats['stats']['all']['overall']['deaths']:,}\n"
+                              f"KD Ratio: {stats['stats']['all']['overall']['kd']:.2f}\n"
                               f"Kills Per Minute: {stats['stats']['all']['overall']['killsPerMin']:.2f}\n"
                               f"Kills Per Match: {stats['stats']['all']['overall']['killsPerMatch']:.2f}\n"
-                              f"Total Deaths: {stats['stats']['all']['overall']['deaths']:,}\n"
-                              f"KD Ratio: {stats['stats']['all']['overall']['kd']:.2f}\n"
-                              f"Total Matches Played: {stats['stats']['all']['overall']['matches']:,}\n"
-                              f"Win Rate: {stats['stats']['all']['overall']['winRate']:.2%}\n"
-                              f"Total Minutes Played: {stats['stats']['all']['overall']['minutesPlayed']:,}\n"
                               f"Players Outlived: {stats['stats']['all']['overall']['playersOutlived']:,}",
                         inline=False)
 
-        # Similar fields can be added for Solo, Duo, Trio, Squad, LTMs, Input Methods, etc.
+        embed.add_field(name="Match Stats",
+                        value=f"Total Matches Played: {matches:,}\n"
+                              f"Win Rate: {calculated_win_rate:.2%}\n"
+                              f"Total Score: {stats['stats']['all']['overall']['score']:,}\n"
+                              f"Score Per Minute: {stats['stats']['all']['overall']['scorePerMin']:.0f}\n"
+                              f"Score Per Match: {stats['stats']['all']['overall']['scorePerMatch']:.0f}\n"
+                              f"Total Minutes Played: {stats['stats']['all']['overall']['minutesPlayed']:,}",
+                        inline=True)
 
         embed.timestamp = datetime.datetime.now(datetime.UTC)
         embed.set_footer(text="Built By Goldiez ❤️")

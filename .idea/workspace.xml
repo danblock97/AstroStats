@@ -4,18 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="11e9420a-3d21-4499-8069-fca1d0b89b82" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bot.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/commands/apex.py" beforeDir="false" afterPath="$PROJECT_DIR$/commands/apex.py" afterDir="false" />
+    <list default="true" id="11e9420a-3d21-4499-8069-fca1d0b89b82" name="Changes" comment="Code smells dealt with per file, tested and all working as expected">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/commands/fortnite.py" beforeDir="false" afterPath="$PROJECT_DIR$/commands/fortnite.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/commands/horoscope.py" beforeDir="false" afterPath="$PROJECT_DIR$/commands/horoscope.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/commands/league.py" beforeDir="false" afterPath="$PROJECT_DIR$/commands/league.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/commands/tft.py" beforeDir="false" afterPath="$PROJECT_DIR$/commands/tft.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -23,6 +14,7 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="Git.Settings">
+    <option name="PREVIEW_PUSH_PROTECTED_ONLY" value="true" />
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
         <entry key="$PROJECT_DIR$" value="main" />
@@ -46,6 +38,9 @@
   &quot;associatedIndex&quot;: 0
 }</component>
   <component name="ProjectId" id="2hN4QnlzElhfYXJ4PyACHVsUOyN" />
+  <component name="ProjectLevelVcsManager">
+    <OptionsSetting value="false" id="Update" />
+  </component>
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
@@ -55,15 +50,16 @@
   "keyToString": {
     "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "Python.bot.executor": "Run",
+    "Python.fortnite.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "DP-11__Code__Smells",
+    "git-widget-placeholder": "DP-13-Fortnite-Stats-Missing",
     "last_opened_file_path": "D:/AstroStats",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "reference.settings.ide.settings.new.ui",
+    "settings.editor.selected.configurable": "preferences.pluginManager",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
@@ -86,14 +82,31 @@
       <workItem from="1717421188446" duration="27000" />
       <workItem from="1717421227317" duration="25000" />
       <workItem from="1717421276894" duration="523000" />
-      <workItem from="1717421823272" duration="1407000" />
+      <workItem from="1717421823272" duration="2015000" />
+      <workItem from="1717423935655" duration="15000" />
+      <workItem from="1717423955760" duration="18000" />
+      <workItem from="1717580413303" duration="3314000" />
     </task>
+    <task id="LOCAL-00001" summary="Code smells dealt with per file, tested and all working as expected">
+      <option name="closed" value="true" />
+      <created>1717423330170</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1717423330170</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
   </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Code smells dealt with per file, tested and all working as expected" />
+    <option name="LAST_COMMIT_MESSAGE" value="Code smells dealt with per file, tested and all working as expected" />
+  </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/AstroStats$bot.coverage" NAME="bot Coverage Results" MODIFIED="1717423141893" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/AstroStats$bot.coverage" NAME="bot Coverage Results" MODIFIED="1717585791868" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/AstroStats$fortnite.coverage" NAME="fortnite Coverage Results" MODIFIED="1717581997431" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/commands" />
   </component>
 </project>
