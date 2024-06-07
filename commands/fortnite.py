@@ -2,13 +2,28 @@ import discord
 from discord.ext import commands
 import datetime
 import requests
+from typing import Literal
 import os
 
+TIME_MAPPING = {
+    'Season': 'season',
+    'Lifetime': 'lifetime',
+}
 
-async def fortnite(interaction: discord.Interaction, *, name: str):
+async def fortnite(interaction: discord.Interaction, time: Literal['Season', 'Lifetime'], name: str = None):
     try:
+        if name is None:
+            raise ValueError("Please provide a username.")
+
+        if time is None:
+            raise ValueError("Please provide a platform (Season, Lifetime).")
+
+        time_window = TIME_MAPPING.get(time)
+        if not time_window:
+            raise ValueError("Invalid time range. Please use Season or Lifetime")
+
         response = requests.get(
-            f"https://fortnite-api.com/v2/stats/br/v2?timeWindow=season&name={name}",
+            f"https://fortnite-api.com/v2/stats/br/v2?timeWindow={time_window}&name={name}",
             headers={"Authorization": os.getenv('FORTNITE_API_KEY')}
         )
 
@@ -22,7 +37,6 @@ async def fortnite(interaction: discord.Interaction, *, name: str):
         account = stats['account']
         battle_pass = stats['battlePass']
 
-        # Correct win rate calculation
         wins = stats['stats']['all']['overall']['wins']
         matches = stats['stats']['all']['overall']['matches']
         if matches > 0:
@@ -38,7 +52,6 @@ async def fortnite(interaction: discord.Interaction, *, name: str):
                         value=f"Victory Royales: {wins} \nTop 5: {stats['stats']['all']['overall']['top5']}\nTop 12: {stats['stats']['all']['overall']['top12']}",
                         inline=True)
 
-        # Additional Stats
         embed.add_field(name="Kill Stats",
                         value=f"Kills/Deaths: {stats['stats']['all']['overall']['kills']:,}/{stats['stats']['all']['overall']['deaths']:,}\n"
                               f"KD Ratio: {stats['stats']['all']['overall']['kd']:.2f}\n"
@@ -74,7 +87,6 @@ async def fortnite(interaction: discord.Interaction, *, name: str):
         print(f"Error: {e}")
         await interaction.response.send_message(
             "Oops! An unexpected error occurred while processing your request. Please try again later.")
-
 
 def setup(client):
     client.tree.command(

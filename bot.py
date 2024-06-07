@@ -4,15 +4,14 @@ import os
 from dotenv import load_dotenv
 import asyncio
 import logging
-from commands import apex, league, fortnite, horoscope, help, review, tft, servers, kick
+from commands import apex, league, fortnite, horoscope, help, review, tft
 import re
 
 # Load environment variables
 load_dotenv()
 
 # Get the blacklisted guild IDs from the environment variable
-blacklisted_guilds = set(map(int, os.getenv('BLACKLISTED_GUILDS', None).split(','))) if os.getenv(
-    'BLACKLISTED_GUILDS') else set()
+blacklisted_guilds = set(map(int, os.getenv('BLACKLISTED_GUILDS', None).split(','))) if os.getenv('BLACKLISTED_GUILDS') else set()
 
 logger = logging.getLogger('discord.gateway')
 logger.setLevel(logging.ERROR)  # Maybe fix as server grows
@@ -27,14 +26,11 @@ league.setup(client)
 fortnite.setup(client)
 horoscope.setup(client)
 tft.setup(client)
-# servers.setup(client)
-# kick.setup(client)
 help.setup(client)
 review.setup(client)
 
 # Regex pattern to match Discord invite links
 invite_link_pattern = re.compile(r"(https?://)?(www\.)?(discord\.gg|discordapp\.com/invite)/[A-Za-z0-9]+")
-
 
 # Event for when the bot is ready
 @client.event
@@ -43,22 +39,24 @@ async def on_ready():
 
     try:
         await client.wait_until_ready()  # Wait until the bot is fully connected
-        print(f"Commands Synced")
+
+        # Explicitly sync the commands here
+        await client.tree.sync()
+        print("Commands Synced")
+
+        print("Bot is ready.")
     except Exception as e:
         print(e)
 
     await update_presence()  # Call the function to set initial presence
 
-
 # Function to update the bot's presence
 async def update_presence():
     while True:
         guild_count = len(client.guilds)
-        presence = discord.Activity(
-            type=discord.ActivityType.playing, name=f"on {guild_count} servers")
+        presence = discord.Activity(type=discord.ActivityType.playing, name=f"on {guild_count} servers")
         await client.change_presence(activity=presence)
         await asyncio.sleep(18000)  # Update every 5 hours
-
 
 @client.event
 async def on_message(message):
@@ -68,10 +66,10 @@ async def on_message(message):
     # Check if the message contains a Discord invite link
     if invite_link_pattern.search(message.content):
         await message.channel.send(
-            "Need Horoscopes? Apex Stats? Fortnite Stats? LoL Stats? Idk Add me! <https://astrostats.vercel.app>")
+            "Need Horoscopes? Apex Stats? Fortnite Stats? LoL Stats? Idk Add me! <https://astrostats.vercel.app>"
+        )
 
     await client.process_commands(message)
-
 
 # Event for handling interaction errors
 @client.event
@@ -79,14 +77,12 @@ async def p_error(interaction: discord.Interaction, error):
     if isinstance(error, commands.MissingRequiredArguments):
         await interaction.response.send_message('Missing required arguments.')
 
-
 # Event for checking if the guild is blacklisted before joining
 @client.event
 async def on_guild_join(guild):
     if guild.id in blacklisted_guilds:
         await guild.leave()
         print(f"Left blacklisted guild: {guild.name} ({guild.id})")
-
 
 # Start the bot
 client.run(os.getenv('TOKEN'))
