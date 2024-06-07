@@ -10,17 +10,18 @@ TIME_MAPPING = {
     'Lifetime': 'lifetime',
 }
 
+
 async def fortnite(interaction: discord.Interaction, time: Literal['Season', 'Lifetime'], name: str = None):
     try:
         if name is None:
             raise ValueError("Please provide a username.")
 
         if time is None:
-            raise ValueError("Please provide a platform (Season, Lifetime).")
+            raise ValueError("Please provide a time range (Season, Lifetime).")
 
         time_window = TIME_MAPPING.get(time)
         if not time_window:
-            raise ValueError("Invalid time range. Please use Season or Lifetime")
+            raise ValueError("Invalid time range. Please use Season or Lifetime.")
 
         response = requests.get(
             f"https://fortnite-api.com/v2/stats/br/v2?timeWindow={time_window}&name={name}",
@@ -74,19 +75,23 @@ async def fortnite(interaction: discord.Interaction, time: Literal['Season', 'Li
         await interaction.response.send_message(embed=embed)
 
     except requests.exceptions.RequestException as e:
-        print(f"Error: {e}")
-        await interaction.response.send_message(
-            "Sorry, I couldn't retrieve Fortnite stats at the moment. Please try again later.")
+        print(f"Request Error: {e}")
+        if not interaction.response.is_done():
+            await interaction.response.send_message(
+                "Sorry, I couldn't retrieve Fortnite stats at the moment. Please try again later.")
 
     except (KeyError, ValueError) as e:
-        print(f"Error: {e}")
-        await interaction.response.send_message(
-            "Failed to retrieve Fortnite stats. The Fortnite API is Currently Unavailable")
+        print(f"Data Error: {e}")
+        if not interaction.response.is_done():
+            await interaction.response.send_message(
+                "Failed to retrieve Fortnite stats. The Fortnite API is currently unavailable or the provided data is invalid.")
 
     except Exception as e:
-        print(f"Error: {e}")
-        await interaction.response.send_message(
-            "Oops! An unexpected error occurred while processing your request. Please try again later.")
+        print(f"Unexpected Error: {e}")
+        if not interaction.response.is_done():
+            await interaction.response.send_message(
+                "Oops! An unexpected error occurred while processing your request. Please try again later.")
+
 
 def setup(client):
     client.tree.command(
