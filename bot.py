@@ -4,14 +4,15 @@ import os
 from dotenv import load_dotenv
 import asyncio
 import logging
-from commands import apex, league, fortnite, horoscope, help, review, tft
+from commands import apex, league, fortnite, horoscope, help, review, tft, kick, servers
 import re
+
 
 # Load environment variables
 load_dotenv()
 
 # Get the blacklisted guild IDs from the environment variable
-blacklisted_guilds = set(map(int, os.getenv('BLACKLISTED_GUILDS', None).split(','))) if os.getenv('BLACKLISTED_GUILDS') else set()
+blacklisted_guilds = set(map(int, os.getenv('BLACKLISTED_GUILDS', '').split(','))) if os.getenv('BLACKLISTED_GUILDS') else set()
 
 logger = logging.getLogger('discord.gateway')
 logger.setLevel(logging.ERROR)  # Maybe fix as server grows
@@ -28,6 +29,8 @@ horoscope.setup(client)
 tft.setup(client)
 help.setup(client)
 review.setup(client)
+# kick.setup(client)
+# servers.setup(client)
 
 # Regex pattern to match Discord invite links
 invite_link_pattern = re.compile(r"(https?://)?(www\.)?(discord\.gg|discordapp\.com/invite)/[A-Za-z0-9]+")

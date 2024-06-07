@@ -50,7 +50,6 @@ async def apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
         active_legend_data = next(
             (legend for legend in segments if legend['metadata']['name'] == active_legend_name), None)
 
-        # Helper function to get the percentile label
         def get_percentile_label(percentile):
             if percentile is not None:
                 if percentile >= 90:
@@ -70,12 +69,10 @@ async def apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
                 return 'N/A'
 
         legend_color = active_legend_data.get('metadata', {}).get('legendColor', '#9B8651')
-        # Create the embed at the beginning
         embed = discord.Embed(title=f"Apex Legends - {name}",
                               url=f"https://apex.tracker.gg/apex/profile/{api_platform}/{name}/overview",
                               color=int(legend_color[1:], 16))
 
-        # Main lifetime stats
         level_data = lifetime.get('level', {})
         kills_data = lifetime.get('kills', {})
         damage_data = lifetime.get('damage', {})
@@ -88,19 +85,15 @@ async def apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
         formatted_matches_played = format_stat_value(matches_played_data)
         formatted_arena_winstreak = format_stat_value(arena_winstreak_data)
 
-        # Legend stats
         if active_legend_data and 'stats' in active_legend_data:
-            # Embed setup
             embed.set_thumbnail(url=f"{active_legend_data['metadata']['portraitImageUrl']}")
 
-            # Add fields to the embed only if the corresponding stats are available
             embed.add_field(name="Lifetime", value=f"Level: **{formatted_level}**"
                                                    f"\nKills: **{formatted_kills}**"
                                                    f"\nDamage: **{formatted_damage}**"
                                                    f"\nMatches Played: **{formatted_matches_played}**"
                                                    f"\nArena Winstreak: **{formatted_arena_winstreak}**", inline=True)
 
-            # Add the dynamic fields to the embed
             embed_fields = []
             for stat_key, stat_data in active_legend_data['stats'].items():
                 stat_name = stat_data.get('displayName', stat_key.capitalize())
@@ -110,7 +103,6 @@ async def apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
                 field_str = f"{stat_name}: **{stat_value} ({get_percentile_label(stat_percentile)} {int(stat_percentile) if stat_percentile is not None else 0}%)**"
                 embed_fields.append(field_str)
 
-            # Add other fields to the embed
             embed.add_field(name="Current Rank",
                             value=f"**_Battle Royale Rank_**\n{ranked.get('metadata', {}).get('rankName', 0)}: **{int(ranked.get('value', 0)):,}**"
                                   f"\n# {int(ranked.get('rank', 0) or 0):,} • {int(ranked.get('percentile', 0) or 0)}%",
@@ -120,7 +112,6 @@ async def apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
                             value=f"**_Battle Royale Rank_**\n{peak_rank.get('metadata', {}).get('rankName', 0)}: **{int(peak_rank.get('value', 0)):,}**",
                             inline=False)
 
-            # Add the dynamic fields to the embed
             embed.add_field(name=f"{active_legend_name} - Currently Selected", value='\n'.join(embed_fields),
                             inline=False)
 
@@ -132,21 +123,21 @@ async def apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
                 await interaction.response.send_message(embed=embed)
 
     except ValueError as e:
-        print(f"Error: {e}")
+        print(f"Validation Error: {e}")
         if not interaction.response.is_done():
-            await interaction.response.send_message(f"Oops! Something went wrong. {e}")
+            await interaction.response.send_message(f"Error: {e}. Please provide valid input.")
 
     except requests.exceptions.RequestException as e:
-        print(f"Error: {e}")
+        print(f"Request Error: {e}")
         if not interaction.response.is_done():
             await interaction.response.send_message(
                 "Sorry, I couldn't retrieve Apex Legends stats at the moment. Please try again later.")
 
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Unexpected Error: {e}")
         if not interaction.response.is_done():
             await interaction.response.send_message(
-                "Oops! An unexpected error occurred while processing your request. Please try again later.")
+                "An unexpected error occurred while processing your request. Please try again later.")
 
 
 def setup(client):

@@ -4,10 +4,17 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="11e9420a-3d21-4499-8069-fca1d0b89b82" name="Changes" comment="Code smells dealt with per file, tested and all working as expected">
+    <list default="true" id="11e9420a-3d21-4499-8069-fca1d0b89b82" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/bot.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/commands/apex.py" beforeDir="false" afterPath="$PROJECT_DIR$/commands/apex.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/commands/fortnite.py" beforeDir="false" afterPath="$PROJECT_DIR$/commands/fortnite.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/commands/help.py" beforeDir="false" afterPath="$PROJECT_DIR$/commands/help.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/commands/horoscope.py" beforeDir="false" afterPath="$PROJECT_DIR$/commands/horoscope.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/commands/kick.py" beforeDir="false" afterPath="$PROJECT_DIR$/commands/kick.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/commands/league.py" beforeDir="false" afterPath="$PROJECT_DIR$/commands/league.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/commands/servers.py" beforeDir="false" afterPath="$PROJECT_DIR$/commands/servers.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/commands/tft.py" beforeDir="false" afterPath="$PROJECT_DIR$/commands/tft.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -48,23 +55,23 @@
     <option name="showLibraryContents" value="true" />
     <option name="showScratchesAndConsoles" value="false" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ASKED_SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
-    &quot;Python.bot.executor&quot;: &quot;Run&quot;,
-    &quot;Python.fortnite.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;DP-15-Add-Option-For-Lifetime&quot;,
-    &quot;last_opened_file_path&quot;: &quot;D:/AstroStats&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "Python.bot.executor": "Run",
+    "Python.fortnite.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "DP-14-Improve-Error-Handling-on-All-Commands",
+    "last_opened_file_path": "D:/AstroStats",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "preferences.pluginManager",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -92,6 +99,7 @@
       <workItem from="1717699596006" duration="133000" />
       <workItem from="1717741148723" duration="1566000" />
       <workItem from="1717744730194" duration="506000" />
+      <workItem from="1717784879166" duration="1687000" />
     </task>
     <task id="LOCAL-00001" summary="Code smells dealt with per file, tested and all working as expected">
       <option name="closed" value="true" />
@@ -109,10 +117,11 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Code smells dealt with per file, tested and all working as expected" />
-    <option name="LAST_COMMIT_MESSAGE" value="Code smells dealt with per file, tested and all working as expected" />
+    <MESSAGE value="- Added options for 'Season' and 'Lifetime' on Fortnite.py&#10;- Modified bot.py to explicitly sync the commands using `client.tree.sync()` ensuring that all changes are pushed to Discord.&#10;- Added a check to ensure the commands are registered properly with the bot's command tree. This involves ensuring that your commands are correctly set up and included in the bot’s command tree.&#10;- Ensured that the fortnite command is correctly defined and registered with the command tree. This involved verifying that the function is correctly decorated and added to the command tree using the appropriate method." />
+    <option name="LAST_COMMIT_MESSAGE" value="- Added options for 'Season' and 'Lifetime' on Fortnite.py&#10;- Modified bot.py to explicitly sync the commands using `client.tree.sync()` ensuring that all changes are pushed to Discord.&#10;- Added a check to ensure the commands are registered properly with the bot's command tree. This involves ensuring that your commands are correctly set up and included in the bot’s command tree.&#10;- Ensured that the fortnite command is correctly defined and registered with the command tree. This involved verifying that the function is correctly decorated and added to the command tree using the appropriate method." />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/AstroStats$bot.coverage" NAME="bot Coverage Results" MODIFIED="1717585791868" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/AstroStats$bot.coverage" NAME="bot Coverage Results" MODIFIED="1717786167450" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
     <SUITE FILE_PATH="coverage/AstroStats$fortnite.coverage" NAME="fortnite Coverage Results" MODIFIED="1717581997431" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/commands" />
   </component>
 </project>

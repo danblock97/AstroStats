@@ -21,19 +21,20 @@ signs = {
 
 SignLiteral = Literal['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces']
 
-
 async def horoscope(interaction: discord.Interaction, sign: SignLiteral):
     try:
-        given_sign = sign.lower()  # Convert to lowercase to match the URL format
+        given_sign = sign.lower()
+
+        if given_sign not in signs:
+            raise ValueError("Invalid sign. Please choose a valid zodiac sign.")
 
         url = "https://www.horoscope.com/us/horoscopes/general/horoscope-general-daily-today.aspx?sign=" + \
               str(signs[given_sign]["api"])
 
-        r = requests.get(url)
-        r.raise_for_status()
+        response = requests.get(url)
+        response.raise_for_status()
 
-        soup = BeautifulSoup(r.text, 'html.parser')
-
+        soup = BeautifulSoup(response.text, 'html.parser')
         container = soup.find("div", class_="main-horoscope")
 
         if not container:
@@ -48,20 +49,22 @@ async def horoscope(interaction: discord.Interaction, sign: SignLiteral):
         await interaction.response.send_message(embed=embed)
 
     except requests.exceptions.RequestException as e:
-        print(f"Error: {e}")
-        await interaction.response.send_message(
-            "Sorry, I couldn't retrieve the horoscope at the moment. Please try again later.")
+        print(f"Request Error: {e}")
+        if not interaction.response.is_done():
+            await interaction.response.send_message(
+                "Sorry, I couldn't retrieve the horoscope at the moment. Please try again later.")
 
     except (KeyError, ValueError) as e:
-        print(f"Error: {e}")
-        await interaction.response.send_message(
-            "Failed to retrieve the horoscope. The service may be currently unavailable.")
+        print(f"Data Error: {e}")
+        if not interaction.response.is_done():
+            await interaction.response.send_message(
+                "Failed to retrieve the horoscope. Please ensure you provided a valid zodiac sign and try again.")
 
     except Exception as e:
-        print(f"Error: {e}")
-        await interaction.response.send_message(
-            "Oops! An unexpected error occurred while processing your request. Please try again later.")
-
+        print(f"Unexpected Error: {e}")
+        if not interaction.response.is_done():
+            await interaction.response.send_message(
+                "Oops! An unexpected error occurred while processing your request. Please try again later.")
 
 def setup(client):
     client.tree.command(

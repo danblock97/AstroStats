@@ -9,7 +9,7 @@ async def help(interaction: discord.Interaction):
     embed.add_field(name="Apex Legends Lifetime Stats", value="`/apex <platform> <username>`")
     embed.add_field(name="LoL Player Stats", value="`/league <Summoner#0001>`")
     embed.add_field(name="TFT Player Stats", value="`/tft <Summoner#0001>`")
-    embed.add_field(name="Fortnite Player Stats", value="`/fortnite <name>`")
+    embed.add_field(name="Fortnite Player Stats", value="`/fortnite <time> <name>`")
     embed.add_field(name="Horoscope", value="`/horoscope <sign>`")
     embed.timestamp = datetime.datetime.now(datetime.UTC)
     embed.set_footer(text="Built By Goldiez ❤️")
