@@ -117,7 +117,7 @@ async def update_live_game_view(interaction: discord.Interaction, embed, puuid, 
             red_team.append(player_data)
 
     embed.clear_fields()
-    embed.title = f"Live Game for {game_name}#{tag_line}"
+    embed.title = f"Live Game"
 
     blue_team_champions = '\n'.join([p['champion_name'] for p in blue_team])
     blue_team_names = '\n'.join([p['summoner_name'] for p in blue_team])
