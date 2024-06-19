@@ -5,18 +5,18 @@ from typing import Literal
 from bs4 import BeautifulSoup
 
 signs = {
-    "aries": {"display": "Aries", "api": 1},
-    "taurus": {"display": "Taurus", "api": 2},
-    "gemini": {"display": "Gemini", "api": 3},
-    "cancer": {"display": "Cancer", "api": 4},
-    "leo": {"display": "Leo", "api": 5},
-    "virgo": {"display": "Virgo", "api": 6},
-    "libra": {"display": "Libra", "api": 7},
-    "scorpio": {"display": "Scorpio", "api": 8},
-    "sagittarius": {"display": "Sagittarius", "api": 9},
-    "capricorn": {"display": "Capricorn", "api": 10},
-    "aquarius": {"display": "Aquarius", "api": 11},
-    "pisces": {"display": "Pisces", "api": 12},
+    "aries": {"display": "Aries", "api": 1, "color": 0xC60000},
+    "taurus": {"display": "Taurus", "api": 2, "color": 0x179559},
+    "gemini": {"display": "Gemini", "api": 3, "color": 0x008080},
+    "cancer": {"display": "Cancer", "api": 4, "color": 0xB8C2CA},
+    "leo": {"display": "Leo", "api": 5, "color": 0xA12600},
+    "virgo": {"display": "Virgo", "api": 6, "color": 0x08470B},
+    "libra": {"display": "Libra", "api": 7, "color": 0xEA987F},
+    "scorpio": {"display": "Scorpio", "api": 8, "color": 0x004040},
+    "sagittarius": {"display": "Sagittarius", "api": 9, "color": 0x64003F},
+    "capricorn": {"display": "Capricorn", "api": 10, "color": 0x28251C},
+    "aquarius": {"display": "Aquarius", "api": 11, "color": 0x015780},
+    "pisces": {"display": "Pisces", "api": 12, "color": 0x598F88},
 }
 
 SignLiteral = Literal['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces']
@@ -42,7 +42,7 @@ async def horoscope(interaction: discord.Interaction, sign: SignLiteral):
 
         horoscope_text = container.find("p").text.strip()
 
-        embed = discord.Embed(title=f"Horoscope for {signs[given_sign]['display']}", color=0xdd4f7a)
+        embed = discord.Embed(title=f"Horoscope for {signs[given_sign]['display']}", color=signs[given_sign]['color'])
         embed.add_field(name="Today's Horoscope", value=horoscope_text, inline=False)
         embed.timestamp = datetime.datetime.now(datetime.UTC)
         embed.set_footer(text="Built By Goldiez ❤️")
