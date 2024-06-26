@@ -1,0 +1,30 @@
+Update: Star Ratings Feature Added!
+Version 1.2.0 - June 26, 2024
+
+New Features:
+
+Star Ratings for Horoscopes:
+I am excited to introduce the new Star Ratings feature to our Horoscope command! 🌟
+You can now check detailed star ratings for categories such as Sex, Hustle, Vibe, and Success.
+Each category is rated with highlighted and non-highlighted stars, giving you a clearer picture of your daily horoscope.
+Simply use the /horoscope command and click the "Check Star Rating" button to view your personalized star ratings.
+Improvements:
+
+Enhanced User Experience:
+Improved the visual consistency of star ratings to ensure they are clear and easy to read.
+Added more detailed error messages to provide better guidance in case of issues.
+Bug Fixes:
+
+Fixed a bug that caused an error when sending empty messages.
+Resolved issues with interaction handling to prevent multiple acknowledgments.
+
+How to Use:
+
+Get Your Daily Horoscope:
+
+Use the /horoscope command followed by your zodiac sign (e.g., /horoscope aries).
+Check Star Ratings:
+
+After receiving your horoscope, click the "Check Star Rating" button to view the detailed star ratings for the day.
+
+Happy Stargazing! ✨

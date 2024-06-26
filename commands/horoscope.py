@@ -1,8 +1,9 @@
 import discord
 import datetime
 import requests
-from typing import Literal
 from bs4 import BeautifulSoup
+from typing import Literal
+from utils import fetch_star_rating  # Use absolute import
 
 signs = {
     "aries": {"display": "Aries", "api": 1, "color": 0xC60000},
@@ -48,7 +49,14 @@ async def horoscope(interaction: discord.Interaction, sign: SignLiteral):
         embed.add_field(name="Today's Horoscope", value=horoscope_text, inline=False)
         embed.timestamp = datetime.datetime.now(datetime.UTC)
         embed.set_footer(text="Built By Goldiez ❤️")
-        await interaction.response.send_message(embed=embed)
+
+        # Add button to check star rating
+        view = discord.ui.View()
+        button = discord.ui.Button(label="Check Star Rating", style=discord.ButtonStyle.primary, custom_id=f"star_rating_{given_sign}")
+        view.add_item(button)
+        button.callback = lambda i: fetch_star_rating(i, given_sign, embed)
+
+        await interaction.response.send_message(embed=embed, view=view)
 
     except requests.exceptions.RequestException as e:
         print(f"Request Error: {e}")
@@ -69,6 +77,4 @@ async def horoscope(interaction: discord.Interaction, sign: SignLiteral):
                 "Oops! An unexpected error occurred while processing your request. Please try again later.")
 
 def setup(client):
-    client.tree.command(
-        name="horoscope", description="Check your Daily Horoscope"
-    )(horoscope)
+    client.tree.command(name="horoscope", description="Check your Daily Horoscope")(horoscope)

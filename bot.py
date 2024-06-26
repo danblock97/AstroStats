@@ -4,9 +4,9 @@ import os
 from dotenv import load_dotenv
 import asyncio
 import logging
-from commands import apex, league, fortnite, horoscope, help, review, tft, kick, servers
+from commands import apex, league, fortnite, horoscope, help, review, tft, kick, servers, show_update  # Import the new command
 import re
-
+from utils import fetch_star_rating  # Import the function
 
 # Load environment variables
 load_dotenv()
@@ -29,6 +29,7 @@ horoscope.setup(client)
 tft.setup(client)
 help.setup(client)
 review.setup(client)
+show_update.setup(client)  # Add the new command
 # kick.setup(client)
 # servers.setup(client)
 
@@ -72,13 +73,18 @@ async def on_message(message):
             "Need Horoscopes? Apex Stats? Fortnite Stats? LoL Stats? Idk Add me! <https://astrostats.vercel.app>"
         )
 
+    # Check for the specific phrase
+    if "Hey, AstroStats, show me your latest update" in message.content:
+        ctx = await client.get_context(message)
+        await show_update.show_update(ctx)
+
     await client.process_commands(message)
 
 # Event for handling interaction errors
 @client.event
-async def p_error(interaction: discord.Interaction, error):
+async def on_command_error(ctx: commands.Context, error):
     if isinstance(error, commands.MissingRequiredArguments):
-        await interaction.response.send_message('Missing required arguments.')
+        await ctx.send('Missing required arguments.')
 
 # Event for checking if the guild is blacklisted before joining
 @client.event
