@@ -4,9 +4,9 @@ import os
 from dotenv import load_dotenv
 import asyncio
 import logging
-from commands import apex, league, fortnite, horoscope, help, review, tft, kick, servers, show_update  # Import the new command
+from commands import apex, league, fortnite, horoscope, help, review, tft, kick, servers, show_update  # Ensure these modules exist
 import re
-from utils import fetch_star_rating  # Import the function
+from utils import fetch_star_rating  # Ensure this function exists
 
 # Load environment variables
 load_dotenv()
@@ -15,7 +15,7 @@ load_dotenv()
 blacklisted_guilds = set(map(int, os.getenv('BLACKLISTED_GUILDS', '').split(','))) if os.getenv('BLACKLISTED_GUILDS') else set()
 
 logger = logging.getLogger('discord.gateway')
-logger.setLevel(logging.ERROR)  # Maybe fix as server grows
+logger.setLevel(logging.ERROR)  # Set logging level
 
 # Create the bot instance
 intents = discord.Intents.all()
@@ -50,7 +50,7 @@ async def on_ready():
 
         print("Bot is ready.")
     except Exception as e:
-        print(e)
+        print(f"Error during on_ready: {e}")
 
     await update_presence()  # Call the function to set initial presence
 
@@ -80,11 +80,13 @@ async def on_message(message):
 
     await client.process_commands(message)
 
-# Event for handling interaction errors
+# Event for handling command errors
 @client.event
 async def on_command_error(ctx: commands.Context, error):
-    if isinstance(error, commands.MissingRequiredArguments):
+    if isinstance(error, commands.MissingRequiredArgument):
         await ctx.send('Missing required arguments.')
+    else:
+        print(f"Unhandled command error: {error}")
 
 # Event for checking if the guild is blacklisted before joining
 @client.event

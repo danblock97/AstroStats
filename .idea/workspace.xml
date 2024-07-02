@@ -4,11 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="11e9420a-3d21-4499-8069-fca1d0b89b82" name="Changes" comment="Added star ratings to horoscope and an update via question to the bot">
+    <list default="true" id="11e9420a-3d21-4499-8069-fca1d0b89b82" name="Changes" comment="Added Links to new apps">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/commands/horoscope.py" beforeDir="false" afterPath="$PROJECT_DIR$/commands/horoscope.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/commands/league.py" beforeDir="false" afterPath="$PROJECT_DIR$/commands/league.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/updates.txt" beforeDir="false" afterPath="$PROJECT_DIR$/updates.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bot.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -109,7 +107,8 @@
       <workItem from="1718909626402" duration="762000" />
       <workItem from="1719047979540" duration="27000" />
       <workItem from="1719432240014" duration="3555000" />
-      <workItem from="1719924193566" duration="1067000" />
+      <workItem from="1719924193566" duration="1185000" />
+      <workItem from="1719928848865" duration="100000" />
     </task>
     <task id="LOCAL-00001" summary="Code smells dealt with per file, tested and all working as expected">
       <option name="closed" value="true" />
@@ -127,7 +126,15 @@
       <option name="project" value="LOCAL" />
       <updated>1718818312979</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="Added Links to new apps">
+      <option name="closed" value="true" />
+      <created>1719925379904</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1719925379904</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -138,7 +145,8 @@
     <MESSAGE value="- Added options for 'Season' and 'Lifetime' on Fortnite.py&#10;- Modified bot.py to explicitly sync the commands using `client.tree.sync()` ensuring that all changes are pushed to Discord.&#10;- Added a check to ensure the commands are registered properly with the bot's command tree. This involves ensuring that your commands are correctly set up and included in the bot’s command tree.&#10;- Ensured that the fortnite command is correctly defined and registered with the command tree. This involved verifying that the function is correctly decorated and added to the command tree using the appropriate method." />
     <MESSAGE value="Added a Live Game button to show live game data for the selected player" />
     <MESSAGE value="feat: Add dynamic embed colors for zodiac signs in horoscope command&#10;&#10;- Implemented specific colors for each zodiac sign in the Discord embed.&#10;- Added color hex codes for Aries, Taurus, Gemini, Cancer, Leo, Virgo, Libra, Scorpio, Sagittarius, Capricorn, Aquarius, and Pisces.&#10;- Updated the `horoscope` function to use the appropriate color based on the selected zodiac sign." />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: Add dynamic embed colors for zodiac signs in horoscope command&#10;&#10;- Implemented specific colors for each zodiac sign in the Discord embed.&#10;- Added color hex codes for Aries, Taurus, Gemini, Cancer, Leo, Virgo, Libra, Scorpio, Sagittarius, Capricorn, Aquarius, and Pisces.&#10;- Updated the `horoscope` function to use the appropriate color based on the selected zodiac sign." />
+    <MESSAGE value="Added Links to new apps" />
+    <option name="LAST_COMMIT_MESSAGE" value="Added Links to new apps" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/AstroStats$bot.coverage" NAME="bot Coverage Results" MODIFIED="1718028652393" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
