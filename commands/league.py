@@ -167,9 +167,8 @@ async def update_profile_view(interaction: discord.Interaction, embed, game_name
         league_info = f"{tier} {rank} {lp} LP\nWins: {wins}\nLosses: {losses}\nWinrate: {winrate}%"
         embed.add_field(name=user_friendly_queue_type, value=league_info, inline=True)
 
-    embed.timestamp = datetime.datetime.utcnow()
-    embed.set_footer(text="Built By Goldiez ❤️")
-
+    embed.timestamp = datetime.datetime.now(datetime.UTC)
+    embed.set_footer(text="Built By Goldiez ❤️ Visit riftspy.vercel.app to view your LoL Profile Today!")
     await interaction.followup.send(embed=embed,
                                     view=create_live_game_view(interaction.client, embed, puuid, region, headers, game_name, tag_line))
 
@@ -255,8 +254,8 @@ async def league(interaction: discord.Interaction, riotid: str):
             league_info = f"{tier} {rank} {lp} LP\nWins: {wins}\nLosses: {losses}\nWinrate: {winrate}%"
             embed.add_field(name=user_friendly_queue_type, value=league_info, inline=True)
 
-        embed.timestamp = datetime.datetime.utcnow()
-        embed.set_footer(text="Built By Goldiez ❤️")
+        embed.timestamp = datetime.datetime.now(datetime.UTC)
+        embed.set_footer(text="Built By Goldiez ❤️ Visit riftspy.vercel.app to view your LoL Profile Today!")
 
         view = create_live_game_view(interaction.client, embed, puuid, selected_region, headers, game_name, tag_line)
 

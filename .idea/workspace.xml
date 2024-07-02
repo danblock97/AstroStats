@@ -4,13 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="11e9420a-3d21-4499-8069-fca1d0b89b82" name="Changes" comment="feat: Add dynamic embed colors for zodiac signs in horoscope command&#10;&#10;- Implemented specific colors for each zodiac sign in the Discord embed.&#10;- Added color hex codes for Aries, Taurus, Gemini, Cancer, Leo, Virgo, Libra, Scorpio, Sagittarius, Capricorn, Aquarius, and Pisces.&#10;- Updated the `horoscope` function to use the appropriate color based on the selected zodiac sign.">
-      <change afterPath="$PROJECT_DIR$/commands/show_update.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/updates.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/utils.py" afterDir="false" />
+    <list default="true" id="11e9420a-3d21-4499-8069-fca1d0b89b82" name="Changes" comment="Added star ratings to horoscope and an update via question to the bot">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bot.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/commands/horoscope.py" beforeDir="false" afterPath="$PROJECT_DIR$/commands/horoscope.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/commands/league.py" beforeDir="false" afterPath="$PROJECT_DIR$/commands/league.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/updates.txt" beforeDir="false" afterPath="$PROJECT_DIR$/updates.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -111,6 +109,7 @@
       <workItem from="1718909626402" duration="762000" />
       <workItem from="1719047979540" duration="27000" />
       <workItem from="1719432240014" duration="3555000" />
+      <workItem from="1719924193566" duration="1067000" />
     </task>
     <task id="LOCAL-00001" summary="Code smells dealt with per file, tested and all working as expected">
       <option name="closed" value="true" />
