@@ -4,9 +4,16 @@ import os
 from dotenv import load_dotenv
 import asyncio
 import logging
-from commands import apex, league, fortnite, horoscope, help, review, tft, kick, servers, show_update  # Ensure these modules exist
 import re
+import sys  # Import sys module
 from utils import fetch_star_rating  # Ensure this function exists
+
+# Add the 'commands' directory to the system path
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'commands'))
+
+# Import command modules from 'commands' directory
+from commands import apex, league, fortnite, horoscope, help, review, tft, kick, servers, show_update
+from league import fetch_application_emojis  # Import the function
 
 # Load environment variables
 load_dotenv()
@@ -20,6 +27,9 @@ logger.setLevel(logging.ERROR)  # Set logging level
 # Create the bot instance
 intents = discord.Intents.all()
 client = commands.Bot(command_prefix="/", help_command=None, intents=intents)
+
+# Global dictionary to store emojis
+emojis = {}
 
 # Setup command modules
 apex.setup(client)
@@ -48,11 +58,23 @@ async def on_ready():
         await client.tree.sync()
         print("Commands Synced")
 
+        # Fetch and store emojis
+        global emojis
+        emoji_data = await fetch_application_emojis()
+
+        if emoji_data:
+            for emoji in emoji_data:
+                if isinstance(emoji, dict) and 'name' in emoji and 'id' in emoji:
+                    emojis[emoji['name']] = f"<:{emoji['name']}:{emoji['id']}>"
+                else:
+                    logging.error(f"Unexpected emoji format: {emoji}")
+
         print("Bot is ready.")
     except Exception as e:
         print(f"Error during on_ready: {e}")
 
     await update_presence()  # Call the function to set initial presence
+
 
 # Function to update the bot's presence
 async def update_presence():

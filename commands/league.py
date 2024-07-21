@@ -24,7 +24,6 @@ QUEUE_TYPE_NAMES = {
 # Dictionary to store the last fetch time for each user
 last_fetch_times = defaultdict(lambda: datetime.datetime.min)
 
-
 async def fetch_data(url, headers=None):
     async with aiohttp.ClientSession() as session:
         async with session.get(url, headers=headers) as response:
@@ -33,21 +32,17 @@ async def fetch_data(url, headers=None):
                 return None
             return await response.json()
 
-
 async def fetch_game_name_tagline(puuid, headers):
     regional_url = f"https://americas.api.riotgames.com/riot/account/v1/accounts/by-puuid/{puuid}"
     return await fetch_data(regional_url, headers)
-
 
 async def fetch_summoner_data(puuid, region, headers):
     summoner_url = f"https://{region.lower()}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/{puuid}"
     return await fetch_data(summoner_url, headers)
 
-
 async def fetch_league_data(summoner_id, region, headers):
     league_url = f"https://{region.lower()}.api.riotgames.com/lol/league/v4/entries/by-summoner/{summoner_id}"
     return await fetch_data(league_url, headers)
-
 
 async def get_player_rank(puuid, region, headers):
     summoner_data = await fetch_summoner_data(puuid, region, headers)
@@ -67,7 +62,6 @@ async def get_player_rank(puuid, region, headers):
             return f"{tier} {rank} {lp} LP"
     return "Unranked"
 
-
 async def fetch_champion_name(champion_id):
     url = f"https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champions/{champion_id}.json"
     data = await fetch_data(url)
@@ -75,6 +69,48 @@ async def fetch_champion_name(champion_id):
         return data['name']
     return "Unknown"
 
+
+# Global dictionary to store emojis
+emojis = {}
+
+
+async def fetch_application_emojis():
+    application_id = os.getenv('DISCORD_APP_ID')
+    bot_token = os.getenv('TOKEN')
+
+    if not application_id or not bot_token:
+        logging.error("Missing DISCORD_APPLICATION_ID or DISCORD_BOT_TOKEN environment variables")
+        return None
+
+    url = f"https://discord.com/api/v10/applications/{application_id}/emojis"
+    headers = {'Authorization': f'Bot {bot_token}'}
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url, headers=headers) as response:
+            if response.status != 200:
+                logging.error(f"Error fetching emojis: {response.status} - {response.reason}")
+                return None
+            data = await response.json()
+
+            if isinstance(data, dict) and 'items' in data:
+                data = data['items']
+
+            if isinstance(data, list):
+                return data
+            else:
+                logging.error("Unexpected emoji data format")
+                return None
+
+
+async def get_emoji_for_champion(champion_name):
+    global emojis
+    if not emojis:
+        emoji_data = await fetch_application_emojis()
+        if emoji_data:
+            for emoji in emoji_data:
+                normalized_name = emoji['name'].split('_')[0].lower()
+                emojis[normalized_name] = f"<:{emoji['name']}:{emoji['id']}>"
+    return emojis.get(champion_name.lower(), "")
 
 async def update_live_game_view(interaction: discord.Interaction, embed, puuid, region, headers, live_game_button, game_name, tag_line, view):
     riot_api_key = os.getenv('LOL_API')
@@ -104,10 +140,11 @@ async def update_live_game_view(interaction: discord.Interaction, embed, puuid, 
 
         champion_id = player['championId']
         champion_name = await fetch_champion_name(champion_id)
+        emoji = await get_emoji_for_champion(champion_name)
 
         player_data = {
             'summoner_name': summoner_name,
-            'champion_name': champion_name,
+            'champion_name': f"{emoji} {champion_name}",  # Place emoji before the champion name with a space
             'rank': rank
         }
 
@@ -117,7 +154,7 @@ async def update_live_game_view(interaction: discord.Interaction, embed, puuid, 
             red_team.append(player_data)
 
     embed.clear_fields()
-    embed.title = f"Live Game"
+    embed.title = "Live Game"
 
     blue_team_champions = '\n'.join([p['champion_name'] for p in blue_team])
     blue_team_names = '\n'.join([p['summoner_name'] for p in blue_team])
@@ -145,7 +182,6 @@ async def update_live_game_view(interaction: discord.Interaction, embed, puuid, 
     # Store the current timestamp for this user
     last_fetch_times[puuid] = datetime.datetime.utcnow()
 
-
 async def update_profile_view(interaction: discord.Interaction, embed, game_name, tag_line, summoner_data, league_data,
                               puuid, region, headers):
     embed.clear_fields()  # Clear existing fields in the embed
@@ -171,7 +207,6 @@ async def update_profile_view(interaction: discord.Interaction, embed, game_name
     embed.set_footer(text="Built By Goldiez ❤️ Visit riftspy.vercel.app to view your LoL Profile Today!")
     await interaction.followup.send(embed=embed,
                                     view=create_live_game_view(interaction.client, embed, puuid, region, headers, game_name, tag_line))
-
 
 def create_live_game_view(client, embed, puuid, region, headers, game_name, tag_line):
     view = discord.ui.View()
