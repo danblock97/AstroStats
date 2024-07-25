@@ -290,7 +290,7 @@ async def league(interaction: discord.Interaction, riotid: str):
             embed.add_field(name=user_friendly_queue_type, value=league_info, inline=True)
 
         embed.timestamp = datetime.datetime.now(datetime.UTC)
-        embed.set_footer(text="Built By Goldiez ❤️ Visit riftspy.vercel.app to view your LoL Profile Today!")
+        embed.set_footer(text="Built By Goldiez ❤️ Visit clutchgg.vercel.app to view your LoL Profile Today!")
 
         view = create_live_game_view(interaction.client, embed, puuid, selected_region, headers, game_name, tag_line)
 

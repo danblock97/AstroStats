@@ -4,9 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="11e9420a-3d21-4499-8069-fca1d0b89b82" name="Changes" comment="Added Links to new apps">
+    <list default="true" id="11e9420a-3d21-4499-8069-fca1d0b89b82" name="Changes" comment="Added Application Emojis to league.py">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bot.py" beforeDir="false" afterPath="$PROJECT_DIR$/bot.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/commands/league.py" beforeDir="false" afterPath="$PROJECT_DIR$/commands/league.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -29,12 +28,12 @@
     &quot;assignee&quot;: &quot;danblock97&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings">{
-  &quot;selectedUrlAndAccountId&quot;: {
-    &quot;url&quot;: &quot;https://github.com/danblock97/AstroStats.git&quot;,
-    &quot;accountId&quot;: &quot;9da88bbb-fb21-4932-b3a0-c516cc73d1c5&quot;
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/danblock97/AstroStats.git",
+    "accountId": "6458c094-f327-4acf-ab1c-5f59565c872b"
   }
-}</component>
+}]]></component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 0
 }</component>
@@ -113,6 +112,7 @@
       <workItem from="1720075947065" duration="276000" />
       <workItem from="1721574874536" duration="3462000" />
       <workItem from="1721580107656" duration="4190000" />
+      <workItem from="1721895500143" duration="24000" />
     </task>
     <task id="LOCAL-00001" summary="Code smells dealt with per file, tested and all working as expected">
       <option name="closed" value="true" />
