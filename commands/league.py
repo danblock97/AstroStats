@@ -19,6 +19,7 @@ REGIONS = [
 QUEUE_TYPE_NAMES = {
     "RANKED_SOLO_5x5": "Ranked Solo/Duo",
     "RANKED_FLEX_SR": "Ranked Flex 5v5",
+    "CHERRY": "Arena"
 }
 
 # Dictionary to store the last fetch time for each user
