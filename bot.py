@@ -105,7 +105,10 @@ async def on_message(message):
 # Event for handling command errors
 @client.event
 async def on_command_error(ctx: commands.Context, error):
-    if isinstance(error, commands.MissingRequiredArgument):
+    if isinstance(error, commands.CommandNotFound):
+        # Ignore CommandNotFound errors
+        return
+    elif isinstance(error, commands.MissingRequiredArgument):
         await ctx.send('Missing required arguments.')
     else:
         print(f"Unhandled command error: {error}")
