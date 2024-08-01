@@ -3,7 +3,6 @@ import datetime
 import aiohttp
 import os
 import logging
-import asyncio
 from collections import defaultdict
 
 # Configure logging
@@ -114,6 +113,7 @@ async def get_emoji_for_champion(champion_name):
     return emojis.get(champion_name.lower(), "")
 
 async def update_live_game_view(interaction: discord.Interaction, embed, puuid, region, headers, live_game_button, game_name, tag_line, view):
+
     riot_api_key = os.getenv('LOL_API')
     headers = {'X-Riot-Token': riot_api_key}
 
@@ -121,6 +121,7 @@ async def update_live_game_view(interaction: discord.Interaction, embed, puuid, 
     live_game_data = await fetch_data(live_game_url, headers)
 
     if not live_game_data or 'status' in live_game_data:
+        logging.error(f"No live game data found for puuid: {puuid} in region: {region}")
         await interaction.followup.send("No live game data found.", ephemeral=True)
         return
 
@@ -232,7 +233,7 @@ def create_live_game_view(client, embed, puuid, region, headers, game_name, tag_
 
 
 async def league(interaction: discord.Interaction, riotid: str):
-    print(f"League command called from server ID: {interaction.guild_id}")
+    logging.info(f"League command called from server ID: {interaction.guild_id}, riotid: {riotid}")
     try:
         await interaction.response.defer()
 
