@@ -9,6 +9,7 @@ load_dotenv()
 OWNER_ID = int(os.getenv('OWNER_ID'))
 
 async def list_servers(interaction: discord.Interaction):
+    print(f"List servers command called from server ID: {interaction.guild_id}")
     if interaction.user.id != OWNER_ID:
         await interaction.response.send_message("You do not have permission to use this command.")
         return

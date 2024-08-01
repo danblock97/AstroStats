@@ -12,6 +12,7 @@ TIME_MAPPING = {
 
 
 async def fortnite(interaction: discord.Interaction, time: Literal['Season', 'Lifetime'], name: str = None):
+    print(f"Fortnite command called from server ID: {interaction.guild_id}")
     try:
         if name is None:
             raise ValueError("Please provide a username.")

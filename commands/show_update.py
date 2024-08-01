@@ -14,6 +14,7 @@ def read_update_file(filepath: str) -> str:
 
 # Command to show the latest update
 async def show_update(ctx: commands.Context):
+    print(f"Show update command called from server ID: {ctx.guild.id}")
     filepath = 'updates.txt'  # Path to the .txt file
     update_content = read_update_file(filepath)
     await ctx.send(update_content)

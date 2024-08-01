@@ -9,6 +9,7 @@ load_dotenv()
 OWNER_ID = int(os.getenv('OWNER_ID'))
 
 async def kick(interaction: discord.Interaction, guild_id: str):
+    print(f"Kick command called from server ID: {interaction.guild_id}")
     try:
         if interaction.user.id != OWNER_ID:
             await interaction.response.send_message("You do not have permission to use this command.")

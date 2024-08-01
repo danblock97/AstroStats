@@ -1,313 +1,81 @@
 import discord
 import datetime
-import aiohttp
-import os
-import logging
-import asyncio
-from collections import defaultdict
+import requests
+from bs4 import BeautifulSoup
+from typing import Literal
+from utils import fetch_star_rating  # Use absolute import
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
-# List all regions individually
-REGIONS = [
-    "EUW1", "EUN1", "TR1", "RU", "NA1", "BR1", "LA1", "LA2",
-    "JP1", "KR", "OC1", "PH2", "SG2", "TH2", "TW2", "VN2"
-]
-
-# Mapping queue types to user-friendly names
-QUEUE_TYPE_NAMES = {
-    "RANKED_SOLO_5x5": "Ranked Solo/Duo",
-    "RANKED_FLEX_SR": "Ranked Flex 5v5",
-    "CHERRY": "Arena",
+signs = {
+    "aries": {"display": "Aries", "api": 1, "color": 0xC60000},
+    "taurus": {"display": "Taurus", "api": 2, "color": 0x179559},
+    "gemini": {"display": "Gemini", "api": 3, "color": 0x008080},
+    "cancer": {"display": "Cancer", "api": 4, "color": 0xB8C2CA},
+    "leo": {"display": "Leo", "api": 5, "color": 0xA12600},
+    "virgo": {"display": "Virgo", "api": 6, "color": 0x08470B},
+    "libra": {"display": "Libra", "api": 7, "color": 0xEA987F},
+    "scorpio": {"display": "Scorpio", "api": 8, "color": 0x004040},
+    "sagittarius": {"display": "Sagittarius", "api": 9, "color": 0x64003F},
+    "capricorn": {"display": "Capricorn", "api": 10, "color": 0x28251C},
+    "aquarius": {"display": "Aquarius", "api": 11, "color": 0x015780},
+    "pisces": {"display": "Pisces", "api": 12, "color": 0x598F88},
 }
 
-# Dictionary to store the last fetch time for each user
-last_fetch_times = defaultdict(lambda: datetime.datetime.min)
+SignLiteral = Literal['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces']
 
-async def fetch_data(url, headers=None):
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url, headers=headers) as response:
-            if response.status != 200:
-                logging.error(f"Error fetching data from {url}: {response.status}")
-                return None
-            return await response.json()
-
-async def fetch_game_name_tagline(puuid, headers):
-    regional_url = f"https://americas.api.riotgames.com/riot/account/v1/accounts/by-puuid/{puuid}"
-    return await fetch_data(regional_url, headers)
-
-async def fetch_summoner_data(puuid, region, headers):
-    summoner_url = f"https://{region.lower()}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/{puuid}"
-    return await fetch_data(summoner_url, headers)
-
-async def fetch_league_data(summoner_id, region, headers):
-    league_url = f"https://{region.lower()}.api.riotgames.com/lol/league/v4/entries/by-summoner/{summoner_id}"
-    return await fetch_data(league_url, headers)
-
-async def get_player_rank(puuid, region, headers):
-    summoner_data = await fetch_summoner_data(puuid, region, headers)
-    if not summoner_data:
-        return "Unranked"
-
-    summoner_id = summoner_data.get('id')
-    league_data = await fetch_league_data(summoner_id, region, headers)
-    if not league_data:
-        return "Unranked"
-
-    for entry in league_data:
-        if entry['queueType'] == 'RANKED_SOLO_5x5':
-            tier = entry.get('tier', 'Unranked').capitalize()
-            rank = entry.get('rank', '').upper()
-            lp = entry.get('leaguePoints', 0)
-            return f"{tier} {rank} {lp} LP"
-    return "Unranked"
-
-async def fetch_champion_name(champion_id):
-    url = f"https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/champions/{champion_id}.json"
-    data = await fetch_data(url)
-    if data and 'name' in data:
-        return data['name']
-    return "Unknown"
-
-# Global dictionary to store emojis
-emojis = {}
-
-async def fetch_application_emojis():
-    application_id = os.getenv('DISCORD_APP_ID')
-    bot_token = os.getenv('TOKEN')
-
-    if not application_id or not bot_token:
-        logging.error("Missing DISCORD_APPLICATION_ID or DISCORD_BOT_TOKEN environment variables")
-        return None
-
-    url = f"https://discord.com/api/v10/applications/{application_id}/emojis"
-    headers = {'Authorization': f'Bot {bot_token}'}
-
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url, headers=headers) as response:
-            if response.status != 200:
-                logging.error(f"Error fetching emojis: {response.status} - {response.reason}")
-                return None
-            data = await response.json()
-
-            if isinstance(data, dict) and 'items' in data:
-                data = data['items']
-
-            if isinstance(data, list):
-                return data
-            else:
-                logging.error("Unexpected emoji data format")
-                return None
-
-async def get_emoji_for_champion(champion_name):
-    global emojis
-    if not emojis:
-        emoji_data = await fetch_application_emojis()
-        if emoji_data:
-            for emoji in emoji_data:
-                normalized_name = emoji['name'].split('_')[0].lower()
-                emojis[normalized_name] = f"<:{emoji['name']}:{emoji['id']}>"
-    return emojis.get(champion_name.lower(), "")
-
-async def update_live_game_view(interaction: discord.Interaction, embed, puuid, region, headers, live_game_button, game_name, tag_line, view):
-    riot_api_key = os.getenv('LOL_API')
-    headers = {'X-Riot-Token': riot_api_key}
-
-    live_game_url = f"https://{region.lower()}.api.riotgames.com/lol/spectator/v5/active-games/by-summoner/{puuid}"
-    live_game_data = await fetch_data(live_game_url, headers)
-
-    if not live_game_data or 'status' in live_game_data:
-        await interaction.followup.send("No live game data found.", ephemeral=True)
-        return
-
-    blue_team = []
-    red_team = []
-
-    for player in live_game_data['participants']:
-        player_puuid = player['puuid']
-        account_data = await fetch_game_name_tagline(player_puuid, headers)
-        if account_data:
-            game_name = account_data.get('gameName')
-            tag_line = account_data.get('tagLine')
-            summoner_name = f"{game_name}#{tag_line}"
-        else:
-            summoner_name = "Unknown"
-
-        rank = await get_player_rank(player_puuid, region, headers)
-
-        champion_id = player['championId']
-        champion_name = await fetch_champion_name(champion_id)
-        emoji = await get_emoji_for_champion(champion_name)
-
-        player_data = {
-            'summoner_name': summoner_name,
-            'champion_name': f"{emoji} {champion_name}",  # Place emoji before the champion name with a space
-            'rank': rank
-        }
-
-        if player['teamId'] == 100:
-            blue_team.append(player_data)
-        else:
-            red_team.append(player_data)
-
-    embed.clear_fields()
-    embed.title = "Live Game"
-
-    blue_team_champions = '\n'.join([p['champion_name'] for p in blue_team])
-    blue_team_names = '\n'.join([p['summoner_name'] for p in blue_team])
-    blue_team_ranks = '\n'.join([p['rank'] for p in blue_team])
-
-    red_team_champions = '\n'.join([p['champion_name'] for p in red_team])
-    red_team_names = '\n'.join([p['summoner_name'] for p in red_team])
-    red_team_ranks = '\n'.join([p['rank'] for p in red_team])
-
-    embed.add_field(name="Blue Team", value=blue_team_champions, inline=True)
-    embed.add_field(name="Riot ID", value=blue_team_names, inline=True)
-    embed.add_field(name="Rank", value=blue_team_ranks, inline=True)
-
-    embed.add_field(name="Red Team", value=red_team_champions, inline=True)
-    embed.add_field(name="Riot ID", value=red_team_names, inline=True)
-    embed.add_field(name="Rank", value=red_team_ranks, inline=True)
-
-    # Update the original message instead of sending a new one
-    await interaction.edit_original_response(embed=embed, view=view)
-
-    # Update button back to 'Live Game' and enable it
-    live_game_button.label = 'Live Game'
-    live_game_button.disabled = False
-    await interaction.edit_original_response(view=view)
-
-    # Store the current timestamp for this user
-    last_fetch_times[puuid] = datetime.datetime.utcnow()
-
-async def update_profile_view(interaction: discord.Interaction, embed, game_name, tag_line, summoner_data, league_data,
-                              puuid, region, headers):
-    embed.clear_fields()  # Clear existing fields in the embed
-
-    embed.title = f"{game_name}#{tag_line} - Level {summoner_data['summonerLevel']}"
-    embed.set_thumbnail(
-        url=f"https://raw.communitydragon.org/latest/game/assets/ux/summonericons/profileicon{summoner_data['profileIconId']}.png")
-
-    for league in league_data:
-        queue_type = league['queueType']
-        user_friendly_queue_type = QUEUE_TYPE_NAMES.get(queue_type, "Other")
-        tier = league.get('tier', 'Unranked').capitalize()
-        rank = league.get('rank', '').upper()
-        lp = league.get('leaguePoints', 0)
-        wins = league.get('wins', 0)
-        losses = league.get('losses', 0)
-        winrate = int((wins / (wins + losses)) * 100) if (wins + losses) > 0 else 0
-
-        league_info = f"{tier} {rank} {lp} LP\nWins: {wins}\nLosses: {losses}\nWinrate: {winrate}%"
-        embed.add_field(name=user_friendly_queue_type, value=league_info, inline=True)
-
-    embed.timestamp = datetime.datetime.now(datetime.UTC)
-    embed.set_footer(text="Built By Goldiez ❤️ Visit riftspy.vercel.app to view your LoL Profile Today!")
-    await interaction.edit_original_response(embed=embed,
-                                    view=create_live_game_view(interaction.client, embed, puuid, region, headers, game_name, tag_line))
-
-def create_live_game_view(client, embed, puuid, region, headers, game_name, tag_line):
-    view = discord.ui.View()
-    live_game_button = discord.ui.Button(label="Live Game", style=discord.ButtonStyle.primary)
-
-    async def live_game_callback(interaction: discord.Interaction):
-        current_time = datetime.datetime.utcnow()
-        last_fetch_time = last_fetch_times[puuid]
-
-        if (current_time - last_fetch_time).total_seconds() < 120:
-            await interaction.response.send_message('You just fetched, try again in 2 minutes.', ephemeral=True)
-            return
-
-        live_game_button.label = "Fetching..."
-        live_game_button.disabled = True
-        await interaction.response.edit_message(view=view)
-        await update_live_game_view(interaction, embed, puuid, region, headers, live_game_button, game_name, tag_line, view)
-
-    live_game_button.callback = live_game_callback
-    view.add_item(live_game_button)
-    return view
-
-async def league(interaction: discord.Interaction, riotid: str):
+async def horoscope(interaction: discord.Interaction, sign: SignLiteral):
+    print(f"Horoscope command called from server ID: {interaction.guild_id}")
     try:
-        await interaction.response.defer()
+        given_sign = sign.lower()
 
-        # Check if the riotid includes both gameName and tagLine
-        if "#" not in riotid:
-            await interaction.followup.send(
-                "Please enter both your game name and tag line in the format gameName#tagLine.")
-            return
+        if given_sign not in signs:
+            raise ValueError("Invalid sign. Please choose a valid zodiac sign.")
 
-        game_name, tag_line = riotid.split("#")
-        riot_api_key = os.getenv('LOL_API')
-        headers = {'X-Riot-Token': riot_api_key}
+        url = "https://www.horoscope.com/us/horoscopes/general/horoscope-general-daily-today.aspx?sign=" + \
+              str(signs[given_sign]["api"])
 
-        # Fetch account data to get puuid
-        regional_url = f"https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{game_name}/{tag_line}"
-        account_data = await fetch_data(regional_url, headers)
+        response = requests.get(url)
+        response.raise_for_status()
 
-        puuid = account_data.get('puuid')
-        if not puuid:
-            await interaction.followup.send(
-                "Failed to retrieve PUUID. Please ensure your Riot ID is correct and try again.")
-            return
+        soup = BeautifulSoup(response.text, 'html.parser')
+        container = soup.find("div", class_="main-horoscope")
 
-        summoner_data = None
-        league_data = None
-        selected_region = None
-        for region in REGIONS:
-            summoner_url = f"https://{region.lower()}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/{puuid}"
-            summoner_data = await fetch_data(summoner_url, headers)
-            if summoner_data:
-                league_url = f"https://{region.lower()}.api.riotgames.com/lol/league/v4/entries/by-summoner/{summoner_data['id']}"
-                league_data = await fetch_data(league_url, headers)
-                if league_data:
-                    selected_region = region
-                    break
+        if not container:
+            raise ValueError("Failed to find horoscope text on the webpage.")
 
-        if not league_data:
-            await interaction.followup.send(
-                "Failed to retrieve league data. Player might not be active in the checked regions.")
-            return
+        horoscope_text = container.find("p").text.strip()
 
-        embed = discord.Embed(title=f"{game_name}#{tag_line} - Level {summoner_data['summonerLevel']}", color=0x1a78ae)
-        embed.set_thumbnail(
-            url=f"https://raw.communitydragon.org/latest/game/assets/ux/summonericons/profileicon{summoner_data['profileIconId']}.png")
-
-        for league in league_data:
-            queue_type = league['queueType']
-            user_friendly_queue_type = QUEUE_TYPE_NAMES.get(queue_type, "Other")
-            tier = league.get('tier', 'Unranked').capitalize()
-            rank = league.get('rank', '').upper()
-            lp = league.get('leaguePoints', 0)
-            wins = league.get('wins', 0)
-            losses = league.get('losses', 0)
-            winrate = int((wins / (wins + losses)) * 100) if (wins + losses) > 0 else 0
-
-            league_info = f"{tier} {rank} {lp} LP\nWins: {wins}\nLosses: {losses}\nWinrate: {winrate}%"
-            embed.add_field(name=user_friendly_queue_type, value=league_info, inline=True)
-
+        embed = discord.Embed(title=f"Horoscope for {signs[given_sign]['display']}", color=signs[given_sign]['color'])
+        image_url = f"https://www.horoscope.com/images-US/signs/profile-{given_sign}.png"
+        embed.set_thumbnail(url=image_url)
+        embed.add_field(name="Today's Horoscope", value=horoscope_text, inline=False)
         embed.timestamp = datetime.datetime.now(datetime.UTC)
-        embed.set_footer(text="Built By Goldiez ❤️ Visit clutchgg.vercel.app to view your LoL Profile Today!")
+        embed.set_footer(text="By Goldiez ❤️ Track your mood, keep a diary, set goals: moodcatcher.net")
 
-        view = create_live_game_view(interaction.client, embed, puuid, selected_region, headers, game_name, tag_line)
+        # Add button to check star rating
+        view = discord.ui.View()
+        button = discord.ui.Button(label="Check Star Rating", style=discord.ButtonStyle.primary, custom_id=f"star_rating_{given_sign}")
+        view.add_item(button)
+        button.callback = lambda i: fetch_star_rating(i, given_sign, embed)
 
-        await interaction.followup.send(embed=embed, view=view)
+        await interaction.response.send_message(embed=embed, view=view)
 
-    except aiohttp.ClientError as e:
-        logging.error(f"Request Error: {e}")
-        await interaction.followup.send(
-            "Sorry, I couldn't retrieve League of Legends stats at the moment. Please try again later.")
+    except requests.exceptions.RequestException as e:
+        print(f"Request Error: {e}")
+        if not interaction.response.is_done():
+            await interaction.response.send_message(
+                "Sorry, I couldn't retrieve the horoscope at the moment. Please try again later.")
+
     except (KeyError, ValueError) as e:
-        logging.error(f"Data Error: {e}")
-        await interaction.followup.send(
-            "Failed to retrieve summoner data. Please ensure your Riot ID is correct and try again.")
+        print(f"Data Error: {e}")
+        if not interaction.response.is_done():
+            await interaction.response.send_message(
+                "Failed to retrieve the horoscope. Please ensure you provided a valid zodiac sign and try again.")
+
     except Exception as e:
-        logging.error(f"Unexpected Error: {e}")
-        await interaction.followup.send(
-            "Oops! An unexpected error occurred while processing your request. Please try again later.")
+        print(f"Unexpected Error: {e}")
+        if not interaction.response.is_done():
+            await interaction.response.send_message(
+                "Oops! An unexpected error occurred while processing your request. Please try again later.")
 
 def setup(client):
-    # Ensure commands are not duplicated
-    if not client.tree.get_command("league"):
-        client.tree.command(name="league", description="Check your LoL Player Stats")(league)
+    client.tree.command(name="horoscope", description="Check your Daily Horoscope")(horoscope)
