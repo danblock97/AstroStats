@@ -73,6 +73,18 @@ async def fetch_champion_name(champion_id):
 # Global dictionary to store emojis
 emojis = {}
 
+SPECIAL_EMOJI_NAMES = {
+    "Renata Glasc": "Renata",
+    "Wukong": "MonkeyKing",
+    "Miss Fortune": "MissFortune",
+    "Xin Zhao": "XinZhao",
+    "Aurelion Sol": "AurelionSol",
+    "Bel'Veth": "Belveth",
+    "Cho'Gath": "Chogath",
+    "Nunu & Willump": "Nunu",
+    "Lee Sin": "LeeSin"
+}
+
 
 async def fetch_application_emojis():
     application_id = os.getenv('DISCORD_APP_ID')
@@ -101,7 +113,6 @@ async def fetch_application_emojis():
                 logging.error("Unexpected emoji data format")
                 return None
 
-
 async def get_emoji_for_champion(champion_name):
     global emojis
     if not emojis:
@@ -110,7 +121,10 @@ async def get_emoji_for_champion(champion_name):
             for emoji in emoji_data:
                 normalized_name = emoji['name'].split('_')[0].lower()
                 emojis[normalized_name] = f"<:{emoji['name']}:{emoji['id']}>"
-    return emojis.get(champion_name.lower(), "")
+    
+    # Check if the champion name has a special emoji name
+    normalized_champion_name = SPECIAL_EMOJI_NAMES.get(champion_name, champion_name)
+    return emojis.get(normalized_champion_name.lower(), "")
 
 async def update_live_game_view(interaction: discord.Interaction, embed, puuid, region, headers, live_game_button, game_name, tag_line, view):
 
