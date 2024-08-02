@@ -54,8 +54,20 @@ async def horoscope(interaction: discord.Interaction, sign: SignLiteral):
         # Add button to check star rating
         view = discord.ui.View()
         button = discord.ui.Button(label="Check Star Rating", style=discord.ButtonStyle.primary, custom_id=f"star_rating_{given_sign}")
+
+        async def button_callback(button_interaction: discord.Interaction):
+            # Fetch star rating
+            star_rating_text = await fetch_star_rating(button_interaction, given_sign, embed)
+            # Add star rating to the embed
+            embed.add_field(name="Star Ratings", value=star_rating_text, inline=False)
+            # Disable the button and change its text
+            button.disabled = True
+            button.label = "Star Rating Fetched"
+            # Edit the original message with the updated embed and view
+            await button_interaction.message.edit(embed=embed, view=view)
+
+        button.callback = button_callback
         view.add_item(button)
-        button.callback = lambda i: fetch_star_rating(i, given_sign, embed)
 
         await interaction.response.send_message(embed=embed, view=view)
 
