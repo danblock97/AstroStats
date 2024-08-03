@@ -24,8 +24,9 @@ blacklisted_guilds = set(map(int, os.getenv('BLACKLISTED_GUILDS', '').split(',')
 logger = logging.getLogger('discord.gateway')
 logger.setLevel(logging.ERROR)  # Set logging level
 
-# Create the bot instance
-intents = discord.Intents.all()
+# Create the bot instance with only the necessary intents
+intents = discord.Intents.default()
+intents.message_content = True
 client = commands.Bot(command_prefix="/", help_command=None, intents=intents)
 
 # Global dictionary to store emojis
