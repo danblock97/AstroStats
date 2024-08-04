@@ -12,7 +12,7 @@ from utils import fetch_star_rating  # Ensure this function exists
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'commands'))
 
 # Import command modules from 'commands' directory
-from commands import apex, league, fortnite, horoscope, help, review, tft, kick, servers, show_update
+from commands import apex, league, fortnite, horoscope, help, review, tft, kick, servers
 from league import fetch_application_emojis  # Import the function
 
 # Load environment variables
@@ -26,7 +26,6 @@ logger.setLevel(logging.ERROR)  # Set logging level
 
 # Create the bot instance with only the necessary intents
 intents = discord.Intents.default()
-intents.message_content = True
 client = commands.Bot(command_prefix="/", help_command=None, intents=intents)
 
 # Global dictionary to store emojis
@@ -40,12 +39,8 @@ horoscope.setup(client)
 tft.setup(client)
 help.setup(client)
 review.setup(client)
-show_update.setup(client)  # Add the new command
 # kick.setup(client)
 # servers.setup(client)
-
-# Regex pattern to match Discord invite links
-invite_link_pattern = re.compile(r"(https?://)?(www\.)?(discord\.gg|discordapp\.com/invite)/[A-Za-z0-9]+")
 
 # Event for when the bot is ready
 @client.event
@@ -84,24 +79,6 @@ async def update_presence():
         presence = discord.Activity(type=discord.ActivityType.playing, name=f"on {guild_count} servers")
         await client.change_presence(activity=presence)
         await asyncio.sleep(18000)  # Update every 5 hours
-
-@client.event
-async def on_message(message):
-    if message.author == client.user:
-        return
-
-    # Check if the message contains a Discord invite link
-    if invite_link_pattern.search(message.content):
-        await message.channel.send(
-            "Need Horoscopes? Apex Stats? Fortnite Stats? LoL Stats? Idk Add me! <https://astrostats.vercel.app>"
-        )
-
-    # Check for the specific phrase
-    if "Hey, AstroStats, show me your latest update" in message.content:
-        ctx = await client.get_context(message)
-        await show_update.show_update(ctx)
-
-    await client.process_commands(message)
 
 # Event for handling command errors
 @client.event
