@@ -72,7 +72,7 @@ async def fortnite(interaction: discord.Interaction, time: Literal['Season', 'Li
                         inline=True)
 
         embed.timestamp = datetime.datetime.now(datetime.UTC)
-        embed.set_footer(text="Built By Goldiez ❤️")
+        embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
         await interaction.response.send_message(embed=embed)
 
     except requests.exceptions.RequestException as e:

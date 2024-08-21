@@ -220,7 +220,7 @@ async def update_profile_view(interaction: discord.Interaction, embed, game_name
         embed.add_field(name=user_friendly_queue_type, value=league_info, inline=True)
 
     embed.timestamp = datetime.datetime.now(datetime.UTC)
-    embed.set_footer(text="Built By Goldiez ❤️ Visit riftspy.vercel.app to view your LoL Profile Today!")
+    embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
     await interaction.followup.send(embed=embed,
                                     view=create_live_game_view(interaction.client, embed, puuid, region, headers, game_name, tag_line))
 
