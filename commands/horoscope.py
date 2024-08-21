@@ -49,7 +49,7 @@ async def horoscope(interaction: discord.Interaction, sign: SignLiteral):
         embed.set_thumbnail(url=image_url)
         embed.add_field(name="Today's Horoscope", value=horoscope_text, inline=False)
         embed.timestamp = datetime.datetime.now(datetime.UTC)
-        embed.set_footer(text="By Goldiez ❤️ Track your mood, keep a diary, set goals: moodcatcher.net")
+        embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
 
         # Add button to check star rating
         view = discord.ui.View()

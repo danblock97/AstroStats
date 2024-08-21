@@ -83,7 +83,7 @@ async def tft(interaction: discord.Interaction, riotid: str):
             embed.add_field(name=user_friendly_queue_type, value=league_info, inline=True)
 
         embed.timestamp = datetime.datetime.now(datetime.UTC)
-        embed.set_footer(text="Built By Goldiez ❤️")
+        embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
 
         await interaction.followup.send(embed=embed)
 

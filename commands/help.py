@@ -12,7 +12,7 @@ async def help(interaction: discord.Interaction):
     embed.add_field(name="Fortnite Player Stats", value="`/fortnite <time> <name>`")
     embed.add_field(name="Horoscope", value="`/horoscope <sign>`")
     embed.timestamp = datetime.datetime.now(datetime.UTC)
-    embed.set_footer(text="Built By Goldiez ❤️")
+    embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
     await interaction.response.send_message(embed=embed)
 
 def setup(client):
