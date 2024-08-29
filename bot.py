@@ -4,7 +4,6 @@ import os
 from dotenv import load_dotenv
 import asyncio
 import logging
-import re
 import sys  # Import sys module
 from utils import fetch_star_rating  # Ensure this function exists
 
@@ -12,7 +11,7 @@ from utils import fetch_star_rating  # Ensure this function exists
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'commands'))
 
 # Import command modules from 'commands' directory
-from commands import apex, league, fortnite, horoscope, help, review, tft, kick, servers
+from commands import apex, league, fortnite, horoscope, help, review, tft, kick, servers, pet_commands, show_update  # Add show_update here
 from league import fetch_application_emojis  # Import the function
 
 # Load environment variables
@@ -39,6 +38,8 @@ horoscope.setup(client)
 tft.setup(client)
 help.setup(client)
 review.setup(client)
+pet_commands.setup(client)
+show_update.setup(client)  # Setup the show_update module here
 # kick.setup(client)
 # servers.setup(client)
 
