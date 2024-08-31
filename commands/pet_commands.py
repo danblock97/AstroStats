@@ -350,7 +350,9 @@ async def pet_battle(interaction: discord.Interaction, opponent: discord.Member)
 @app_commands.command(name="top_pets", description="View the top pets leaderboard")
 async def top_pets(interaction: discord.Interaction):
     guild_id = str(interaction.guild.id)
-    top_pets = list(pets_collection.find({"guild_id": guild_id}).sort("level", -1).limit(10))
+    
+    # Sort first by level (descending) and then by XP (descending)
+    top_pets = list(pets_collection.find({"guild_id": guild_id}).sort([("level", -1), ("xp", -1)]).limit(10))
 
     embed = discord.Embed(title="Top Pets Leaderboard", color=0xFFD700)
     for index, pet in enumerate(top_pets, 1):
@@ -359,6 +361,7 @@ async def top_pets(interaction: discord.Interaction):
         embed.set_thumbnail(url=pet['icon'])
     
     await interaction.response.send_message(embed=embed)
+
 
 # Register commands
 def setup(client):
