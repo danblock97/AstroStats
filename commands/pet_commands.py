@@ -196,6 +196,16 @@ async def pet_battle(interaction: discord.Interaction, opponent: discord.Member)
     if not opponent_pet:
         await interaction.response.send_message(f"{opponent.mention} doesn't have a pet in this server. They need to summon one first.")
         return
+    
+    # Check level restrictions
+    if opponent_pet['level'] > user_pet['level'] + 1 or opponent_pet['level'] < user_pet['level'] - 1:
+        embed = discord.Embed(
+            title="Battle Error",
+            description=f"You can only battle someone with a pet that is higher level, the same level, or one level below yours.",
+            color=discord.Color.red()
+        )
+        await interaction.response.send_message(embed=embed)
+        return
 
     # Check if they have battled more than 5 times in the last 24 hours
     now = discord.utils.utcnow()
