@@ -4,6 +4,9 @@ AstroStats is an open-source Discord bot that provides game stats for League of 
 
 ## Features
 
+- **Pet Battles**
+  - Summon your very own server pet and battle other server members to become top of the leaderboard! 
+
 - **Game Stats:**
 
   - **League of Legends:** Get detailed statistics for any summoner.
