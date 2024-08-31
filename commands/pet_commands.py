@@ -208,7 +208,12 @@ async def pet_battle(interaction: discord.Interaction, opponent: discord.Member)
     })
 
     if recent_battles >= 5:
-        await interaction.response.send_message(f"You have already battled {opponent.display_name} 5 times in the last 24 hours in this server. Please try again later.")
+        embed = discord.Embed(
+            title="Battle Limit Reached",
+            description=f"You have already battled {opponent.display_name} 5 times in the last 24 hours in this server. Please try again later.",
+            color=0xFF0000  # Red color to indicate an error or warning
+        )
+        await interaction.response.send_message(embed=embed)
         return
 
     # Log this battle
