@@ -182,7 +182,12 @@ async def pet_battle(interaction: discord.Interaction, opponent: discord.Member)
     
     # Ensure the bot isn't the selected opponent
     if opponent == interaction.client.user:
-        await interaction.response.send_message("You cannot battle the bot. Please choose another member with a pet.")
+        embed = discord.Embed(
+            title="Battle Error",
+            description="You cannot battle the bot. Please choose another member with a pet.",
+            color=discord.Color.red()  # Use red to indicate an error or invalid action
+        )
+        await interaction.response.send_message(embed=embed)
         return
 
     # Fetch the user's pet and the opponent's pet from the database for this server
@@ -191,11 +196,21 @@ async def pet_battle(interaction: discord.Interaction, opponent: discord.Member)
 
     # Check if both participants have pets
     if not user_pet:
-        await interaction.response.send_message(f"{interaction.user.mention}, you don't have a pet to battle with in this server!")
+        embed = discord.Embed(
+            title="No Pet Found",
+            description=f"{interaction.user.mention}, you don't have a pet to battle with in this server!",
+            color=discord.Color.red()
+        )
+        await interaction.response.send_message(embed=embed)
         return
 
     if not opponent_pet:
-        await interaction.response.send_message(f"{opponent.mention} doesn't have a pet in this server. They need to summon one first.")
+        embed = discord.Embed(
+            title="Opponent Has No Pet",
+            description=f"{opponent.mention} doesn't have a pet in this server. They need to summon one first.",
+            color=discord.Color.red()
+        )
+        await interaction.response.send_message(embed=embed)
         return
     
     # Check level restrictions
