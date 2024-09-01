@@ -345,31 +345,37 @@ async def pet_battle(interaction: discord.Interaction, opponent: discord.Member)
     pets_collection.update_one({"_id": user_pet["_id"]}, {"$set": user_pet})
     pets_collection.update_one({"_id": opponent_pet["_id"]}, {"$set": opponent_pet})
 
-    # Final update with the battle result
-    battle_embed.title = "Battle Concluded"
-    battle_embed.description = f"{battle_result}\n\n{interaction.user.display_name}'s pet health: {max(0, user_health)}\n{opponent.display_name}'s pet health: {max(0, opponent_health)}"
-    await message.edit(embed=battle_embed)
-
-    # Send battle result as a follow-up if needed
-    await interaction.followup.send(embed=battle_embed)
-
     # Check if pets need to level up
     user_pet, user_leveled_up = check_level_up(user_pet)
     opponent_pet, opponent_leveled_up = check_level_up(opponent_pet)
 
+    # Final update with the battle result, XP gain, and level-up details
+    battle_embed.title = "Battle Concluded"
+    battle_embed.description = (
+        f"{battle_result}\n\n"
+        f"**{interaction.user.display_name}'s pet {user_pet['name']}** gained **{user_xp_gain} XP**\n"
+        f"**{opponent.display_name}'s pet {opponent_pet['name']}** gained **{opponent_xp_gain} XP**\n"
+    )
+
     if user_leveled_up or opponent_leveled_up:
-        pets_collection.update_one({"_id": user_pet["_id"]}, {"$set": user_pet})
-        pets_collection.update_one({"_id": opponent_pet["_id"]}, {"$set": opponent_pet})
+        level_up_message = ""
+        if user_leveled_up:
+            level_up_message += f"{interaction.user.display_name}'s pet leveled up to **Level {user_pet['level']}**!\n"
+        if opponent_leveled_up:
+            level_up_message += f"{opponent.display_name}'s pet leveled up to **Level {opponent_pet['level']}**!\n"
 
-        level_up_message = f"{interaction.user.display_name}'s pet leveled up!" if user_leveled_up else ""
-        level_up_message += f"\n{opponent.display_name}'s pet leveled up!" if opponent_leveled_up else ""
+        battle_embed.description += f"\n{level_up_message}"
 
-        final_embed = discord.Embed(
-            title="Level Up!",
-            description=level_up_message,
-            color=discord.Color.gold()
-        )
-        await interaction.followup.send(embed=final_embed)
+    # Set the thumbnail to the winning pet's icon
+    if user_health > 0:
+        battle_embed.set_thumbnail(url=user_pet['icon'])
+    else:
+        battle_embed.set_thumbnail(url=opponent_pet['icon'])
+
+    await message.edit(embed=battle_embed)
+
+    # Send battle result as a follow-up if needed
+    await interaction.followup.send(embed=battle_embed)
 
 # Top pets leaderboard
 @app_commands.command(name="top_pets", description="View the top pets leaderboard")
