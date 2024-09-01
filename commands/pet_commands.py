@@ -350,6 +350,9 @@ async def pet_battle(interaction: discord.Interaction, opponent: discord.Member)
     battle_embed.description = f"{battle_result}\n\n{interaction.user.display_name}'s pet health: {max(0, user_health)}\n{opponent.display_name}'s pet health: {max(0, opponent_health)}"
     await message.edit(embed=battle_embed)
 
+    # Send battle result as a follow-up if needed
+    await interaction.followup.send(embed=battle_embed)
+
     # Check if pets need to level up
     user_pet, user_leveled_up = check_level_up(user_pet)
     opponent_pet, opponent_leveled_up = check_level_up(opponent_pet)
@@ -359,7 +362,7 @@ async def pet_battle(interaction: discord.Interaction, opponent: discord.Member)
         pets_collection.update_one({"_id": opponent_pet["_id"]}, {"$set": opponent_pet})
 
         level_up_message = f"{interaction.user.display_name}'s pet leveled up!" if user_leveled_up else ""
-        level_up_message += f"{opponent.display_name}'s pet leveled up!" if opponent_leveled_up else ""
+        level_up_message += f"\n{opponent.display_name}'s pet leveled up!" if opponent_leveled_up else ""
 
         final_embed = discord.Embed(
             title="Level Up!",
