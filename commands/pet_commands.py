@@ -54,18 +54,19 @@ COLOR_LIST = {
 def calculate_xp_needed(level):
     return level ** 2 * 100
 
-# Check and apply level up if XP is sufficient
 def check_level_up(pet):
-    xp_needed = calculate_xp_needed(pet['level'])
     leveled_up = False
-    while pet['xp'] >= xp_needed:
-        pet['level'] += 1
-        pet['xp'] -= xp_needed
-        pet['strength'] += LEVEL_UP_INCREASES["strength"]
-        pet['defense'] += LEVEL_UP_INCREASES["defense"]
-        pet['health'] += LEVEL_UP_INCREASES["health"]
+    while True:
         xp_needed = calculate_xp_needed(pet['level'])
-        leveled_up = True
+        if pet['xp'] >= xp_needed:
+            pet['level'] += 1
+            pet['xp'] -= xp_needed
+            pet['strength'] += LEVEL_UP_INCREASES["strength"]
+            pet['defense'] += LEVEL_UP_INCREASES["defense"]
+            pet['health'] += LEVEL_UP_INCREASES["health"]
+            leveled_up = True
+        else:
+            break
     return pet, leveled_up
 
 # Create XP bar for visualization
