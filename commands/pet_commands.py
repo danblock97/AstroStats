@@ -5,7 +5,7 @@ import asyncio
 from discord.ext import commands
 from discord import app_commands
 from pymongo import MongoClient
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 # MongoDB setup
 client = MongoClient(os.getenv('MONGODB_URI'))
@@ -234,20 +234,23 @@ async def pet_battle(interaction: discord.Interaction, opponent: discord.Member)
         await interaction.response.send_message(embed=embed)
         return
 
-    # Check if they have battled more than 5 times in the last 24 hours
+    # Check if they have battled more than 5 times in the current UTC day
     now = discord.utils.utcnow()
-    twenty_four_hours_ago = now - timedelta(hours=24)
+
+    # Calculate the start of the current day in UTC
+    start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
+
     recent_battles = battle_logs_collection.count_documents({
         "user_id": user_id,
         "opponent_id": opponent_id,
         "guild_id": guild_id,
-        "timestamp": {"$gte": twenty_four_hours_ago}
+        "timestamp": {"$gte": start_of_day}
     })
 
     if recent_battles >= 5:
         embed = discord.Embed(
             title="Battle Limit Reached",
-            description=f"You have already battled {opponent.display_name} 5 times in the last 24 hours in this server. Please try again later.",
+            description=f"You have already battled {opponent.display_name} 5 times today in this server. Please try again tomorrow.",
             color=0xFF0000  # Red color to indicate an error or warning
         )
         await interaction.response.send_message(embed=embed)
