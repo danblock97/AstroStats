@@ -67,6 +67,17 @@ def check_level_up(pet):
             leveled_up = True
         else:
             break
+
+    # Final check in case of large XP gain (e.g., multiple levels in one go)
+    while pet['xp'] >= calculate_xp_needed(pet['level']):
+        xp_needed = calculate_xp_needed(pet['level'])
+        pet['xp'] -= xp_needed
+        pet['level'] += 1
+        pet['strength'] += LEVEL_UP_INCREASES['strength']
+        pet['defense'] += LEVEL_UP_INCREASES['defense']
+        pet['health'] += LEVEL_UP_INCREASES['health']
+        leveled_up = True
+
     return pet, leveled_up
 
 # Create XP bar for visualization
@@ -357,13 +368,23 @@ async def pet_battle(interaction: discord.Interaction, opponent: discord.Member)
         await asyncio.sleep(2)  # Add delay between rounds
         round_number += 1
 
-    # Update the pets in the database
+    # Check if pets need to level up immediately after XP gain
+    user_pet, user_leveled_up = check_level_up(user_pet)
+    opponent_pet, opponent_leveled_up = check_level_up(opponent_pet)
+
+    # Update the pets in the database after the potential level-ups
     pets_collection.update_one({"_id": user_pet["_id"]}, {"$set": user_pet})
     pets_collection.update_one({"_id": opponent_pet["_id"]}, {"$set": opponent_pet})
 
-    # Check if pets need to level up
-    user_pet, user_leveled_up = check_level_up(user_pet)
-    opponent_pet, opponent_leveled_up = check_level_up(opponent_pet)
+    # Final check to ensure the level and XP are correct
+    final_user_pet = pets_collection.find_one({"_id": user_pet["_id"]})
+    final_opponent_pet = pets_collection.find_one({"_id": opponent_pet["_id"]})
+
+    if final_user_pet['level'] != user_pet['level'] or final_user_pet['xp'] != user_pet['xp']:
+        print(f"Error: User pet data in the database does not match the expected values.")
+
+    if final_opponent_pet['level'] != opponent_pet['level'] or final_opponent_pet['xp'] != opponent_pet['xp']:
+        print(f"Error: Opponent pet data in the database does not match the expected values.")
 
     # Final update with the battle result, XP gain, and level-up details
     battle_embed.title = "Battle Concluded"
