@@ -306,6 +306,10 @@ async def pet_battle(interaction: discord.Interaction, opponent: discord.Member)
         if opponent_health <= 0:
             round_log += f"{opponent.display_name}'s pet has been defeated!\n"
             battle_result = f"{interaction.user.display_name}'s pet wins the battle!"
+            user_xp_gain = random.randint(50, 100)  # Winner gets a random XP between 50 and 100
+            opponent_xp_gain = random.randint(20, 50)  # Loser gets a random XP between 20 and 50
+            user_pet['xp'] += user_xp_gain
+            opponent_pet['xp'] += opponent_xp_gain
             break
 
         # Opponent's turn to attack
@@ -321,6 +325,10 @@ async def pet_battle(interaction: discord.Interaction, opponent: discord.Member)
         if user_health <= 0:
             round_log += f"{interaction.user.display_name}'s pet has been defeated!\n"
             battle_result = f"{opponent.display_name}'s pet wins the battle!"
+            opponent_xp_gain = random.randint(50, 100)  # Winner gets a random XP between 50 and 100
+            user_xp_gain = random.randint(10, 30)  # Loser gets a random XP between 10 and 30
+            opponent_pet['xp'] += opponent_xp_gain
+            user_pet['xp'] += user_xp_gain
             break
 
         round_log += f"\n{interaction.user.display_name}'s pet health: {user_health}\n"
@@ -333,33 +341,32 @@ async def pet_battle(interaction: discord.Interaction, opponent: discord.Member)
         await asyncio.sleep(2)  # Add delay between rounds
         round_number += 1
 
+    # Update the pets in the database
+    pets_collection.update_one({"_id": user_pet["_id"]}, {"$set": user_pet})
+    pets_collection.update_one({"_id": opponent_pet["_id"]}, {"$set": opponent_pet})
+
     # Final update with the battle result
     battle_embed.title = "Battle Concluded"
     battle_embed.description = f"{battle_result}\n\n{interaction.user.display_name}'s pet health: {max(0, user_health)}\n{opponent.display_name}'s pet health: {max(0, opponent_health)}"
     await message.edit(embed=battle_embed)
 
-    # Award XP to the winner
-    winner = interaction.user if user_health > 0 else opponent
-    winner_pet = pets_collection.find_one({"user_id": str(winner.id), "guild_id": guild_id})
-    xp_gain = random.randint(50, 100)
-    winner_pet['xp'] += xp_gain
-    winner_pet, leveled_up = check_level_up(winner_pet)
+    # Check if pets need to level up
+    user_pet, user_leveled_up = check_level_up(user_pet)
+    opponent_pet, opponent_leveled_up = check_level_up(opponent_pet)
 
-    # Update the pet data in the database
-    pets_collection.update_one({"user_id": str(winner.id), "guild_id": guild_id}, {"$set": winner_pet})
+    if user_leveled_up or opponent_leveled_up:
+        pets_collection.update_one({"_id": user_pet["_id"]}, {"$set": user_pet})
+        pets_collection.update_one({"_id": opponent_pet["_id"]}, {"$set": opponent_pet})
 
-    level_up_message = f" and leveled up to {winner_pet['level']}!" if leveled_up else "!"
-    result_message = f"**{winner.display_name}'s pet wins the battle and gains {xp_gain} XP{level_up_message}**"
+        level_up_message = f"{interaction.user.display_name}'s pet leveled up!" if user_leveled_up else ""
+        level_up_message += f"{opponent.display_name}'s pet leveled up!" if opponent_leveled_up else ""
 
-    final_embed = discord.Embed(
-        title="Battle Result",
-        description=result_message,
-        color=discord.Color.green()
-    )
-    final_embed.set_thumbnail(url=winner_pet['icon'])
-
-    await interaction.followup.send(embed=final_embed)
-
+        final_embed = discord.Embed(
+            title="Level Up!",
+            description=level_up_message,
+            color=discord.Color.gold()
+        )
+        await interaction.followup.send(embed=final_embed)
 
 # Top pets leaderboard
 @app_commands.command(name="top_pets", description="View the top pets leaderboard")
