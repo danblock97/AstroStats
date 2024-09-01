@@ -20,7 +20,6 @@ TFT_QUEUE_TYPE_NAMES = {
 
 
 async def tft(interaction: discord.Interaction, riotid: str):
-    print(f"TFT command called from server ID: {interaction.guild_id}")
     try:
         await interaction.response.defer()
 

@@ -2,7 +2,6 @@ import discord
 import datetime
 
 async def help(interaction: discord.Interaction):
-    print(f"Help command called from server ID: {interaction.guild_id}")
     guild_count = len(interaction.client.guilds)
     embed = discord.Embed(
         title=f"AstroStats - Trusted by {guild_count} servers", color=0xdd4f7a)
