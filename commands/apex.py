@@ -13,7 +13,6 @@ PLATFORM_MAPPING = {
 
 async def apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Playstation', 'Origin (PC)'],
                name: str = None):
-    print(f"Apex command called from server ID: {interaction.guild_id}")
     try:
         if name is None:
             raise ValueError("Please provide a username.")

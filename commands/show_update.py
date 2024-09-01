@@ -13,7 +13,6 @@ LATEST_UPDATES = """
 """
 
 async def show_update(interaction: discord.Interaction):
-    print(f"Show Update command called from server ID: {interaction.guild_id}")
     embed = discord.Embed(
         title="Latest Bot Updates",
         description=LATEST_UPDATES,

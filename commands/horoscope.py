@@ -23,7 +23,6 @@ signs = {
 SignLiteral = Literal['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces']
 
 async def horoscope(interaction: discord.Interaction, sign: SignLiteral):
-    print(f"Horoscope command called from server ID: {interaction.guild_id}")
     try:
         given_sign = sign.lower()
 

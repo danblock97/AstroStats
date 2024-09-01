@@ -247,7 +247,6 @@ def create_live_game_view(client, embed, puuid, region, headers, game_name, tag_
 
 
 async def league(interaction: discord.Interaction, riotid: str):
-    logging.info(f"League command called from server ID: {interaction.guild_id}, riotid: {riotid}")
     try:
         await interaction.response.defer()
 
