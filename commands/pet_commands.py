@@ -125,7 +125,9 @@ async def summon_pet(interaction: discord.Interaction, name: str, pet: app_comma
         "name": name,
         "icon": PET_LIST[pet.value],
         "color": random_color,
-        **INITIAL_STATS  # Add initial stats to the pet
+        **INITIAL_STATS,  # Add initial stats to the pet
+        "killstreak": 0,  # Initial killstreak value
+        "loss_streak": 0  # Initial loss streak value
     }
     pets_collection.insert_one(new_pet)
 
@@ -171,6 +173,12 @@ async def pet_stats(interaction: discord.Interaction):
     embed.add_field(name="Strength", value=pet['strength'])
     embed.add_field(name="Defense", value=pet['defense'])
     embed.add_field(name="Health", value=pet['health'])
+    
+    # Display either killstreak or loss streak in the footer
+    if pet.get('killstreak', 0) > 0:
+        embed.set_footer(text=f"Killstreak: {pet['killstreak']}")
+    elif pet.get('loss_streak', 0) > 0:
+        embed.set_footer(text=f"Loss Streak: {pet['loss_streak']}")
     
     await interaction.response.send_message(embed=embed)
 
@@ -371,11 +379,23 @@ async def pet_battle(interaction: discord.Interaction, opponent: discord.Member)
         await asyncio.sleep(2)  # Add delay between rounds
         round_number += 1
 
+    # Update killstreaks and loss streaks
+    if user_health > 0:  # User won
+        user_pet['killstreak'] = user_pet.get('killstreak', 0) + 1
+        user_pet['loss_streak'] = 0  # Reset loss streak
+        opponent_pet['killstreak'] = 0  # Reset opponent's killstreak
+        opponent_pet['loss_streak'] = opponent_pet.get('loss_streak', 0) + 1
+    else:  # Opponent won
+        opponent_pet['killstreak'] = opponent_pet.get('killstreak', 0) + 1
+        opponent_pet['loss_streak'] = 0  # Reset loss streak
+        user_pet['killstreak'] = 0  # Reset user's killstreak
+        user_pet['loss_streak'] = user_pet.get('loss_streak', 0) + 1
+
     # Check if pets need to level up immediately after XP gain
     user_pet, user_leveled_up = check_level_up(user_pet)
     opponent_pet, opponent_leveled_up = check_level_up(opponent_pet)
 
-    # Update the pets in the database after the potential level-ups
+    # Update the pets in the database after the potential level-ups and streak updates
     pets_collection.update_one({"_id": user_pet["_id"]}, {"$set": user_pet})
     pets_collection.update_one({"_id": opponent_pet["_id"]}, {"$set": opponent_pet})
 

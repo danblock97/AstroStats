@@ -3,13 +3,7 @@ import discord
 # Easily editable text for the latest updates
 LATEST_UPDATES = """
 - **Version 1.2.3**:
-  Introducing Pet Battles!
-
-  Now you can create your own server pet, battle other pets in the server, level up and compete in the leaderboards for the top spot!
-
-  Get started with /help to see all the commands including all related to Pet Battles!
-
-  If you require support, please contact via https://astrostats.vercel.app/
+  Killstreaks and Loss streaks have been added into your pet stats! 
 """
 
 async def show_update(interaction: discord.Interaction):
