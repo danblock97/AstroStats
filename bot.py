@@ -40,7 +40,7 @@ async def setup_commands():
     review.setup(client)
     pet_commands.setup(client)
     show_update.setup(client)
-    # await kick.setup(client)
+    await kick.setup(client)
     # await servers.setup(client)
 
 # Event for when the bot is ready
