@@ -5,7 +5,6 @@ from dotenv import load_dotenv
 import asyncio
 import logging
 import sys  # Import sys module
-from utils import fetch_star_rating  # Ensure this function exists
 
 # Add the 'commands' directory to the system path
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'commands'))
@@ -35,7 +34,7 @@ async def setup_commands():
     await apex.setup(client)
     league.setup(client)
     await fortnite.setup(client)
-    horoscope.setup(client)
+    await horoscope.setup(client)
     tft.setup(client)
     await help.setup(client)
     review.setup(client)
