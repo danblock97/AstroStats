@@ -25,23 +25,24 @@ logger.setLevel(logging.ERROR)  # Set logging level
 
 # Create the bot instance with only the necessary intents
 intents = discord.Intents.default()
-client = commands.Bot(command_prefix="/", help_command=None, intents=intents)
+client = commands.Bot(command_prefix="/", intents=intents)  # Use commands.Bot to handle slash commands and text commands
 
 # Global dictionary to store emojis
 emojis = {}
 
-# Setup command modules
-apex.setup(client)
-league.setup(client)
-fortnite.setup(client)
-horoscope.setup(client)
-tft.setup(client)
-help.setup(client)
-review.setup(client)
-pet_commands.setup(client)
-show_update.setup(client)  # Setup the show_update module here
-# kick.setup(client)
-# servers.setup(client)
+# Setup command modules (apex, league, etc.)
+async def setup_commands():
+    await apex.setup(client)
+    league.setup(client)
+    fortnite.setup(client)
+    horoscope.setup(client)
+    tft.setup(client)
+    help.setup(client)
+    review.setup(client)
+    pet_commands.setup(client)
+    show_update.setup(client)
+    # await kick.setup(client)
+    # await servers.setup(client)
 
 # Event for when the bot is ready
 @client.event
@@ -50,6 +51,9 @@ async def on_ready():
 
     try:
         await client.wait_until_ready()  # Wait until the bot is fully connected
+
+        # Call the setup commands function here to register commands
+        await setup_commands()
 
         # Explicitly sync the commands here
         await client.tree.sync()
@@ -98,6 +102,7 @@ async def on_guild_join(guild):
     if guild.id in blacklisted_guilds:
         await guild.leave()
         print(f"Left blacklisted guild: {guild.name} ({guild.id})")
+
 
 # Start the bot
 client.run(os.getenv('TOKEN'))
