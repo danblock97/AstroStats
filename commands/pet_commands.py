@@ -455,7 +455,7 @@ async def top_pets(interaction: discord.Interaction):
 
 
 # Register commands
-def setup(client):
+async def setup(client):
     client.tree.add_command(summon_pet)
     client.tree.add_command(pet_stats)
     client.tree.add_command(pet_battle)

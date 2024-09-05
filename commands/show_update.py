@@ -15,7 +15,12 @@ async def show_update(interaction: discord.Interaction):
     embed.set_footer(text=f"Requested by {interaction.user.display_name}", icon_url=interaction.user.avatar.url)
     await interaction.response.send_message(embed=embed)
 
-def setup(client):
-    client.tree.command(
-        name="show_update", description="Show the latest updates to the bot"
-    )(show_update)
+# Setup function for the bot
+async def setup(client: discord.Client):
+    client.tree.add_command(
+        discord.app_commands.Command(
+            name="show_update",
+            description="Show the latest update to AstroStats",
+            callback=show_update
+        )
+    )

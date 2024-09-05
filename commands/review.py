@@ -20,7 +20,12 @@ async def review(interaction: discord.Interaction):
     # Send the embed
     await interaction.response.send_message(embed=embed)
 
-def setup(client):
-    client.tree.command(
-        name="review", description="Leave a review on Top.gg"
-    )(review)
+# Setup function for the bot
+async def setup(client: discord.Client):
+    client.tree.add_command(
+        discord.app_commands.Command(
+            name="review",
+            description="Leave a review on top.gg",
+            callback=review
+        )
+    )
