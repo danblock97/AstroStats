@@ -32,7 +32,7 @@ emojis = {}
 # Setup command modules (apex, league, etc.)
 async def setup_commands():
     await apex.setup(client)
-    league.setup(client)
+    await league.setup(client)
     await fortnite.setup(client)
     await horoscope.setup(client)
     tft.setup(client)
