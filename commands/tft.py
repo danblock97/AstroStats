@@ -102,7 +102,12 @@ async def tft(interaction: discord.Interaction, riotid: str):
             await interaction.followup.send("Oops! An unexpected error occurred while processing your request. Please try again later.")
 
 
-def setup(client):
-    client.tree.command(
-        name="tft", description="Check your TFT Player Stats"
-    )(tft)
+# Setup function for the bot
+async def setup(client: discord.Client):
+    client.tree.add_command(
+        discord.app_commands.Command(
+            name="tft",
+            description="Check your TFT Player Stats!",
+            callback=tft
+        )
+    )
