@@ -37,7 +37,7 @@ async def setup_commands():
     await fortnite.setup(client)
     horoscope.setup(client)
     tft.setup(client)
-    help.setup(client)
+    await help.setup(client)
     review.setup(client)
     pet_commands.setup(client)
     show_update.setup(client)
