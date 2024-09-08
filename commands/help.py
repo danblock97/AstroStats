@@ -1,7 +1,6 @@
 import discord
 import datetime
 
-
 # Helper function to build the help embed
 def build_help_embed(guild_count: int) -> discord.Embed:
     embed = discord.Embed(
@@ -16,12 +15,12 @@ def build_help_embed(guild_count: int) -> discord.Embed:
     embed.add_field(name="Horoscope", value="`/horoscope <sign>`")
     embed.add_field(name="Pet Battles!", value="`/summon_pet`, `/pet_battle`, `/pet_stats`, `/top_pets`")
     embed.set_footer(text="Built By Goldiez ❤️")
-    embed.timestamp = datetime.datetime.now(datetime.UTC)
+    embed.timestamp = datetime.datetime.now(datetime.timezone.utc)  # Using timezone.utc for correct time handling
     
     return embed
 
-
 # Main help command
+@discord.app_commands.command(name="help", description="Lists all available commands")
 async def help(interaction: discord.Interaction):
     guild_count = len(interaction.client.guilds)
     
@@ -31,13 +30,6 @@ async def help(interaction: discord.Interaction):
     # Send the embed to the interaction response
     await interaction.response.send_message(embed=embed)
 
-
 # Setup function for the bot
 async def setup(client: discord.Client):
-    client.tree.add_command(
-        discord.app_commands.Command(
-            name="help",
-            description="Lists all available commands",
-            callback=help
-        )
-    )
+    client.tree.add_command(help)
