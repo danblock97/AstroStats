@@ -1,8 +1,13 @@
 import discord
 import datetime
-import requests
 from typing import Literal, Optional, Dict
 import os
+import aiohttp
+import logging
+
+# Initialize logger
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Platform Mapping Dictionary
 PLATFORM_MAPPING = {
@@ -11,20 +16,26 @@ PLATFORM_MAPPING = {
     'Origin (PC)': 'origin',
 }
 
-
 # Helper function to retrieve Apex Legends data from the API
-def fetch_apex_stats(api_platform: str, name: str) -> Optional[Dict]:
-    try:
-        response = requests.get(
-            f"https://public-api.tracker.gg/v2/apex/standard/profile/{api_platform}/{name}",
-            headers={"TRN-Api-Key": os.getenv('TRN-Api-Key')}
-        )
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        print(f"Request Error: {e}")
-        return None
+async def fetch_apex_stats(api_platform: str, name: str) -> Optional[Dict]:
+    url = f"https://public-api.tracker.gg/v2/apex/standard/profile/{api_platform}/{name}"
+    headers = {"TRN-Api-Key": os.getenv('TRN-Api-Key')}
 
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.get(url, headers=headers) as response:
+                if response.status == 200:
+                    return await response.json()
+                elif response.status == 404:
+                    # Account not found, skip logging
+                    return None
+                else:
+                    # Log any other non-200, non-404 status codes
+                    logger.error(f"Failed to fetch stats for {name} on {api_platform}: {response.status}")
+                    return None
+        except aiohttp.ClientError as e:
+            logger.error(f"Client error occurred: {e}")
+            return None
 
 # Helper function to format percentile data
 def get_percentile_label(percentile: Optional[float]) -> str:
@@ -33,7 +44,6 @@ def get_percentile_label(percentile: Optional[float]) -> str:
     if percentile >= 90:
         return '🌟 Top'
     return 'Top' if percentile >= 50 else 'Bottom'
-
 
 # Helper function to format the stat value with percentile
 def format_stat_value(stat_data: Dict) -> str:
@@ -44,19 +54,18 @@ def format_stat_value(stat_data: Dict) -> str:
         return f"{int(stat_value):,} ({percentile_label} {percentile_value}%)"
     return 'N/A'
 
-
 # Helper function to send an error embed
 async def send_error_embed(interaction: discord.Interaction, title: str, description: str):
     embed = discord.Embed(
         title=title,
         description=f"{description}\n\nFor more assistance, visit [AstroStats Support](https://astrostats.vercel.app)",
         color=discord.Color.red(),
-        timestamp=datetime.datetime.now(datetime.UTC)
+        timestamp=datetime.datetime.now(datetime.timezone.utc)
     )
     await interaction.response.send_message(embed=embed)
 
-
 # Main Apex Legends command
+@discord.app_commands.command(name="apex", description="Check your Apex Legends Player Stats")
 async def apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Playstation', 'Origin (PC)'], name: str):
     try:
         # Validate input
@@ -70,7 +79,7 @@ async def apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
             return
 
         # Fetch Apex stats from the API
-        data = fetch_apex_stats(api_platform, name)
+        data = await fetch_apex_stats(api_platform, name)
         if not data or 'data' not in data or 'segments' not in data['data']:
             await send_error_embed(interaction, "Account Not Found", f"No stats found for the username: **{name}** on {platform}. Please double-check your details.")
             return
@@ -95,16 +104,12 @@ async def apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
         await interaction.response.send_message(embed=embed)
 
     except ValueError as e:
-        print(f"Validation Error: {e}")
+        logger.error(f"Validation Error: {e}")
         await send_error_embed(interaction, "Validation Error", str(e))
 
-    except requests.exceptions.RequestException:
-        await send_error_embed(interaction, "API Error", "Unable to retrieve Apex Legends stats at this time. Please try again later.")
-
     except Exception as e:
-        print(f"Unexpected Error: {e}")
+        logger.error(f"Unexpected Error: {e}")
         await send_error_embed(interaction, "Unexpected Error", "An unexpected error occurred. Please try again later.")
-
 
 # Function to build the embed message
 def build_embed(name: str, platform: str, active_legend_data: Dict, lifetime: Dict, ranked: Dict, peak_rank: Dict) -> discord.Embed:
@@ -132,10 +137,9 @@ def build_embed(name: str, platform: str, active_legend_data: Dict, lifetime: Di
             inline=False
         )
 
-    embed.timestamp = datetime.datetime.now(datetime.UTC)
+    embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
     embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
     return embed
-
 
 # Function to format lifetime stats
 def format_lifetime_stats(lifetime: Dict) -> str:
@@ -148,7 +152,6 @@ def format_lifetime_stats(lifetime: Dict) -> str:
     ]
     return "\n".join(formatted_stats)
 
-
 # Function to format ranked stats
 def format_ranked_stats(ranked: Dict) -> str:
     rank_name = ranked.get('metadata', {}).get('rankName', 'Unranked')
@@ -156,13 +159,11 @@ def format_ranked_stats(ranked: Dict) -> str:
     rank_percentile = ranked.get('percentile', 0)
     return f"**{rank_name}**: {int(rank_value):,} (# {int(rank_percentile)}%)"
 
-
 # Function to format peak rank
 def format_peak_rank(peak_rank: Dict) -> str:
     peak_name = peak_rank.get('metadata', {}).get('rankName', 'Unknown')
     peak_value = peak_rank.get('value', 0)
     return f"**{peak_name}**: {int(peak_value):,}"
-
 
 # Function to format active legend stats
 def format_active_legend_stats(stats: Dict) -> str:
@@ -173,11 +174,4 @@ def format_active_legend_stats(stats: Dict) -> str:
 
 # Setup function for the bot
 async def setup(client: discord.Client):
-    client.tree.add_command(
-        discord.app_commands.Command(
-            name="apex",
-            description="Check your Apex Legends Player Stats",
-            callback=apex
-        )
-    )
-
+    client.tree.add_command(apex)
