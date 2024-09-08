@@ -1,8 +1,13 @@
 import discord
 import datetime
-import requests
 from typing import Literal, Optional, Dict
 import os
+import aiohttp
+import logging
+
+# Initialize logger
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Time Range Mapping
 TIME_MAPPING = {
@@ -10,20 +15,26 @@ TIME_MAPPING = {
     'Lifetime': 'lifetime',
 }
 
-
 # Helper function to retrieve Fortnite stats from the API
-def fetch_fortnite_stats(name: str, time_window: str) -> Optional[Dict]:
-    try:
-        response = requests.get(
-            f"https://fortnite-api.com/v2/stats/br/v2?timeWindow={time_window}&name={name}",
-            headers={"Authorization": os.getenv('FORTNITE_API_KEY')}
-        )
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        print(f"Request Error: {e}")
-        return None
+async def fetch_fortnite_stats(name: str, time_window: str) -> Optional[Dict]:
+    url = f"https://fortnite-api.com/v2/stats/br/v2?timeWindow={time_window}&name={name}"
+    headers = {"Authorization": os.getenv('FORTNITE_API_KEY')}
 
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.get(url, headers=headers) as response:
+                if response.status == 200:
+                    return await response.json()
+                elif response.status == 404:
+                    # Account not found, skip logging
+                    return None
+                else:
+                    # Log any other non-200, non-404 status codes
+                    logger.error(f"Failed to fetch stats for {name}: {response.status}")
+                    return None
+        except aiohttp.ClientError as e:
+            logger.error(f"Client error occurred: {e}")
+            return None
 
 # Helper function to send an error embed
 async def send_error_embed(interaction: discord.Interaction, title: str, description: str):
@@ -31,12 +42,12 @@ async def send_error_embed(interaction: discord.Interaction, title: str, descrip
         title=title,
         description=f"{description}\n\nFor more assistance, visit [AstroStats Support](https://astrostats.vercel.app)",
         color=discord.Color.red(),
-        timestamp=datetime.datetime.now(datetime.UTC)
+        timestamp=datetime.datetime.now(datetime.timezone.utc)
     )
     await interaction.response.send_message(embed=embed)
 
-
 # Main Fortnite command
+@discord.app_commands.command(name="fortnite", description="Check your Fortnite Player Stats")
 async def fortnite(interaction: discord.Interaction, time: Literal['Season', 'Lifetime'], name: str = None):
     try:
         # Validate input
@@ -47,7 +58,7 @@ async def fortnite(interaction: discord.Interaction, time: Literal['Season', 'Li
         time_window = TIME_MAPPING.get(time)
 
         # Fetch Fortnite stats from the API
-        data = fetch_fortnite_stats(name, time_window)
+        data = await fetch_fortnite_stats(name, time_window)
         if not data or 'data' not in data:
             await send_error_embed(
                 interaction,
@@ -70,17 +81,16 @@ async def fortnite(interaction: discord.Interaction, time: Literal['Season', 'Li
         await interaction.response.send_message(embed=embed)
 
     except ValueError as e:
-        print(f"Validation Error: {e}")
+        logger.error(f"Validation Error: {e}")
         await send_error_embed(interaction, "Validation Error", str(e))
 
     except (KeyError, ValueError) as e:
-        print(f"Data Error: {e}")
+        logger.error(f"Data Error: {e}")
         await send_error_embed(interaction, "Data Error", "Failed to retrieve valid Fortnite stats. Please try again later.")
 
     except Exception as e:
-        print(f"Unexpected Error: {e}")
+        logger.error(f"Unexpected Error: {e}")
         await send_error_embed(interaction, "Unexpected Error", "An unexpected error occurred. Please try again later.")
-
 
 # Function to build the embed message
 def build_embed(name: str, account: Dict, battle_pass: Dict, stats: Dict, calculated_win_rate: float) -> discord.Embed:
@@ -116,17 +126,10 @@ def build_embed(name: str, account: Dict, battle_pass: Dict, stats: Dict, calcul
                           f"Total Minutes Played: {stats['stats']['all']['overall']['minutesPlayed']:,}",
                     inline=True)
 
-    embed.timestamp = datetime.datetime.now(datetime.UTC)
+    embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
     embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
     return embed
 
-
 # Setup function for the bot
 async def setup(client: discord.Client):
-    client.tree.add_command(
-        discord.app_commands.Command(
-            name="fortnite",
-            description="Check your Fortnite Player Stats",
-            callback=fortnite
-        )
-    )
+    client.tree.add_command(fortnite)
