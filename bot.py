@@ -80,7 +80,7 @@ async def on_ready():
 async def update_presence():
     while True:
         guild_count = len(client.guilds)
-        presence = discord.Activity(type=discord.ActivityType.playing, name=f"on {guild_count} servers")
+        presence = discord.Activity(type=discord.ActivityType.playing, name=f"/show_update on {guild_count} servers")
         await client.change_presence(activity=presence)
         await asyncio.sleep(18000)  # Update every 5 hours
 
