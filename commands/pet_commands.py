@@ -2,16 +2,19 @@ import discord
 import os
 import random
 import asyncio
-from discord.ext import commands
+from discord.ext import commands, tasks
 from discord import app_commands
 from pymongo import MongoClient
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone, time
 
 # MongoDB setup
 client = MongoClient(os.getenv('MONGODB_URI'))
 db = client['pet_database']
 pets_collection = db['pets']
 battle_logs_collection = db['battle_logs']  # Collection to store battle logs
+
+# Import DAILY_QUESTS and ACHIEVEMENTS from quests_and_achievements.py
+from quests_and_achievements import DAILY_QUESTS, ACHIEVEMENTS
 
 # Initial stats for all new pets
 INITIAL_STATS = {
@@ -81,11 +84,113 @@ def check_level_up(pet):
     return pet, leveled_up
 
 # Create XP bar for visualization
-def create_xp_bar(current_xp, xp_needed):
+def create_xp_bar(current, total):
     total_blocks = 10
-    filled_blocks = int((current_xp / xp_needed) * total_blocks)
+    filled_blocks = int((current / total) * total_blocks)
     bar = "█" * filled_blocks + "░" * (total_blocks - filled_blocks)
     return bar
+
+# Assign daily quests to a pet
+def assign_daily_quests(pet):
+    random_daily_quests = random.sample(DAILY_QUESTS, 3)
+    pet_daily_quests = []
+    for quest in random_daily_quests:
+        pet_daily_quests.append({
+            "id": quest["id"],
+            "description": quest["description"],
+            "progress_required": quest["progress_required"],
+            "progress": 0,
+            "completed": False,
+            "xp_reward": quest["xp_reward"]
+        })
+    pet['daily_quests'] = pet_daily_quests
+    pets_collection.update_one({"_id": pet["_id"]}, {"$set": {"daily_quests": pet_daily_quests}})
+    return pet
+
+# Assign achievements to a pet
+def assign_achievements(pet):
+    pet_achievements = []
+    for achievement in ACHIEVEMENTS:
+        pet_achievements.append({
+            "id": achievement["id"],
+            "description": achievement["description"],
+            "progress_required": achievement["progress_required"],
+            "progress": 0,
+            "completed": False,
+            "xp_reward": achievement["xp_reward"]
+        })
+    pet['achievements'] = pet_achievements
+    pets_collection.update_one({"_id": pet["_id"]}, {"$set": {"achievements": pet_achievements}})
+    return pet
+
+# Ensure a pet has quests and achievements
+def ensure_quests_and_achievements(pet):
+    if 'daily_quests' not in pet or not pet['daily_quests']:
+        pet = assign_daily_quests(pet)
+    if 'achievements' not in pet or not pet['achievements']:
+        pet = assign_achievements(pet)
+    return pet
+
+# Update quests and achievements progress
+def update_quests_and_achievements(pet, battle_stats):
+    completed_quests = []
+    completed_achievements = []
+    # Update daily quests
+    for quest in pet['daily_quests']:
+        if quest['completed']:
+            continue
+        if "Win " in quest['description']:
+            quest['progress'] += battle_stats['battles_won']
+        elif "battle win streak" in quest['description']:
+            if pet.get('killstreak', 0) >= quest['progress_required']:
+                quest['progress'] = quest['progress_required']
+        elif "battle killstreak" in quest['description']:
+            if pet.get('killstreak', 0) >= quest['progress_required']:
+                quest['progress'] = quest['progress_required']
+        elif "Inflict" in quest['description'] and "critical hits" in quest['description']:
+            quest['progress'] += battle_stats['critical_hits']
+        elif "Land" in quest['description'] and "lucky hits" in quest['description']:
+            quest['progress'] += battle_stats['lucky_hits']
+        elif "Lose" in quest['description']:
+            quest['progress'] += battle_stats['battles_lost']
+        elif "Earn" in quest['description'] and "XP from battles" in quest['description']:
+            quest['progress'] += battle_stats['xp_earned']
+        elif "Participate in" in quest['description'] and "battles" in quest['description']:
+            quest['progress'] += 1  # Participated in one battle
+        elif "Deal" in quest['description'] and "damage in total" in quest['description']:
+            quest['progress'] += battle_stats['damage_dealt']
+
+        # Check if quest is completed
+        if quest['progress'] >= quest['progress_required']:
+            quest['progress'] = quest['progress_required']
+            quest['completed'] = True
+            pet['xp'] += quest['xp_reward']
+            completed_quests.append(quest)
+
+    # Update achievements
+    for achievement in pet['achievements']:
+        if achievement['completed']:
+            continue
+        if "Win " in achievement['description']:
+            achievement['progress'] += battle_stats['battles_won']
+        elif "battle killstreak" in achievement['description']:
+            if pet.get('killstreak', 0) >= achievement['progress_required']:
+                achievement['progress'] = achievement['progress_required']
+        elif "Deal" in achievement['description'] and "total damage" in achievement['description']:
+            achievement['progress'] += battle_stats['damage_dealt']
+        elif "Land" in achievement['description'] and "critical hits" in achievement['description']:
+            achievement['progress'] += battle_stats['critical_hits']
+        elif "Land" in achievement['description'] and "lucky hits" in achievement['description']:
+            achievement['progress'] += battle_stats['lucky_hits']
+
+        # Check if achievement is completed
+        if achievement['progress'] >= achievement['progress_required']:
+            achievement['progress'] = achievement['progress_required']
+            achievement['completed'] = True
+            pet['xp'] += achievement['xp_reward']
+            completed_achievements.append(achievement)
+
+    return completed_quests, completed_achievements
 
 # Summon a new pet with initial stats
 @app_commands.command(name="summon_pet", description="Summon a new pet")
@@ -119,6 +224,31 @@ async def summon_pet(interaction: discord.Interaction, name: str, pet: app_comma
     # Assign a random color
     random_color = random.choice(list(COLOR_LIST.values()))
 
+    # Assign 3 random daily quests
+    random_daily_quests = random.sample(DAILY_QUESTS, 3)
+    pet_daily_quests = []
+    for quest in random_daily_quests:
+        pet_daily_quests.append({
+            "id": quest["id"],
+            "description": quest["description"],
+            "progress_required": quest["progress_required"],
+            "progress": 0,
+            "completed": False,
+            "xp_reward": quest["xp_reward"]
+        })
+
+    # Assign all achievements
+    pet_achievements = []
+    for achievement in ACHIEVEMENTS:
+        pet_achievements.append({
+            "id": achievement["id"],
+            "description": achievement["description"],
+            "progress_required": achievement["progress_required"],
+            "progress": 0,
+            "completed": False,
+            "xp_reward": achievement["xp_reward"]
+        })
+
     new_pet = {
         "user_id": user_id,
         "guild_id": guild_id,  # Include guild ID to ensure one pet per server
@@ -127,7 +257,9 @@ async def summon_pet(interaction: discord.Interaction, name: str, pet: app_comma
         "color": random_color,
         **INITIAL_STATS,  # Add initial stats to the pet
         "killstreak": 0,  # Initial killstreak value
-        "loss_streak": 0  # Initial loss streak value
+        "loss_streak": 0,  # Initial loss streak value
+        "daily_quests": pet_daily_quests,
+        "achievements": pet_achievements
     }
     pets_collection.insert_one(new_pet)
 
@@ -204,7 +336,7 @@ async def pet_battle(interaction: discord.Interaction, opponent: discord.Member)
         embed = discord.Embed(
             title="Battle Error",
             description="You cannot battle the bot. Please choose another member with a pet.",
-            color=discord.Color.red()  # Use red to indicate an error or invalid action
+            color=discord.Color.red()
         )
         await interaction.response.send_message(embed=embed)
         return
@@ -217,7 +349,7 @@ async def pet_battle(interaction: discord.Interaction, opponent: discord.Member)
     if not user_pet:
         embed = discord.Embed(
             title="No Pet Found",
-            description=f"{interaction.user.mention}, you don't have a pet to battle with in this server!",
+            description=f"{interaction.user.mention}, you don't have a pet in this server. Summon one with `/summon_pet`!",
             color=discord.Color.red()
         )
         await interaction.response.send_message(embed=embed)
@@ -232,6 +364,10 @@ async def pet_battle(interaction: discord.Interaction, opponent: discord.Member)
         await interaction.response.send_message(embed=embed)
         return
     
+    # Ensure both pets have quests and achievements
+    user_pet = ensure_quests_and_achievements(user_pet)
+    opponent_pet = ensure_quests_and_achievements(opponent_pet)
+
     # Check level restrictions
     if opponent_pet['level'] > user_pet['level'] + 1 or opponent_pet['level'] < user_pet['level'] - 1:
         embed = discord.Embed(
@@ -243,7 +379,7 @@ async def pet_battle(interaction: discord.Interaction, opponent: discord.Member)
         return
 
     # Check if they have battled more than 5 times in the current UTC day
-    now = discord.utils.utcnow()
+    now = datetime.now(timezone.utc)
 
     # Calculate the start of the current day in UTC
     start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -290,6 +426,27 @@ async def pet_battle(interaction: discord.Interaction, opponent: discord.Member)
     user_health = user_pet['health']
     opponent_health = opponent_pet['health']
 
+    # Initialize battle stats for quests and achievements
+    user_battle_stats = {
+        "damage_dealt": 0,
+        "critical_hits": 0,
+        "lucky_hits": 0,
+        "battles_won": 0,
+        "battles_lost": 0,
+        "xp_earned": 0,
+        "killstreak": user_pet.get('killstreak', 0)
+    }
+
+    opponent_battle_stats = {
+        "damage_dealt": 0,
+        "critical_hits": 0,
+        "lucky_hits": 0,
+        "battles_won": 0,
+        "battles_lost": 0,
+        "xp_earned": 0,
+        "killstreak": opponent_pet.get('killstreak', 0)
+    }
+
     # Send an initial battle log message that will be updated
     battle_embed = discord.Embed(
         title="Battle in Progress...",
@@ -334,9 +491,13 @@ async def pet_battle(interaction: discord.Interaction, opponent: discord.Member)
         # User's turn to attack
         user_damage, user_crit, user_event = calculate_damage(user_pet, opponent_pet)
         opponent_health -= user_damage
+        user_battle_stats['damage_dealt'] += user_damage
+
         if user_event == "luck":
+            user_battle_stats['lucky_hits'] += 1
             round_log += f"{interaction.user.display_name}'s pet lands a **lucky hit** for {user_damage} damage!\n"
         elif user_crit:
+            user_battle_stats['critical_hits'] += 1
             round_log += f"{interaction.user.display_name}'s pet lands a **critical hit** for {user_damage} damage!\n"
         else:
             round_log += f"{interaction.user.display_name}'s pet attacks for {user_damage} damage.\n"
@@ -348,14 +509,25 @@ async def pet_battle(interaction: discord.Interaction, opponent: discord.Member)
             opponent_xp_gain = random.randint(20, 50)  # Loser gets a random XP between 20 and 50
             user_pet['xp'] += user_xp_gain
             opponent_pet['xp'] += opponent_xp_gain
+            user_battle_stats['xp_earned'] += user_xp_gain
+            opponent_battle_stats['xp_earned'] += opponent_xp_gain
+            user_battle_stats['battles_won'] += 1
+            opponent_battle_stats['battles_lost'] += 1
+            # Update the embed with the final round log
+            battle_embed.description = round_log
+            await message.edit(embed=battle_embed)
             break
 
         # Opponent's turn to attack
         opponent_damage, opponent_crit, opponent_event = calculate_damage(opponent_pet, user_pet)
         user_health -= opponent_damage
+        opponent_battle_stats['damage_dealt'] += opponent_damage
+
         if opponent_event == "luck":
+            opponent_battle_stats['lucky_hits'] += 1
             round_log += f"{opponent.display_name}'s pet lands a **lucky hit** for {opponent_damage} damage!\n"
         elif opponent_crit:
+            opponent_battle_stats['critical_hits'] += 1
             round_log += f"{opponent.display_name}'s pet lands a **critical hit** for {opponent_damage} damage!\n"
         else:
             round_log += f"{opponent.display_name}'s pet attacks for {opponent_damage} damage.\n"
@@ -367,6 +539,13 @@ async def pet_battle(interaction: discord.Interaction, opponent: discord.Member)
             user_xp_gain = random.randint(10, 30)  # Loser gets a random XP between 10 and 30
             opponent_pet['xp'] += opponent_xp_gain
             user_pet['xp'] += user_xp_gain
+            user_battle_stats['xp_earned'] += user_xp_gain
+            opponent_battle_stats['xp_earned'] += opponent_xp_gain
+            opponent_battle_stats['battles_won'] += 1
+            user_battle_stats['battles_lost'] += 1
+            # Update the embed with the final round log
+            battle_embed.description = round_log
+            await message.edit(embed=battle_embed)
             break
 
         round_log += f"\n{interaction.user.display_name}'s pet health: {user_health}\n"
@@ -391,6 +570,14 @@ async def pet_battle(interaction: discord.Interaction, opponent: discord.Member)
         user_pet['killstreak'] = 0  # Reset user's killstreak
         user_pet['loss_streak'] = user_pet.get('loss_streak', 0) + 1
 
+    # Update killstreak in battle stats
+    user_battle_stats['killstreak'] = user_pet.get('killstreak', 0)
+    opponent_battle_stats['killstreak'] = opponent_pet.get('killstreak', 0)
+
+    # Update quests and achievements
+    completed_quests_user, completed_achievements_user = update_quests_and_achievements(user_pet, user_battle_stats)
+    completed_quests_opponent, completed_achievements_opponent = update_quests_and_achievements(opponent_pet, opponent_battle_stats)
+
     # Check if pets need to level up immediately after XP gain
     user_pet, user_leveled_up = check_level_up(user_pet)
     opponent_pet, opponent_leveled_up = check_level_up(opponent_pet)
@@ -399,23 +586,22 @@ async def pet_battle(interaction: discord.Interaction, opponent: discord.Member)
     pets_collection.update_one({"_id": user_pet["_id"]}, {"$set": user_pet})
     pets_collection.update_one({"_id": opponent_pet["_id"]}, {"$set": opponent_pet})
 
-    # Final check to ensure the level and XP are correct
-    final_user_pet = pets_collection.find_one({"_id": user_pet["_id"]})
-    final_opponent_pet = pets_collection.find_one({"_id": opponent_pet["_id"]})
-
-    if final_user_pet['level'] != user_pet['level'] or final_user_pet['xp'] != user_pet['xp']:
-        print(f"Error: User pet data in the database does not match the expected values.")
-
-    if final_opponent_pet['level'] != opponent_pet['level'] or final_opponent_pet['xp'] != opponent_pet['xp']:
-        print(f"Error: Opponent pet data in the database does not match the expected values.")
-
     # Final update with the battle result, XP gain, and level-up details
     battle_embed.title = "Battle Concluded"
     battle_embed.description = (
         f"{battle_result}\n\n"
-        f"**{interaction.user.display_name}'s pet {user_pet['name']}** gained **{user_xp_gain} XP**\n"
-        f"**{opponent.display_name}'s pet {opponent_pet['name']}** gained **{opponent_xp_gain} XP**\n"
+        f"**{interaction.user.display_name}'s pet {user_pet['name']}** gained **{user_battle_stats['xp_earned']} XP**\n"
+        f"**{opponent.display_name}'s pet {opponent_pet['name']}** gained **{opponent_battle_stats['xp_earned']} XP**\n"
     )
+
+    # Include quest and achievement completions
+    if completed_quests_user or completed_achievements_user:
+        completion_message = ""
+        for quest in completed_quests_user:
+            completion_message += f"📝 **Quest Completed**: {quest['description']} (+{quest['xp_reward']} XP)\n"
+        for achievement in completed_achievements_user:
+            completion_message += f"🏆 **Achievement Unlocked**: {achievement['description']} (+{achievement['xp_reward']} XP)\n"
+        battle_embed.description += f"\n{completion_message}"
 
     if user_leveled_up or opponent_leveled_up:
         level_up_message = ""
@@ -434,8 +620,88 @@ async def pet_battle(interaction: discord.Interaction, opponent: discord.Member)
 
     await message.edit(embed=battle_embed)
 
-    # Send battle result as a follow-up if needed
-    await interaction.followup.send(embed=battle_embed)
+# Command to view current daily quests
+@app_commands.command(name="quests", description="View your current daily quests")
+async def quests(interaction: discord.Interaction):
+    user_id = str(interaction.user.id)
+    guild_id = str(interaction.guild.id)
+    
+    pet = pets_collection.find_one({"user_id": user_id, "guild_id": guild_id})
+    if not pet:
+        embed = discord.Embed(
+            title="No Pet Found",
+            description=f"{interaction.user.mention}, you don't have a pet in this server. Summon one with `/summon_pet`!",
+            color=discord.Color.red()
+        )
+        await interaction.response.send_message(embed=embed)
+        return
+
+    # Ensure the pet has quests and achievements
+    pet = ensure_quests_and_achievements(pet)
+
+    incomplete_quests = [q for q in pet['daily_quests'] if not q['completed']]
+    if not incomplete_quests:
+        now = datetime.now(timezone.utc)
+        next_reset = datetime.combine(now.date(), time(hour=0, minute=0, tzinfo=timezone.utc)) + timedelta(days=1)
+        time_until_reset = next_reset - now
+        hours, remainder = divmod(int(time_until_reset.total_seconds()), 3600)
+        minutes, seconds = divmod(remainder, 60)
+        time_str = f"{hours}h {minutes}m"
+
+        embed = discord.Embed(
+            title="All Daily Quests Completed!",
+            description=f"Your daily quests are complete.\nNew quests will be available in {time_str}.",
+            color=discord.Color.green()
+        )
+        await interaction.response.send_message(embed=embed)
+        return
+
+    embed = discord.Embed(
+        title="Your Daily Quests",
+        color=discord.Color.blue()
+    )
+    for quest in incomplete_quests:
+        progress_bar = create_xp_bar(quest['progress'], quest['progress_required'])
+        embed.add_field(
+            name=quest['description'],
+            value=f"{quest['progress']} / {quest['progress_required']}\n{progress_bar}",
+            inline=False
+        )
+    await interaction.response.send_message(embed=embed)
+
+# Command to view achievements
+@app_commands.command(name="achievements", description="View your achievements")
+async def achievements(interaction: discord.Interaction):
+    user_id = str(interaction.user.id)
+    guild_id = str(interaction.guild.id)
+    
+    pet = pets_collection.find_one({"user_id": user_id, "guild_id": guild_id})
+    if not pet:
+        embed = discord.Embed(
+            title="No Pet Found",
+            description=f"{interaction.user.mention}, you don't have a pet in this server. Summon one with `/summon_pet`!",
+            color=discord.Color.red()
+        )
+        await interaction.response.send_message(embed=embed)
+        return
+
+    # Ensure the pet has achievements
+    pet = ensure_quests_and_achievements(pet)
+
+    achievements = pet['achievements']
+    embed = discord.Embed(
+        title="Your Achievements",
+        color=discord.Color.gold()
+    )
+    for achievement in achievements:
+        status = "✅ Completed" if achievement['completed'] else f"{achievement['progress']} / {achievement['progress_required']}"
+        progress_bar = create_xp_bar(achievement['progress'], achievement['progress_required'])
+        embed.add_field(
+            name=achievement['description'],
+            value=f"{status}\n{progress_bar}",
+            inline=False
+        )
+    await interaction.response.send_message(embed=embed)
 
 # Top pets leaderboard
 @app_commands.command(name="top_pets", description="View the top pets leaderboard")
@@ -453,10 +719,21 @@ async def top_pets(interaction: discord.Interaction):
     
     await interaction.response.send_message(embed=embed)
 
+# Function to reset daily quests at midnight UTC
+@tasks.loop(time=time(hour=0, minute=0, tzinfo=timezone.utc))
+async def reset_daily_quests():
+    all_pets = pets_collection.find()
+    for pet in all_pets:
+        # Assign 3 new random daily quests
+        pet = assign_daily_quests(pet)
+    print("Daily quests have been reset.")
 
 # Register commands
 async def setup(client):
     client.tree.add_command(summon_pet)
     client.tree.add_command(pet_stats)
     client.tree.add_command(pet_battle)
+    client.tree.add_command(quests)
+    client.tree.add_command(achievements)
     client.tree.add_command(top_pets)
+    reset_daily_quests.start()
