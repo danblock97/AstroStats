@@ -82,7 +82,7 @@ async def update_presence():
         guild_count = len(client.guilds)
         presence = discord.Activity(type=discord.ActivityType.playing, name=f"/show_update on {guild_count} servers")
         await client.change_presence(activity=presence)
-        await asyncio.sleep(18000)  # Update every 5 hours
+        await asyncio.sleep(3600)  # Update every hour
 
 # Event for handling command errors
 @client.event
