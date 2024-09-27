@@ -136,7 +136,7 @@ async def league(interaction: discord.Interaction, riotid: str):
                 embed.add_field(name="Rank", value="Unranked", inline=True)
 
             embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
-            embed.set_footer(text="Built By Goldiez ❤️ Visit clutchgg.vercel.app for more!")
+            embed.set_footer(text="Built By Goldiez ❤️ Visit clutchgg.lol for more!")
 
             # Add the view for live game if applicable
             view = create_live_game_view(interaction.client, embed, puuid, selected_region, headers, game_name, tag_line)
