@@ -11,7 +11,7 @@ sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'comman
 
 # Import command modules from 'commands' directory
 from commands import apex, league, fortnite, horoscope, help, review, tft, kick, servers, pet_commands, show_update  # Add show_update here
-from league import fetch_application_emojis  # Import the function
+from commands.league import fetch_application_emojis
 
 # Load environment variables
 load_dotenv()
