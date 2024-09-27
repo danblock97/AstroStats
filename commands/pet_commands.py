@@ -6,10 +6,11 @@ from discord.ext import commands, tasks
 from discord import app_commands
 from pymongo import MongoClient
 from datetime import datetime, timedelta, timezone, time
+import topgg  # Added for top.gg API integration
 
 # MongoDB setup
-client = MongoClient(os.getenv('MONGODB_URI'))
-db = client['pet_database']
+mongo_client = MongoClient(os.getenv('MONGODB_URI'))
+db = mongo_client['pet_database']
 pets_collection = db['pets']
 battle_logs_collection = db['battle_logs']  # Collection to store battle logs
 
@@ -71,16 +72,6 @@ def check_level_up(pet):
         else:
             break
 
-    # Final check in case of large XP gain (e.g., multiple levels in one go)
-    while pet['xp'] >= calculate_xp_needed(pet['level']):
-        xp_needed = calculate_xp_needed(pet['level'])
-        pet['xp'] -= xp_needed
-        pet['level'] += 1
-        pet['strength'] += LEVEL_UP_INCREASES['strength']
-        pet['defense'] += LEVEL_UP_INCREASES['defense']
-        pet['health'] += LEVEL_UP_INCREASES['health']
-        leveled_up = True
-
     return pet, leveled_up
 
 # Create XP bar for visualization
@@ -104,7 +95,8 @@ def assign_daily_quests(pet):
             "xp_reward": quest["xp_reward"]
         })
     pet['daily_quests'] = pet_daily_quests
-    pets_collection.update_one({"_id": pet["_id"]}, {"$set": {"daily_quests": pet_daily_quests}})
+    if pet['_id'] is not None:
+        pets_collection.update_one({"_id": pet["_id"]}, {"$set": {"daily_quests": pet_daily_quests}})
     return pet
 
 # Assign achievements to a pet
@@ -120,7 +112,8 @@ def assign_achievements(pet):
             "xp_reward": achievement["xp_reward"]
         })
     pet['achievements'] = pet_achievements
-    pets_collection.update_one({"_id": pet["_id"]}, {"$set": {"achievements": pet_achievements}})
+    if pet['_id'] is not None:
+        pets_collection.update_one({"_id": pet["_id"]}, {"$set": {"achievements": pet_achievements}})
     return pet
 
 # Ensure a pet has quests and achievements
@@ -192,6 +185,10 @@ def update_quests_and_achievements(pet, battle_stats):
 
     return completed_quests, completed_achievements
 
+# Global variables
+client = None  # Will be set in setup()
+topgg_client = None  # Will be initialized in setup()
+
 # Summon a new pet with initial stats
 @app_commands.command(name="summon_pet", description="Summon a new pet")
 @app_commands.describe(name="Name your pet", pet="Choose your pet")
@@ -224,31 +221,7 @@ async def summon_pet(interaction: discord.Interaction, name: str, pet: app_comma
     # Assign a random color
     random_color = random.choice(list(COLOR_LIST.values()))
 
-    # Assign 3 random daily quests
-    random_daily_quests = random.sample(DAILY_QUESTS, 3)
-    pet_daily_quests = []
-    for quest in random_daily_quests:
-        pet_daily_quests.append({
-            "id": quest["id"],
-            "description": quest["description"],
-            "progress_required": quest["progress_required"],
-            "progress": 0,
-            "completed": False,
-            "xp_reward": quest["xp_reward"]
-        })
-
-    # Assign all achievements
-    pet_achievements = []
-    for achievement in ACHIEVEMENTS:
-        pet_achievements.append({
-            "id": achievement["id"],
-            "description": achievement["description"],
-            "progress_required": achievement["progress_required"],
-            "progress": 0,
-            "completed": False,
-            "xp_reward": achievement["xp_reward"]
-        })
-
+    # Create a new pet dictionary
     new_pet = {
         "user_id": user_id,
         "guild_id": guild_id,  # Include guild ID to ensure one pet per server
@@ -258,10 +231,21 @@ async def summon_pet(interaction: discord.Interaction, name: str, pet: app_comma
         **INITIAL_STATS,  # Add initial stats to the pet
         "killstreak": 0,  # Initial killstreak value
         "loss_streak": 0,  # Initial loss streak value
-        "daily_quests": pet_daily_quests,
-        "achievements": pet_achievements
+        "daily_quests": [],
+        "achievements": [],
+        "last_vote_reward_time": None  # Initialize vote reward time
     }
-    pets_collection.insert_one(new_pet)
+
+    # Insert the new pet into the database and get the _id
+    result = pets_collection.insert_one(new_pet)
+    new_pet['_id'] = result.inserted_id
+
+    # Assign daily quests and achievements to the new pet
+    new_pet = assign_daily_quests(new_pet)
+    new_pet = assign_achievements(new_pet)
+
+    # Update the pet with quests and achievements
+    pets_collection.update_one({"_id": new_pet["_id"]}, {"$set": new_pet})
 
     embed = discord.Embed(
         title=f"Pet `{name}` Summoned!",
@@ -284,7 +268,7 @@ async def pet_stats(interaction: discord.Interaction):
 
     # Fetch the pet for the user in this server
     pet = pets_collection.find_one({"user_id": user_id, "guild_id": guild_id})
-    
+
     if not pet:
         embed = discord.Embed(
             title="No Pet Found",
@@ -296,7 +280,7 @@ async def pet_stats(interaction: discord.Interaction):
 
     xp_needed = calculate_xp_needed(pet['level'])
     xp_bar = create_xp_bar(pet['xp'], xp_needed)
-    
+
     embed = discord.Embed(title=f"{interaction.user.display_name}'s Pet", color=pet['color'])
     embed.set_thumbnail(url=pet['icon'])
     embed.add_field(name="Name", value=pet['name'])
@@ -305,13 +289,13 @@ async def pet_stats(interaction: discord.Interaction):
     embed.add_field(name="Strength", value=pet['strength'])
     embed.add_field(name="Defense", value=pet['defense'])
     embed.add_field(name="Health", value=pet['health'])
-    
+
     # Display either killstreak or loss streak in the footer
     if pet.get('killstreak', 0) > 0:
         embed.set_footer(text=f"Killstreak: {pet['killstreak']}")
     elif pet.get('loss_streak', 0) > 0:
         embed.set_footer(text=f"Loss Streak: {pet['loss_streak']}")
-    
+
     await interaction.response.send_message(embed=embed)
 
 # Engage in a pet battle
@@ -320,7 +304,7 @@ async def pet_battle(interaction: discord.Interaction, opponent: discord.Member)
     user_id = str(interaction.user.id)
     opponent_id = str(opponent.id)
     guild_id = str(interaction.guild.id)
-    
+
     # Prevent self-battles
     if user_id == opponent_id:
         embed = discord.Embed(
@@ -330,9 +314,9 @@ async def pet_battle(interaction: discord.Interaction, opponent: discord.Member)
         )
         await interaction.response.send_message(embed=embed)
         return
-    
+
     # Ensure the bot isn't the selected opponent
-    if opponent == interaction.client.user:
+    if opponent == client.user:
         embed = discord.Embed(
             title="Battle Error",
             description="You cannot battle the bot. Please choose another member with a pet.",
@@ -363,7 +347,7 @@ async def pet_battle(interaction: discord.Interaction, opponent: discord.Member)
         )
         await interaction.response.send_message(embed=embed)
         return
-    
+
     # Ensure both pets have quests and achievements
     user_pet = ensure_quests_and_achievements(user_pet)
     opponent_pet = ensure_quests_and_achievements(opponent_pet)
@@ -625,7 +609,7 @@ async def pet_battle(interaction: discord.Interaction, opponent: discord.Member)
 async def quests(interaction: discord.Interaction):
     user_id = str(interaction.user.id)
     guild_id = str(interaction.guild.id)
-    
+
     pet = pets_collection.find_one({"user_id": user_id, "guild_id": guild_id})
     if not pet:
         embed = discord.Embed(
@@ -674,7 +658,7 @@ async def quests(interaction: discord.Interaction):
 async def achievements(interaction: discord.Interaction):
     user_id = str(interaction.user.id)
     guild_id = str(interaction.guild.id)
-    
+
     pet = pets_collection.find_one({"user_id": user_id, "guild_id": guild_id})
     if not pet:
         embed = discord.Embed(
@@ -688,12 +672,12 @@ async def achievements(interaction: discord.Interaction):
     # Ensure the pet has achievements
     pet = ensure_quests_and_achievements(pet)
 
-    achievements = pet['achievements']
+    achievements_list = pet['achievements']
     embed = discord.Embed(
         title="Your Achievements",
         color=discord.Color.gold()
     )
-    for achievement in achievements:
+    for achievement in achievements_list:
         status = "✅ Completed" if achievement['completed'] else f"{achievement['progress']} / {achievement['progress_required']}"
         progress_bar = create_xp_bar(achievement['progress'], achievement['progress_required'])
         embed.add_field(
@@ -707,16 +691,16 @@ async def achievements(interaction: discord.Interaction):
 @app_commands.command(name="top_pets", description="View the top pets leaderboard")
 async def top_pets(interaction: discord.Interaction):
     guild_id = str(interaction.guild.id)
-    
+
     # Sort first by level (descending) and then by XP (descending)
     top_pets = list(pets_collection.find({"guild_id": guild_id}).sort([("level", -1), ("xp", -1)]).limit(10))
 
     embed = discord.Embed(title="Top Pets Leaderboard", color=0xFFD700)
     for index, pet in enumerate(top_pets, 1):
-        user = await interaction.client.fetch_user(int(pet['user_id']))
+        user = await client.fetch_user(int(pet['user_id']))
         embed.add_field(name=f"#{index}: {user.display_name}", value=f"Level: {pet['level']}, XP: {pet['xp']}", inline=False)
         embed.set_thumbnail(url=pet['icon'])
-    
+
     await interaction.response.send_message(embed=embed)
 
 # Function to reset daily quests at midnight UTC
@@ -728,12 +712,105 @@ async def reset_daily_quests():
         pet = assign_daily_quests(pet)
     print("Daily quests have been reset.")
 
+# Initialize the Top.gg client
+async def initialize_topgg_client():
+    global topgg_client
+    topgg_token = os.getenv('TOPGG_TOKEN')
+    if not topgg_token:
+        print("Top.gg token is not configured. Voting functionality will not work.")
+    else:
+        topgg_client = topgg.DBLClient(client, topgg_token)
+
+# New command to handle voting and rewarding XP
+@app_commands.command(name="vote", description="Vote for the bot and earn rewards")
+async def vote(interaction: discord.Interaction):
+    global topgg_client
+    if not topgg_client:
+        await interaction.response.send_message("Voting functionality is not available.")
+        return
+
+    user_id = str(interaction.user.id)
+    bot_id = "1088929834748616785"  # Replace with your bot's actual ID
+
+    # Fetch the pet
+    guild_id = str(interaction.guild.id)
+    pet = pets_collection.find_one({"user_id": user_id, "guild_id": guild_id})
+    if not pet:
+        embed = discord.Embed(
+            title="No Pet Found",
+            description=f"{interaction.user.mention}, you don't have a pet in this server. Summon one with `/summon_pet`!",
+            color=discord.Color.red()
+        )
+        await interaction.response.send_message(embed=embed)
+        return
+
+    now = datetime.now(timezone.utc)
+
+    # Check if the user has voted
+    try:
+        has_voted = await topgg_client.get_user_vote(int(user_id))
+    except Exception as e:
+        print(f"Error checking vote status: {e}")
+        await interaction.response.send_message("Error checking vote status.")
+        return
+
+    if not has_voted:
+        # User can vote
+        vote_url = f"https://top.gg/bot/{bot_id}/vote"
+        embed = discord.Embed(
+            title="Vote for the Bot",
+            description=f"To earn rewards, please vote for the bot on Top.gg.\nClick [here]({vote_url}) to vote.",
+            color=discord.Color.blue()
+        )
+        await interaction.response.send_message(embed=embed)
+    else:
+        # User has voted within the last 12 hours
+        # Check if they have claimed the reward
+        last_vote_reward_time = pet.get('last_vote_reward_time')
+        if last_vote_reward_time:
+            last_vote_reward_time = datetime.fromisoformat(last_vote_reward_time)
+            time_since_last_reward = now - last_vote_reward_time
+            if time_since_last_reward < timedelta(hours=12):
+                # They have already claimed the reward
+                time_left = timedelta(hours=12) - time_since_last_reward
+                hours, remainder = divmod(int(time_left.total_seconds()), 3600)
+                minutes, seconds = divmod(remainder, 60)
+                time_str = f"{hours}h {minutes}m"
+                embed = discord.Embed(
+                    title="Vote Cooldown",
+                    description=f"You can vote again in {time_str}.",
+                    color=discord.Color.red()
+                )
+                await interaction.response.send_message(embed=embed)
+                return
+        # Grant XP
+        xp_reward = 100  # Or any amount you prefer
+        pet['xp'] += xp_reward
+        pet['last_vote_reward_time'] = now.isoformat()
+        # Check for level up
+        pet, leveled_up = check_level_up(pet)
+        # Update pet in database
+        pets_collection.update_one({"_id": pet["_id"]}, {"$set": pet})
+        # Send confirmation
+        embed = discord.Embed(
+            title="Thank You for Voting!",
+            description=f"You have received {xp_reward} XP for your pet.",
+            color=discord.Color.green()
+        )
+        if leveled_up:
+            embed.add_field(name="Level Up!", value=f"Your pet is now level {pet['level']}!")
+        await interaction.response.send_message(embed=embed)
+
 # Register commands
-async def setup(client):
+async def setup(bot_client):
+    global client
+    client = bot_client
     client.tree.add_command(summon_pet)
     client.tree.add_command(pet_stats)
     client.tree.add_command(pet_battle)
     client.tree.add_command(quests)
     client.tree.add_command(achievements)
     client.tree.add_command(top_pets)
+    client.tree.add_command(vote)  # Added the vote command
     reset_daily_quests.start()
+    await initialize_topgg_client()  # Initialize top.gg client here
