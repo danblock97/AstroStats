@@ -3,15 +3,13 @@ import discord
 # Easily editable text for the latest updates
 LATEST_UPDATES = """
 - **Version 1.3.0**:
-  PET BATTLES: Quests and Achievements have been added! 🎉
+  PET BATTLES: Gain XP Via Daily Voting 🎉
 
-  - **Daily Quests**: Your pet now receives 3 random daily quests every day at midnight UTC. Complete them to earn extra XP!
-  - **Achievements**: Hard-to-reach goals have been introduced. Unlock achievements by accomplishing significant milestones and earn big XP rewards!
-  - **Quest Tracking**: Each quest is appropriately tracked with progress bars and notifications upon completion.
-  - **New Commands**:
-    - `/quests`: View your current daily quests.
-    - `/achievements`: View your achievements and progress.
-  - **Battle Updates**: Notifications at the end of battles for completed quests and achievements.
+  - **TOP.GG Voting**: You can now use `/vote` every 12 hours to vote for AstroStats and gain XP towards your pet!
+
+  TFT: Minor Fixes
+
+  - **No More Unknown Interactions**: The TFT Command has been implemented with improved error handing to ensure you know the cause of all errors, the command also now returns data even if there is no ranked information. Similar to the League command!
 """
 
 async def show_update(interaction: discord.Interaction):
