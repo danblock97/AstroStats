@@ -2,15 +2,18 @@ import discord
 
 # Easily editable text for the latest updates
 LATEST_UPDATES = """
-- **Version 1.3.0**:
-  PET BATTLES: Gain XP Via Daily Voting 🎉
+- **Version 1.4.0**:
+  NEW REGION SELECTION & TFT IMPROVEMENTS 🎉
 
-  - **TOP.GG Voting**: You can now use `/vote` every 12 hours to vote for AstroStats and gain XP towards your pet!
+  - **Region Selection for League & TFT**: You can now select your region from a dropdown list when using both the League and TFT commands! No need to type it anymore.
 
-  TFT: Minor Fixes
+  - **TFT Command Enhancements**: The TFT command has been improved to handle errors more gracefully and returns player data even when ranked information is unavailable, similar to the League of Legends command.
 
-  - **No More Unknown Interactions**: The TFT Command has been implemented with improved error handing to ensure you know the cause of all errors, the command also now returns data even if there is no ranked information. Similar to the League command!
+  - **Voting for Pet XP**: Remember to use `/vote` every 12 hours to vote for AstroStats on **TOP.GG** and gain XP for your pets!
+
+  - **Minor Fixes**: Various bug fixes and UI improvements to enhance your overall experience.
 """
+
 
 async def show_update(interaction: discord.Interaction):
     embed = discord.Embed(
@@ -20,6 +23,7 @@ async def show_update(interaction: discord.Interaction):
     )
     embed.set_footer(text=f"Requested by {interaction.user.display_name}", icon_url=interaction.user.avatar.url)
     await interaction.response.send_message(embed=embed)
+
 
 # Setup function for the bot
 async def setup(client: discord.Client):

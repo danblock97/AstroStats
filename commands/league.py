@@ -1,19 +1,16 @@
 import discord
 import datetime
+from typing import Literal
 import aiohttp
 import os
 import logging
 from collections import defaultdict
-import asyncio
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# List all regions
-REGIONS = [
-    "EUW1", "EUN1", "TR1", "RU", "NA1", "BR1", "LA1", "LA2",
-    "JP1", "KR", "OC1", "PH2", "SG2", "TH2", "TW2", "VN2"
-]
+# List all regions for dropdown
+REGIONS = Literal["EUW1", "EUN1", "TR1", "RU", "NA1", "BR1", "LA1", "LA2", "JP1", "KR", "OC1", "PH2", "SG2", "TH2", "TW2", "VN2"]
 
 # Mapping queue types to user-friendly names
 QUEUE_TYPE_NAMES = {
@@ -75,47 +72,41 @@ async def send_error_embed(interaction: discord.Interaction, title: str, descrip
         color=discord.Color.red(),
         timestamp=datetime.datetime.now(datetime.timezone.utc)
     )
-    await interaction.response.send_message(embed=embed)
+    await interaction.followup.send(embed=embed)
 
-# Main League of Legends command
-async def league(interaction: discord.Interaction, riotid: str):
+# Main League of Legends command with region selection and Riot ID
+@discord.app_commands.command(name="league", description="Check your League of Legends Player Stats")
+async def league(interaction: discord.Interaction, region: REGIONS, riotid: str):
     try:
         await interaction.response.defer()
 
+        # Validate Riot ID format
         if "#" not in riotid:
-            await send_error_embed(interaction, "Invalid Riot ID", "Please enter both your game name and tag line in the format gameName#tagLine.")
+            await send_error_embed(interaction, "Invalid Riot ID", "Please enter your Riot ID in the format gameName#tagLine.")
             return
 
         game_name, tag_line = riotid.split("#")
         riot_api_key = os.getenv('LOL_API')
         headers = {'X-Riot-Token': riot_api_key}
 
+        # Fetch PUUID
         regional_url = f"https://americas.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{game_name}/{tag_line}"
-
         async with aiohttp.ClientSession() as session:
             account_data = await fetch_data(session, regional_url, headers)
-            puuid = account_data.get('puuid')
+            puuid = account_data.get('puuid') if account_data else None
 
             if not puuid:
                 await send_error_embed(interaction, "Account Not Found", "Failed to retrieve PUUID. Please ensure your Riot ID is correct.")
                 return
 
-            # Try fetching data from regions in sequence until successful
-            summoner_data = None
-            selected_region = None
-
-            for region in REGIONS:
-                summoner_data = await fetch_summoner_data(session, puuid, region, headers)
-                if summoner_data:
-                    selected_region = region
-                    break
-
+            # Fetch summoner data from selected region
+            summoner_data = await fetch_summoner_data(session, puuid, region, headers)
             if not summoner_data:
                 await send_error_embed(interaction, "No Data Found", "Failed to retrieve summoner data.")
                 return
 
             # Fetch the league data
-            league_data = await fetch_league_data(session, summoner_data['id'], selected_region, headers)
+            league_data = await fetch_league_data(session, summoner_data['id'], region, headers)
 
             # Build the embed message
             embed = discord.Embed(title=f"{game_name}#{tag_line} - Level {summoner_data['summonerLevel']}", color=0x1a78ae)
@@ -138,8 +129,8 @@ async def league(interaction: discord.Interaction, riotid: str):
             embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
             embed.set_footer(text="Built By Goldiez ❤️ Visit clutchgg.lol for more!")
 
-            # Add the view for live game if applicable
-            view = create_live_game_view(interaction.client, embed, puuid, selected_region, headers, game_name, tag_line)
+            # Add live game data if applicable
+            view = create_live_game_view(interaction.client, embed, puuid, region, headers, game_name, tag_line)
             await interaction.followup.send(embed=embed, view=view)
 
     except aiohttp.ClientError as e:
@@ -150,7 +141,7 @@ async def league(interaction: discord.Interaction, riotid: str):
         await send_error_embed(interaction, "Data Error", "Failed to retrieve summoner data. Please ensure your Riot ID is correct.")
     except Exception as e:
         logging.error(f"Unexpected Error: {e}")
-        await send_error_embed(interaction, "Unexpected Error", "Oops! An unexpected error occurred while processing your request. Please try again later.")
+        await send_error_embed(interaction, "Unexpected Error", "An unexpected error occurred while processing your request. Please try again later.")
 
 # Helper function to create live game view
 def create_live_game_view(client, embed, puuid, region, headers, game_name, tag_line):
@@ -174,11 +165,10 @@ async def update_live_game_view(interaction: discord.Interaction, embed, puuid, 
     live_game_data = await fetch_live_game(session, puuid, region, headers)
 
     if not live_game_data or 'status' in live_game_data:
-        # Create an embed for no game found
+        # No live game found
         no_game_embed = discord.Embed(
             title="No Live Game Found",
-            description="It seems you're not in a live game. Please try again when you're in the loading screen.\n\n"
-                        "If the issue persists, visit [AstroStats Support](https://astrostats.vercel.app) for assistance.",
+            description="It seems you're not in a live game. Please try again when you're in the loading screen.",
             color=discord.Color.orange(),
             timestamp=datetime.datetime.now(datetime.timezone.utc)
         )
@@ -193,7 +183,6 @@ async def update_live_game_view(interaction: discord.Interaction, embed, puuid, 
         await interaction.followup.send("No new game data since last fetch.", ephemeral=True)
     else:
         last_game_ids[puuid] = game_id
-        # Process the game data and update the embed
         await process_game_data(interaction, embed, live_game_data, puuid, region, headers, session)
 
     live_game_button.disabled = False
@@ -202,24 +191,22 @@ async def update_live_game_view(interaction: discord.Interaction, embed, puuid, 
 
     last_fetch_times[puuid] = datetime.datetime.utcnow()
 
-# Function to process the live game data and update embed
+# Process live game data
 async def process_game_data(interaction: discord.Interaction, embed: discord.Embed, live_game_data: dict, puuid: str, region: str, headers: dict, session: aiohttp.ClientSession):
     blue_team = []
     red_team = []
 
     for player in live_game_data['participants']:
         player_puuid = player['puuid']
-        account_data = await fetch_game_name_tagline(session, player_puuid, headers)
-        summoner_name = f"{account_data['gameName']}#{account_data['tagLine']}" if account_data else "Unknown"
+        summoner_name = f"{player['summonerName']}"
 
         rank = await get_player_rank(session, player_puuid, region, headers)
         champion_id = player['championId']
         champion_name = await fetch_champion_name(session, champion_id)
-        emoji = await get_emoji_for_champion(champion_name)
 
         player_data = {
             'summoner_name': summoner_name,
-            'champion_name': f"{emoji} {champion_name}",
+            'champion_name': champion_name,
             'rank': rank
         }
 
@@ -228,7 +215,6 @@ async def process_game_data(interaction: discord.Interaction, embed: discord.Emb
         else:
             red_team.append(player_data)
 
-    # Clear old fields and add new ones
     embed.clear_fields()
     embed.title = "Live Game"
 
@@ -241,21 +227,16 @@ async def process_game_data(interaction: discord.Interaction, embed: discord.Emb
     red_team_ranks = '\n'.join([p['rank'] for p in red_team])
 
     embed.add_field(name="Blue Team", value=blue_team_champions, inline=True)
-    embed.add_field(name="Riot ID", value=blue_team_names, inline=True)
+    embed.add_field(name="Summoner Names", value=blue_team_names, inline=True)
     embed.add_field(name="Rank", value=blue_team_ranks, inline=True)
 
     embed.add_field(name="Red Team", value=red_team_champions, inline=True)
-    embed.add_field(name="Riot ID", value=red_team_names, inline=True)
+    embed.add_field(name="Summoner Names", value=red_team_names, inline=True)
     embed.add_field(name="Rank", value=red_team_ranks, inline=True)
 
     await interaction.followup.send(embed=embed)
 
-# Fetch a player's game name and tagline using PUUID
-async def fetch_game_name_tagline(session: aiohttp.ClientSession, puuid: str, headers: dict) -> dict:
-    regional_url = f"https://americas.api.riotgames.com/riot/account/v1/accounts/by-puuid/{puuid}"
-    return await fetch_data(session, regional_url, headers)
-
-# Fetch a player's rank based on PUUID
+# Fetch player's rank based on PUUID
 async def get_player_rank(session: aiohttp.ClientSession, puuid: str, region: str, headers: dict) -> str:
     summoner_data = await fetch_summoner_data(session, puuid, region, headers)
     if not summoner_data:
@@ -325,11 +306,5 @@ async def fetch_application_emojis():
             return valid_emojis if valid_emojis else None
 
 # Function to set up the League command
-async def setup(client):
-    client.tree.add_command(
-        discord.app_commands.Command(
-            name="league",
-            description="Check your League of Legends Player Stats",
-            callback=league
-        )
-    )
+async def setup(client: discord.Client):
+    client.tree.add_command(league)

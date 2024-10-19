@@ -3,22 +3,20 @@ import datetime
 import requests
 import os
 import logging
+from typing import Literal
 
 # Configure logging to only log errors
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# List all regions individually
-REGIONS = [
-    "EUW1", "EUN1", "TR1", "RU", "NA1", "BR1", "LA1", "LA2",
-    "JP1", "KR", "OC1", "PH2", "SG2", "TH2", "TW2", "VN2"
-]
+# Define region options using Literal for dropdown
+REGIONS = Literal["EUW1", "EUN1", "TR1", "RU", "NA1", "BR1", "LA1", "LA2", "JP1", "KR", "OC1", "PH2", "SG2", "TH2", "TW2", "VN2"]
 
 # Mapping TFT queue types to user-friendly names
 TFT_QUEUE_TYPE_NAMES = {
     "RANKED_TFT": "Ranked TFT",
 }
 
-async def tft(interaction: discord.Interaction, riotid: str):
+async def tft(interaction: discord.Interaction, region: REGIONS, riotid: str):
     try:
         await interaction.response.defer()
 
@@ -47,34 +45,28 @@ async def tft(interaction: discord.Interaction, riotid: str):
             await interaction.followup.send("Failed to retrieve summoner data. Please ensure your Riot ID is correct and try again.")
             return
 
-        stats = None
-        summoner_data = None
-        for region in REGIONS:
-            summoner_url = f"https://{region.lower()}.api.riotgames.com/tft/summoner/v1/summoners/by-puuid/{puuid}"
-            summoner_response = requests.get(summoner_url, headers=headers)
-            if summoner_response.status_code == 200:
-                summoner_data = summoner_response.json()
+        # Fetch summoner data from the selected region
+        summoner_url = f"https://{region.lower()}.api.riotgames.com/tft/summoner/v1/summoners/by-puuid/{puuid}"
+        summoner_response = requests.get(summoner_url, headers=headers)
 
-                # Attempt to fetch league data for the current region
-                league_url = f"https://{region.lower()}.api.riotgames.com/tft/league/v1/entries/by-summoner/{summoner_data['id']}"
-                league_response = requests.get(league_url, headers=headers)
-                if league_response.status_code == 200:
-                    stats = league_response.json()
-                    # Even if stats is empty, we have found the correct region
-                    break
-
-        if not summoner_data:
-            await interaction.followup.send(
-                "Failed to retrieve summoner data. The player might not be active in the checked regions.")
+        if summoner_response.status_code != 200:
+            await interaction.followup.send(f"Failed to retrieve summoner data for the region {region}.")
             return
+
+        summoner_data = summoner_response.json()
+
+        # Fetch league data
+        league_url = f"https://{region.lower()}.api.riotgames.com/tft/league/v1/entries/by-summoner/{summoner_data['id']}"
+        league_response = requests.get(league_url, headers=headers)
 
         # Build the embed message
         embed = discord.Embed(title=f"{game_name}#{tag_line} - Level {summoner_data['summonerLevel']}", color=0x1a78ae)
         embed.set_thumbnail(
             url=f"https://raw.communitydragon.org/latest/game/assets/ux/summonericons/profileicon{summoner_data['profileIconId']}.png")
 
-        if stats and len(stats) > 0:
+        if league_response.status_code == 200 and league_response.json():
             # Player has ranked stats
+            stats = league_response.json()
             for league_data in stats:
                 queue_type = league_data['queueType']
                 user_friendly_queue_type = TFT_QUEUE_TYPE_NAMES.get(queue_type, "Other")
