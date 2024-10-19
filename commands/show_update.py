@@ -5,6 +5,8 @@ LATEST_UPDATES = """
 - **Version 1.4.0**:
   NEW REGION SELECTION & TFT IMPROVEMENTS 🎉
 
+  -**Apex Fixed**: The Apex Command has been fixed after multiple reports of it working 0% of the time! 
+
   - **Region Selection for League & TFT**: You can now select your region from a dropdown list when using both the League and TFT commands! No need to type it anymore.
 
   - **TFT Command Enhancements**: The TFT command has been improved to handle errors more gracefully and returns player data even when ranked information is unavailable, similar to the League of Legends command.
