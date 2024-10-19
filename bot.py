@@ -80,7 +80,7 @@ async def on_ready():
 async def update_presence():
     while True:
         guild_count = len(client.guilds)
-        presence = discord.Activity(type=discord.ActivityType.playing, name=f"/show_update on {guild_count} servers")
+        presence = discord.Game(name=f"/help | {guild_count} servers")
         await client.change_presence(activity=presence)
         await asyncio.sleep(3600)  # Update every hour
 
@@ -101,7 +101,58 @@ async def on_guild_join(guild):
     if guild.id in blacklisted_guilds:
         await guild.leave()
         print(f"Left blacklisted guild: {guild.name} ({guild.id})")
+        return  # Exit the function early
 
+    # Create the embed
+    embed = discord.Embed(
+        title=f"{guild.name}",
+        description="Thank you for using AstroStats!",
+        color=discord.Color.blue()
+    )
+
+    # Set the guild icon as the embed thumbnail
+    if guild.icon:
+        embed.set_thumbnail(url=guild.icon.url)
+
+    # Field 1
+    embed.add_field(
+        name="\u200b",  # Use an invisible character for the name if you want it blank
+        value="AstroStats helps you keep on track of your gaming stats by allowing you to check various competitive stats, from Apex Legends, to Fortnite, to League of Legends & TFT.",
+        inline=False
+    )
+
+    # Field 2
+    embed.add_field(
+        name="**Important Commands**",
+        value="/help - Lists all commands & support.\n/review - Leave a review on top.gg",
+        inline=False
+    )
+
+    # Field 3
+    embed.add_field(
+        name="Links",
+        value="[View Documentation](https://astrostats.vercel.app)\n[Join Support Server](https://discord.com/invite/BeszQxTn9D)",
+        inline=False
+    )
+
+    # Try to find a channel to send the message
+    channel = guild.system_channel
+    if channel is None or not channel.permissions_for(guild.me).send_messages:
+        # Try to find another channel where the bot can send messages
+        for ch in guild.text_channels:
+            if ch.permissions_for(guild.me).send_messages:
+                channel = ch
+                break
+        else:
+            # No channel found where the bot can send messages
+            print(f"No suitable channel found in guild: {guild.name} ({guild.id})")
+            return
+
+    # Send the embed
+    try:
+        await channel.send(embed=embed)
+    except Exception as e:
+        print(f"Failed to send welcome message to guild: {guild.name} ({guild.id}). Error: {e}")
 
 # Start the bot
 client.run(os.getenv('TOKEN'))

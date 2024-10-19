@@ -2,8 +2,14 @@ import discord
 import datetime
 from typing import Literal, Optional, Dict
 import os
-import aiohttp
+import requests  # Using requests instead of aiohttp
 import logging
+from urllib.parse import quote
+from dotenv import load_dotenv
+import asyncio  # Import asyncio to use asyncio.to_thread
+
+# Load environment variables
+load_dotenv()
 
 # Initialize logger
 logging.basicConfig(level=logging.INFO)
@@ -16,30 +22,37 @@ PLATFORM_MAPPING = {
     'Origin (PC)': 'origin',
 }
 
-# Helper function to retrieve Apex Legends data from the API
-async def fetch_apex_stats(api_platform: str, name: str) -> Optional[Dict]:
-    url = f"https://public-api.tracker.gg/v2/apex/standard/profile/{api_platform}/{name}"
-    headers = {"TRN-Api-Key": os.getenv('TRN-Api-Key')}
+# Synchronous function using requests
+def fetch_apex_stats(api_platform: str, name: str) -> Optional[Dict]:
+    name_encoded = quote(name)
+    url = f"https://public-api.tracker.gg/v2/apex/standard/profile/{api_platform}/{name_encoded}"
+    api_key = os.getenv('TRN_API_KEY')
+    if not api_key:
+        logger.error("API key not found. Please check your .env file.")
+        return None
 
-    async with aiohttp.ClientSession() as session:
-        try:
-            async with session.get(url, headers=headers) as response:
-                if response.status == 200:
-                    return await response.json()
-                elif response.status == 404:
-                    # Account not found, skip logging
-                    return None
-                elif response.status == 403:
-                    # Handle 403 Forbidden error specifically
-                    logger.error(f"Access forbidden when fetching stats for {name} on {api_platform}: {response.status}")
-                    raise PermissionError("Access forbidden: Invalid API key or insufficient permissions.")
-                else:
-                    # Log any other non-200, non-404, non-403 status codes
-                    logger.error(f"Failed to fetch stats for {name} on {api_platform}: {response.status}")
-                    return None
-        except aiohttp.ClientError as e:
-            logger.error(f"Client error occurred: {e}")
+    headers = {"TRN-Api-Key": api_key}
+
+    logger.info(f"Fetching data from URL: {url}")
+
+    try:
+        response = requests.get(url, headers=headers)
+        logger.info(f"Received response status: {response.status_code}")
+        if response.status_code == 200:
+            return response.json()
+        elif response.status_code == 404:
             return None
+        elif response.status_code == 403:
+            logger.error(
+                f"Access forbidden when fetching stats for {name} on {api_platform}: {response.status_code}"
+            )
+            raise PermissionError("Access forbidden: Invalid API key or insufficient permissions.")
+        else:
+            logger.error(f"Failed to fetch stats for {name} on {api_platform}: {response.status_code}")
+            return None
+    except requests.RequestException as e:
+        logger.error(f"Request error occurred: {e}")
+        return None
 
 # Helper function to format percentile data
 def get_percentile_label(percentile: Optional[float]) -> str:
@@ -66,7 +79,7 @@ async def send_error_embed(interaction: discord.Interaction, title: str, descrip
         color=discord.Color.red(),
         timestamp=datetime.datetime.now(datetime.timezone.utc)
     )
-    await interaction.response.send_message(embed=embed)
+    await interaction.followup.send(embed=embed)
 
 # Main Apex Legends command
 @discord.app_commands.command(name="apex", description="Check your Apex Legends Player Stats")
@@ -82,14 +95,17 @@ async def apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
 
         api_platform = PLATFORM_MAPPING.get(platform)
         if not api_platform:
-            await send_error_embed(interaction, "Invalid Platform", "Please use a valid platform (Xbox, Playstation, Origin).")
+            await send_error_embed(
+                interaction,
+                "Invalid Platform",
+                "Please use a valid platform (Xbox, Playstation, Origin)."
+            )
             return
 
-        # Fetch Apex stats from the API
+        # Fetch Apex stats from the API using asyncio.to_thread
         try:
-            data = await fetch_apex_stats(api_platform, name)
+            data = await asyncio.to_thread(fetch_apex_stats, api_platform, name)
         except PermissionError as e:
-            # Handle 403 Forbidden error
             logger.error(f"Permission Error: {e}")
             await send_error_embed(
                 interaction,
@@ -99,12 +115,20 @@ async def apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
             return
 
         if not data or 'data' not in data or 'segments' not in data['data']:
-            await send_error_embed(interaction, "Account Not Found", f"No stats found for the username: **{name}** on {platform}. Please double-check your details.")
+            await send_error_embed(
+                interaction,
+                "Account Not Found",
+                f"No stats found for the username: **{name}** on {platform}. Please double-check your details."
+            )
             return
 
         segments = data['data']['segments']
         if not segments:
-            await send_error_embed(interaction, "No Data Available", f"No data found for the user: **{name}**.")
+            await send_error_embed(
+                interaction,
+                "No Data Available",
+                f"No data found for the user: **{name}**."
+            )
             return
 
         lifetime = segments[0]['stats']
@@ -127,7 +151,11 @@ async def apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
 
     except Exception as e:
         logger.error(f"Unexpected Error: {e}")
-        await send_error_embed(interaction, "Unexpected Error", "An unexpected error occurred. Please try again later.")
+        await send_error_embed(
+            interaction,
+            "Unexpected Error",
+            "An unexpected error occurred. Please try again later."
+        )
 
 # Function to build the embed message
 def build_embed(name: str, platform: str, active_legend_data: Dict, lifetime: Dict, ranked: Dict, peak_rank: Dict) -> discord.Embed:
