@@ -168,7 +168,7 @@ async def update_live_game_view(interaction: discord.Interaction, embed, puuid, 
         # No live game found
         no_game_embed = discord.Embed(
             title="No Live Game Found",
-            description="It seems you're not in a live game. Please try again when you're in the loading screen.",
+            description=f"It seems you're not in a live game or the Riot API is experiencing issues. Please check [Your LoL Profile](https://clutchgg.lol/profile?gameName={game_name}&tagLine={tag_line}) for your live game",
             color=discord.Color.orange(),
             timestamp=datetime.datetime.now(datetime.timezone.utc)
         )
