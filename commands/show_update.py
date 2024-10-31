@@ -2,19 +2,25 @@ import discord
 
 # Easily editable text for the latest updates
 LATEST_UPDATES = """
-- **Version 1.4.0**:
-  NEW REGION SELECTION & TFT IMPROVEMENTS 🎉
+- **Version 1.4.1**:
+  **Bug Fixes and Enhancements** 🛠️
 
-  -**Apex Fixed**: The Apex Command has been fixed after multiple reports of it working 0% of the time! 
+  - **League Command Improvements**:
+    - **Live Game Data Fixes**: Resolved an issue causing a KeyError 'summonerName' when fetching live game data. The bot now correctly retrieves summoner names using PUUIDs.
+    - **API Endpoint Update**: Updated the Spectator API endpoint to use v5 and PUUIDs, ensuring accurate and up-to-date live game information.
+    - **Champion Icons Update**: Champion icons (emojis) are now displayed to the **left** of champion names for better readability in live game displays.
 
-  - **Region Selection for League & TFT**: You can now select your region from a dropdown list when using both the League and TFT commands! No need to type it anymore.
+  - **Horoscope Command Enhancement**:
+    - **Interactive Buttons Fix**: Fixed an issue where only the original user could press the "Check Star Rating" button. Now, **any user** can interact with the button to view star ratings.
 
-  - **TFT Command Enhancements**: The TFT command has been improved to handle errors more gracefully and returns player data even when ranked information is unavailable, similar to the League of Legends command.
+  - **General Improvements**:
+    - **Improved Error Handling**: Enhanced error handling across commands for a smoother user experience.
+    - **UI Enhancements**: Minor cosmetic changes have been made to improve the look and feel of bot responses.
 
-  - **Voting for Pet XP**: Remember to use `/vote` every 12 hours to vote for AstroStats on **TOP.GG** and gain XP for your pets!
-
-  - **Minor Fixes**: Various bug fixes and UI improvements to enhance your overall experience.
+  - **Voting Reminder**:
+    Remember to use `/vote` every 12 hours on **TOP.GG** to gain XP for your pets!
 """
+
 
 
 async def show_update(interaction: discord.Interaction):
