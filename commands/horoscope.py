@@ -25,8 +25,10 @@ SIGNS = {
     "pisces": {"display": "Pisces", "api": 12, "color": 0x598F88},
 }
 
-SignLiteral = Literal['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces']
-
+SignLiteral = Literal[
+    'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
+    'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
+]
 
 # Helper function to fetch the horoscope data from the website
 async def fetch_horoscope_text(sign: str) -> Optional[str]:
@@ -49,14 +51,11 @@ async def fetch_horoscope_text(sign: str) -> Optional[str]:
             logger.error(f"Request error: {e}")
             return None
 
-
 # Helper function to fetch the star rating data from the website
-async def fetch_star_rating(interaction: discord.Interaction, sign: str, embed: discord.Embed):
-    try:
-        await interaction.response.defer()  # Acknowledge the interaction to prevent timeout
-
-        url = f"https://www.horoscope.com/star-ratings/today/{sign}"
-        async with aiohttp.ClientSession() as session:
+async def fetch_star_rating(sign: str, embed: discord.Embed):
+    url = f"https://www.horoscope.com/star-ratings/today/{sign}"
+    async with aiohttp.ClientSession() as session:
+        try:
             async with session.get(url) as response:
                 if response.status == 200:
                     soup = BeautifulSoup(await response.text(), 'html.parser')
@@ -74,19 +73,15 @@ async def fetch_star_rating(interaction: discord.Interaction, sign: str, embed: 
                         description = category.find_next("p").text.strip()
                         star_ratings.append((title, stars, description))
 
-                    rating_text = "\n\n".join([f"{title} {stars}\n{description}" for title, stars, description in star_ratings])
+                    rating_text = "\n\n".join([f"**{title}** {stars}\n{description}" for title, stars, description in star_ratings])
                     embed.add_field(name="Star Ratings", value=rating_text, inline=False)
-                    await interaction.followup.edit_message(message_id=interaction.message.id, embed=embed)
+                    return embed
                 else:
                     logger.error(f"Failed to fetch star rating for {sign}: {response.status}")
-                    await interaction.followup.send(
-                        "Sorry, I couldn't retrieve the star rating at the moment. Please try again later.", ephemeral=True)
-
-    except Exception as e:
-        logger.error(f"Unexpected error: {e}")
-        await interaction.followup.send(
-            "Oops! An unexpected error occurred while processing your request. Please try again later.", ephemeral=True)
-
+                    return None
+        except Exception as e:
+            logger.error(f"Unexpected error in fetch_star_rating: {e}")
+            return None
 
 # Helper function to build the horoscope embed
 def build_horoscope_embed(sign: str, horoscope_text: str) -> discord.Embed:
@@ -99,9 +94,7 @@ def build_horoscope_embed(sign: str, horoscope_text: str) -> discord.Embed:
     embed.add_field(name="Today's Horoscope", value=horoscope_text, inline=False)
     embed.timestamp = datetime.datetime.now(datetime.timezone.utc)  # Use timezone.utc for correct time handling
     embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
-    
     return embed
-
 
 # Main Horoscope command
 @discord.app_commands.command(name="horoscope", description="Check your Daily Horoscope")
@@ -125,15 +118,28 @@ async def horoscope(interaction: discord.Interaction, sign: SignLiteral):
 
         # Create the button for fetching star ratings
         view = discord.ui.View()
-        button = discord.ui.Button(label="Check Star Rating", style=discord.ButtonStyle.primary, custom_id=f"star_rating_{given_sign}")
+        button = discord.ui.Button(
+            label="Check Star Rating",
+            style=discord.ButtonStyle.primary,
+            custom_id=f"star_rating_{given_sign}"
+        )
 
         async def button_callback(button_interaction: discord.Interaction):
-            # Fetch star rating and add it to the embed
-            await fetch_star_rating(button_interaction, given_sign, embed)
-            # Disable the button after fetching the rating
-            button.disabled = True
-            button.label = "Star Rating Fetched"
-            await button_interaction.message.edit(embed=embed, view=view)
+            # Defer the interaction to acknowledge it
+            await button_interaction.response.defer()
+
+            # Fetch star rating and update the embed
+            updated_embed = await fetch_star_rating(given_sign, embed)
+            if updated_embed:
+                # Disable the button after fetching the rating
+                button.disabled = True
+                button.label = "Star Rating Fetched"
+                await button_interaction.message.edit(embed=updated_embed, view=view)
+            else:
+                await button_interaction.followup.send(
+                    "Sorry, I couldn't retrieve the star rating at the moment. Please try again later.",
+                    ephemeral=True
+                )
 
         button.callback = button_callback
         view.add_item(button)
@@ -146,7 +152,6 @@ async def horoscope(interaction: discord.Interaction, sign: SignLiteral):
         await interaction.response.send_message(
             "Oops! An unexpected error occurred while processing your request. Please try again later."
         )
-
 
 # Setup function for the bot
 async def setup(client: discord.Client):
