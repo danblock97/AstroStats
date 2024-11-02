@@ -92,7 +92,7 @@ def build_horoscope_embed(sign: str, horoscope_text: str) -> discord.Embed:
     image_url = f"https://www.horoscope.com/images-US/signs/profile-{sign}.png"
     embed.set_thumbnail(url=image_url)
     embed.add_field(name="Today's Horoscope", value=horoscope_text, inline=False)
-    embed.timestamp = datetime.datetime.now(datetime.timezone.utc)  # Use timezone.utc for correct time handling
+    embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
     embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
     return embed
 
@@ -125,6 +125,15 @@ async def horoscope(interaction: discord.Interaction, sign: SignLiteral):
         )
 
         async def button_callback(button_interaction: discord.Interaction):
+            # Check permissions before proceeding
+            permissions = button_interaction.channel.permissions_for(button_interaction.guild.me)
+            if not permissions.send_messages or not permissions.read_message_history:
+                await button_interaction.response.send_message(
+                    "Bot lacks permissions to edit messages in this channel.",
+                    ephemeral=True
+                )
+                return
+
             # Defer the interaction to acknowledge it
             await button_interaction.response.defer()
 
