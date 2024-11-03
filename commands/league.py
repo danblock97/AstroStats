@@ -45,7 +45,8 @@ SPECIAL_EMOJI_NAMES = {
     "Bel'Veth": "Belveth",
     "Cho'Gath": "Chogath",
     "Nunu & Willump": "Nunu",
-    "Lee Sin": "LeeSin"
+    "Lee Sin": "LeeSin",
+    "K'Sante": "KSante"
 }
 
 # Helper function to fetch data from an API
