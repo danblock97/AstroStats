@@ -14,8 +14,10 @@ def build_help_embed(guild_count: int) -> discord.Embed:
     embed.add_field(name="Fortnite Player Stats", value="`/fortnite <time> <name>`")
     embed.add_field(name="Horoscope", value="`/horoscope <sign>`")
     embed.add_field(name="Pet Battles!", value="`/summon_pet`, `/pet_battle`, `/pet_stats`, `/top_pets`")
+    embed.add_field(name="Support", value="For support please visit [AstroStats](https://astrostats.vercel.app)")
+    embed.add_field(name="Known Issues", value="For all known issues, please visit our [Trello Board](https://trello.com/b/UdZeXlcY/all-known-issues)")
     embed.set_footer(text="Built By Goldiez ❤️")
-    embed.timestamp = datetime.datetime.now(datetime.timezone.utc)  # Using timezone.utc for correct time handling
+    embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
     
     return embed
 
