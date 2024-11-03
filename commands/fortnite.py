@@ -4,6 +4,7 @@ from typing import Literal, Optional, Dict
 import os
 import aiohttp
 import logging
+import urllib.parse
 
 # Initialize logger
 logging.basicConfig(level=logging.INFO)
@@ -63,7 +64,7 @@ async def fortnite(interaction: discord.Interaction, time: Literal['Season', 'Li
             await send_error_embed(
                 interaction,
                 "Account Not Found",
-                f"No stats found for **{name}** for **{time_window}**. Please double-check your details. If you haven't played this season, be sure to play some games and try again later."
+                f"No stats found for **{name}** for the current season. Epic may not have updated your stats yet! Please double-check your details. If you haven't played this season, be sure to play some games and try again later."
             )
             return
 
@@ -94,10 +95,11 @@ async def fortnite(interaction: discord.Interaction, time: Literal['Season', 'Li
 
 # Function to build the embed message
 def build_embed(name: str, account: Dict, battle_pass: Dict, stats: Dict, calculated_win_rate: float) -> discord.Embed:
+    encoded_name = urllib.parse.quote(name)
     embed = discord.Embed(
         title=f"Fortnite - {name}",
         color=0xdd4f7a,
-        url=f"https://fortnitetracker.com/profile/all/{name}"
+        url=f"https://fortnitetracker.com/profile/all/{encoded_name}"
     )
     embed.set_thumbnail(url="https://seeklogo.com/images/F/fortnite-logo-1F7897BD1E-seeklogo.com.png")
 
