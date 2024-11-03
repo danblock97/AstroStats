@@ -18,8 +18,8 @@ LATEST_UPDATES = """
   - **Voting Reminder**:
     Remember to use `/vote` every 12 hours on **TOP.GG** to gain XP for your pets!
     
-    - **All known issues**:
-        For all known issues, please visit our [Trello Board](https://trello.com/b/UdZeXlcY/all-known-issues)
+  - **All known issues**:
+    For all known issues, please visit our [Trello Board](https://trello.com/b/UdZeXlcY/all-known-issues)
 """
 
 
