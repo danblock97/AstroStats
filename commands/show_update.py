@@ -2,23 +2,24 @@ import discord
 
 # Easily editable text for the latest updates
 LATEST_UPDATES = """
-- **Version 1.4.1**:
+- **Version 1.4.2**:
   **Bug Fixes and Enhancements** 🛠️
 
   - **League Command Improvements**:
-    - **Live Game Data Fixes**: Resolved an issue causing a KeyError 'summonerName' when fetching live game data. The bot now correctly retrieves summoner names using PUUIDs.
-    - **API Endpoint Update**: Updated the Spectator API endpoint to use v5 and PUUIDs, ensuring accurate and up-to-date live game information.
-    - **Champion Icons Update**: Champion icons (emojis) are now displayed to the **left** of champion names for better readability in live game displays.
+    - **Missing Champion Icon**: Resolved an issue where champions such as K'Sante were missing from the icons list.
 
-  - **Horoscope Command Enhancement**:
-    - **Interactive Buttons Fix**: Fixed an issue where only the original user could press the "Check Star Rating" button. Now, **any user** can interact with the button to view star ratings.
+  - **Apex Fixes**:
+    - **No API Key Error**: Resolved an issue where calling the Apex command will result in the bot saying there is no API key. 
 
-  - **General Improvements**:
-    - **Improved Error Handling**: Enhanced error handling across commands for a smoother user experience.
-    - **UI Enhancements**: Minor cosmetic changes have been made to improve the look and feel of bot responses.
+  - **Fortnite Fixes**:
+    - **Not Well Formatted URL**: Fixed an issue where the Fortnite command can sometimes result in an error about a 'Not Well Formatted URL'.
+    - **Ch2 Remix**: The command has been updated to show seasonal stats for Ch2 Remix as of November 3rd. Any games before this will not show.
 
   - **Voting Reminder**:
     Remember to use `/vote` every 12 hours on **TOP.GG** to gain XP for your pets!
+    
+    - **All known issues**:
+        For all known issues, please visit our [Trello Board](https://trello.com/b/UdZeXlcY/all-known-issues)
 """
 
 
