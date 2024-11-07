@@ -2,18 +2,14 @@ import discord
 
 # Easily editable text for the latest updates
 LATEST_UPDATES = """
-- **Version 1.4.2**:
+- **Version 1.4.3**:
   **Bug Fixes and Enhancements** 🛠️
 
   - **League Command Improvements**:
-    - **Missing Champion Icon**: Resolved an issue where champions such as K'Sante were missing from the icons list.
+    - **Missing Champion Icon**: The new champion Ambessa will now show in the Live Game view!
 
-  - **Apex Fixes**:
-    - **No API Key Error**: Resolved an issue where calling the Apex command will result in the bot saying there is no API key. 
-
-  - **Fortnite Fixes**:
-    - **Not Well Formatted URL**: Fixed an issue where the Fortnite command can sometimes result in an error about a 'Not Well Formatted URL'.
-    - **Ch2 Remix**: The command has been updated to show seasonal stats for Ch2 Remix as of November 3rd. Any games before this will not show.
+  - **Horoscope Fixes**:
+    - **Interaction Failed**: Upon using the Star Rating button, you may find without correct permissions, the bot will return nothing but an 'Interaction Failed'. This has been improved to show you errors via embeds.
 
   - **Voting Reminder**:
     Remember to use `/vote` every 12 hours on **TOP.GG** to gain XP for your pets!
