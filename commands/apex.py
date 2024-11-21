@@ -183,6 +183,9 @@ def build_embed(name: str, platform: str, active_legend_data: Dict, lifetime: Di
             inline=False
         )
 
+    embed.add_field(name="Support Us ❤️",
+                    value="[If you enjoy using this bot, consider supporting us!](https://buymeacoffee.com/danblock97)")
+
     embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
     embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
     return embed

@@ -148,7 +148,10 @@ async def league(interaction: discord.Interaction, region: REGIONS, riotid: str)
                     league_info = f"{tier} {rank} {lp} LP\nWins: {wins}\nLosses: {losses}\nWinrate: {winrate}%"
                     embed.add_field(name=queue_type, value=league_info, inline=True)
             else:
-                embed.add_field(name="Rank", value="Unranked", inline=True)
+                embed.add_field(name="Rank", value="Unranked", inline=False)
+
+            embed.add_field(name="Support Us ❤️",
+                            value="[If you enjoy using this bot, consider supporting us!](https://buymeacoffee.com/danblock97)")
 
             embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
             embed.set_footer(text="Built By Goldiez ❤️ Visit clutchgg.lol for more!")

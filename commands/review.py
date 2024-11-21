@@ -17,6 +17,9 @@ async def review(interaction: discord.Interaction):
         inline=False
     )
 
+    embed.add_field(name="Support Us ❤️",
+                    value="[If you enjoy using this bot, consider supporting us!](https://buymeacoffee.com/danblock97)")
+
     # Send the embed
     await interaction.response.send_message(embed=embed)
 

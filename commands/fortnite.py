@@ -126,7 +126,10 @@ def build_embed(name: str, account: Dict, battle_pass: Dict, stats: Dict, calcul
                           f"Score Per Minute: {stats['stats']['all']['overall']['scorePerMin']:.0f}\n"
                           f"Score Per Match: {stats['stats']['all']['overall']['scorePerMatch']:.0f}\n"
                           f"Total Minutes Played: {stats['stats']['all']['overall']['minutesPlayed']:,}",
-                    inline=True)
+                    inline=False)
+
+    embed.add_field(name="Support Us ❤️",
+                    value="[If you enjoy using this bot, consider supporting us!](https://buymeacoffee.com/danblock97)")
 
     embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
     embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")

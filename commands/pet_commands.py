@@ -256,7 +256,9 @@ async def summon_pet(interaction: discord.Interaction, name: str, pet: app_comma
     embed.add_field(name="Level", value=new_pet['level'])
     embed.add_field(name="Strength", value=new_pet['strength'])
     embed.add_field(name="Defense", value=new_pet['defense'])
-    embed.add_field(name="Health", value=new_pet['health'])
+    embed.add_field(name="Health", value=new_pet['health'], inline=False)
+    embed.add_field(name="Support Us ❤️",
+                    value="[If you enjoy using this bot, consider supporting us!](https://buymeacoffee.com/danblock97)")
 
     await interaction.response.send_message(embed=embed)
 
@@ -699,6 +701,8 @@ async def top_pets(interaction: discord.Interaction):
     for index, pet in enumerate(top_pets, 1):
         user = await client.fetch_user(int(pet['user_id']))
         embed.add_field(name=f"#{index}: {user.display_name}", value=f"Level: {pet['level']}, XP: {pet['xp']}", inline=False)
+        embed.add_field(name="Support Us ❤️",
+                        value="[If you enjoy using this bot, consider supporting us!](https://buymeacoffee.com/danblock97)")
         embed.set_thumbnail(url=pet['icon'])
 
     await interaction.response.send_message(embed=embed)

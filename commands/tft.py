@@ -79,10 +79,13 @@ async def tft(interaction: discord.Interaction, region: REGIONS, riotid: str):
                 winrate = int((wins / total_games) * 100) if total_games > 0 else 0
 
                 league_info = f"{tier} {rank} {lp} LP\nWins: {wins}\nLosses: {losses}\nWinrate: {winrate}%"
-                embed.add_field(name=user_friendly_queue_type, value=league_info, inline=True)
+                embed.add_field(name=user_friendly_queue_type, value=league_info, inline=False)
+
+                embed.add_field(name="Support Us ❤️",
+                                value="[If you enjoy using this bot, consider supporting us!](https://buymeacoffee.com/danblock97)")
         else:
             # Player is unranked
-            embed.add_field(name="Rank", value="Unranked", inline=True)
+            embed.add_field(name="Rank", value="Unranked", inline=False)
 
         embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
         embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")

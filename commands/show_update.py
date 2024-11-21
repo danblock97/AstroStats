@@ -26,6 +26,8 @@ async def show_update(interaction: discord.Interaction):
         description=LATEST_UPDATES,
         color=discord.Color.blue()
     )
+    embed.add_field(name="Support Us ❤️",
+                    value="[If you enjoy using this bot, consider supporting us!](https://buymeacoffee.com/danblock97)")
     embed.set_footer(text=f"Requested by {interaction.user.display_name}", icon_url=interaction.user.avatar.url)
     await interaction.response.send_message(embed=embed)
 
