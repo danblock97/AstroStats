@@ -92,6 +92,9 @@ def build_horoscope_embed(sign: str, horoscope_text: str) -> discord.Embed:
     image_url = f"https://www.horoscope.com/images-US/signs/profile-{sign}.png"
     embed.set_thumbnail(url=image_url)
     embed.add_field(name="Today's Horoscope", value=horoscope_text, inline=False)
+    embed.add_field(name="Support Us ❤️",
+                    value="[If you enjoy using this bot, consider supporting us!](https://buymeacoffee.com/danblock97)")
+    embed.set_footer(text="Built By Goldiez ❤️")
     embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
     embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
     return embed

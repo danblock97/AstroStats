@@ -16,6 +16,8 @@ def build_help_embed(guild_count: int) -> discord.Embed:
     embed.add_field(name="Pet Battles!", value="`/summon_pet`, `/pet_battle`, `/pet_stats`, `/top_pets`")
     embed.add_field(name="Support", value="For support please visit [AstroStats](https://astrostats.vercel.app)")
     embed.add_field(name="Known Issues", value="For all known issues, please visit our [Trello Board](https://trello.com/b/UdZeXlcY/all-known-issues)")
+    embed.add_field(name="Support Us ❤️",
+                    value="[If you enjoy using this bot, consider supporting us!](https://buymeacoffee.com/danblock97)")
     embed.set_footer(text="Built By Goldiez ❤️")
     embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
     

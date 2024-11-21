@@ -131,7 +131,7 @@ async def on_guild_join(guild):
     # Field 3
     embed.add_field(
         name="Links",
-        value="[View Documentation](https://astrostats.vercel.app)\n[Join Support Server](https://discord.com/invite/BeszQxTn9D)",
+        value="[View Documentation](https://astrostats.vercel.app)\n[Join Support Server](https://discord.com/invite/BeszQxTn9D)\n[Buy me a pizza](https://buymeacoffee.com/danblock97)",
         inline=False
     )
 
