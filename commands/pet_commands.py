@@ -701,10 +701,10 @@ async def top_pets(interaction: discord.Interaction):
     for index, pet in enumerate(top_pets, 1):
         user = await client.fetch_user(int(pet['user_id']))
         embed.add_field(name=f"#{index}: {user.display_name}", value=f"Level: {pet['level']}, XP: {pet['xp']}", inline=False)
-        embed.add_field(name="Support Us ❤️",
-                        value="[If you enjoy using this bot, consider supporting us!](https://buymeacoffee.com/danblock97)")
         embed.set_thumbnail(url=pet['icon'])
 
+    embed.add_field(name="Support Us ❤️",
+                    value="[If you enjoy using this bot, consider supporting us!](https://buymeacoffee.com/danblock97)")
     await interaction.response.send_message(embed=embed)
 
 # Function to reset daily quests at midnight UTC
