@@ -51,6 +51,7 @@ async def fetch_horoscope_text(sign: str) -> Optional[str]:
             logger.error(f"Request error: {e}")
             return None
 
+
 # Helper function to fetch the star rating data from the website
 async def fetch_star_rating(sign: str, embed: discord.Embed):
     url = f"https://www.horoscope.com/star-ratings/today/{sign}"
@@ -73,8 +74,34 @@ async def fetch_star_rating(sign: str, embed: discord.Embed):
                         description = category.find_next("p").text.strip()
                         star_ratings.append((title, stars, description))
 
-                    rating_text = "\n\n".join([f"**{title}** {stars}\n{description}" for title, stars, description in star_ratings])
-                    embed.add_field(name="Star Ratings", value=rating_text, inline=False)
+                    rating_text = "\n\n".join(
+                        f"**{title}** {stars}\n{description}"
+                        for (title, stars, description) in star_ratings
+                    )
+
+                    # 1) Temporarily remove the "Support Us ❤️" field (if present)
+                    support_us_field = None
+                    for i, field in enumerate(embed.fields):
+                        if field.name == "Support Us ❤️":
+                            support_us_field = field
+                            embed.remove_field(i)
+                            break
+
+                    # 2) Add the Star Ratings field
+                    embed.add_field(
+                        name="Star Ratings",
+                        value=rating_text,
+                        inline=False
+                    )
+
+                    # 3) Re-add the "Support Us ❤️" field at the bottom
+                    if support_us_field:
+                        embed.add_field(
+                            name=support_us_field.name,
+                            value=support_us_field.value,
+                            inline=False
+                        )
+
                     return embed
                 else:
                     logger.error(f"Failed to fetch star rating for {sign}: {response.status}")
@@ -82,6 +109,7 @@ async def fetch_star_rating(sign: str, embed: discord.Embed):
         except Exception as e:
             logger.error(f"Unexpected error in fetch_star_rating: {e}")
             return None
+
 
 # Helper function to build the horoscope embed
 def build_horoscope_embed(sign: str, horoscope_text: str) -> discord.Embed:
@@ -91,13 +119,22 @@ def build_horoscope_embed(sign: str, horoscope_text: str) -> discord.Embed:
     )
     image_url = f"https://www.horoscope.com/images-US/signs/profile-{sign}.png"
     embed.set_thumbnail(url=image_url)
-    embed.add_field(name="Today's Horoscope", value=horoscope_text, inline=False)
-    embed.add_field(name="Support Us ❤️",
-                    value="[If you enjoy using this bot, consider supporting us!](https://buymeacoffee.com/danblock97)")
-    embed.set_footer(text="Built By Goldiez ❤️")
+    embed.add_field(
+        name="Today's Horoscope",
+        value=horoscope_text,
+        inline=False
+    )
+    # Ensuring "Support Us ❤️" is *always* in the embed initially,
+    # but we will remove & re-add it later if we fetch star ratings
+    embed.add_field(
+        name="Support Us ❤️",
+        value="[If you enjoy using this bot, consider supporting us!](https://buymeacoffee.com/danblock97)",
+        inline=False
+    )
     embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
     embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
     return embed
+
 
 # Main Horoscope command
 @discord.app_commands.command(name="horoscope", description="Check your Daily Horoscope")
@@ -246,6 +283,7 @@ async def horoscope(interaction: discord.Interaction, sign: SignLiteral):
         await interaction.response.send_message(
             "Oops! An unexpected error occurred while processing your request. Please try again later."
         )
+
 
 # Setup function for the bot
 async def setup(client: discord.Client):
