@@ -40,20 +40,23 @@ async def fetch_horoscope_text(sign: str) -> Optional[str]:
                     soup = BeautifulSoup(await response.text(), 'html.parser')
                     container = soup.find("div", class_="main-horoscope")
                     if not container:
+                        # This is an expected scenario if the page structure changes, so we raise ValueError
                         raise ValueError("Failed to find horoscope text on the webpage.")
                     return container.find("p").text.strip()
                 elif response.status == 404:
-                    return None  # No need to log 404 errors
+                    # 404 is fairly normal if the site doesn't have data; log a warning instead of an error
+                    logger.warning(f"No horoscope text found for {sign} (404).")
+                    return None
                 else:
-                    logger.error(f"Failed to fetch horoscope for {sign}: {response.status}")
+                    logger.error(f"Failed to fetch horoscope for {sign}: HTTP {response.status}")
                     return None
         except aiohttp.ClientError as e:
-            logger.error(f"Request error: {e}")
+            logger.error(f"Request error while fetching horoscope text for {sign}: {e}", exc_info=True)
             return None
 
 
 # Helper function to fetch the star rating data from the website
-async def fetch_star_rating(sign: str, embed: discord.Embed):
+async def fetch_star_rating(sign: str, embed: discord.Embed) -> Optional[discord.Embed]:
     url = f"https://www.horoscope.com/star-ratings/today/{sign}"
     async with aiohttp.ClientSession() as session:
         try:
@@ -62,6 +65,7 @@ async def fetch_star_rating(sign: str, embed: discord.Embed):
                     soup = BeautifulSoup(await response.text(), 'html.parser')
                     star_container = soup.find("div", class_="module-skin")
                     if not star_container:
+                        # This indicates the page structure changed or star ratings not found
                         raise ValueError("Failed to find star rating on the webpage.")
 
                     star_ratings = []
@@ -94,7 +98,7 @@ async def fetch_star_rating(sign: str, embed: discord.Embed):
                         inline=False
                     )
 
-                    # 3) Re-add the "Support Us ❤️" field at the bottom
+                    # 3) Re-add the "Support Us ❤️" field at the bottom (if it existed before)
                     if support_us_field:
                         embed.add_field(
                             name=support_us_field.name,
@@ -103,11 +107,17 @@ async def fetch_star_rating(sign: str, embed: discord.Embed):
                         )
 
                     return embed
-                else:
-                    logger.error(f"Failed to fetch star rating for {sign}: {response.status}")
+                elif response.status == 404:
+                    logger.warning(f"No star rating found for {sign} (404).")
                     return None
+                else:
+                    logger.error(f"Failed to fetch star rating for {sign}: HTTP {response.status}")
+                    return None
+        except aiohttp.ClientError as e:
+            logger.error(f"Request error while fetching star rating for {sign}: {e}", exc_info=True)
+            return None
         except Exception as e:
-            logger.error(f"Unexpected error in fetch_star_rating: {e}")
+            logger.error(f"Unexpected error in fetch_star_rating for {sign}: {e}", exc_info=True)
             return None
 
 
@@ -124,8 +134,7 @@ def build_horoscope_embed(sign: str, horoscope_text: str) -> discord.Embed:
         value=horoscope_text,
         inline=False
     )
-    # Ensuring "Support Us ❤️" is *always* in the embed initially,
-    # but we will remove & re-add it later if we fetch star ratings
+    # Add "Support Us ❤️" so it's always in the embed initially
     embed.add_field(
         name="Support Us ❤️",
         value="[If you enjoy using this bot, consider supporting us!](https://buymeacoffee.com/danblock97)",
@@ -140,23 +149,32 @@ def build_horoscope_embed(sign: str, horoscope_text: str) -> discord.Embed:
 @discord.app_commands.command(name="horoscope", description="Check your Daily Horoscope")
 async def horoscope(interaction: discord.Interaction, sign: SignLiteral):
     try:
+        # Convert user input to lowercase for dictionary lookup
         given_sign = sign.lower()
 
         if given_sign not in SIGNS:
-            raise ValueError("Invalid sign. Please choose a valid zodiac sign.")
+            # This is a user input error, raise ValueError to handle it
+            raise ValueError(f"Invalid sign provided: {given_sign}")
 
         # Fetch the horoscope text
         horoscope_text = await fetch_horoscope_text(given_sign)
         if not horoscope_text:
-            await interaction.response.send_message(
-                "Sorry, I couldn't retrieve the horoscope at the moment. Please try again later."
+            # If we can't get the text (None), send an embedded error
+            error_embed = discord.Embed(
+                title="Horoscope Not Available",
+                description=(
+                    f"Sorry, I couldn't retrieve the horoscope for **{sign}** at the moment. "
+                    "Please try again later."
+                ),
+                color=discord.Color.red()
             )
+            await interaction.response.send_message(embed=error_embed)
             return
 
         # Build the embed with horoscope data
         embed = build_horoscope_embed(given_sign, horoscope_text)
 
-        # Create the button for fetching star ratings
+        # Create a button to fetch star ratings
         view = discord.ui.View()
         button = discord.ui.Button(
             label="Check Star Rating",
@@ -165,7 +183,7 @@ async def horoscope(interaction: discord.Interaction, sign: SignLiteral):
         )
 
         async def button_callback(button_interaction: discord.Interaction):
-            # Check permissions before proceeding
+            # Check channel permissions
             permissions = button_interaction.channel.permissions_for(button_interaction.guild.me)
             if not permissions.send_messages or not permissions.read_message_history:
                 # Build an embed for the error message
@@ -193,7 +211,7 @@ async def horoscope(interaction: discord.Interaction, sign: SignLiteral):
             # Defer the interaction to acknowledge it
             await button_interaction.response.defer()
 
-            # Fetch star rating and update the embed
+            # Fetch the star rating and update the embed
             updated_embed = await fetch_star_rating(given_sign, embed)
             if updated_embed:
                 # Disable the button after fetching the rating
@@ -203,12 +221,11 @@ async def horoscope(interaction: discord.Interaction, sign: SignLiteral):
                     # Attempt to edit the original message
                     await button_interaction.message.edit(embed=updated_embed, view=view)
                 except discord.Forbidden:
-                    # Bot lacks permissions to edit the message
+                    # Bot lacks permissions to edit the original message
+                    logger.error("Bot is forbidden from editing the original message.", exc_info=True)
                     error_embed = discord.Embed(
                         title="Permission Error",
-                        description=(
-                            "I couldn't edit the original message due to missing permissions."
-                        ),
+                        description="I couldn't edit the original message due to missing permissions.",
                         color=discord.Color.red()
                     )
                     error_embed.add_field(
@@ -219,23 +236,15 @@ async def horoscope(interaction: discord.Interaction, sign: SignLiteral):
                         ),
                         inline=False
                     )
-                    await button_interaction.followup.send(
-                        embed=error_embed,
-                        ephemeral=True
-                    )
-                    # Send the updated embed as a new message
-                    await button_interaction.followup.send(
-                        embed=updated_embed,
-                        ephemeral=True
-                    )
+                    await button_interaction.followup.send(embed=error_embed, ephemeral=True)
+                    # Send the updated embed as a new message, just so the user sees it
+                    await button_interaction.followup.send(embed=updated_embed, ephemeral=True)
                 except Exception as e:
-                    # Handle other exceptions
-                    logger.error(f"Error editing message: {e}")
+                    # Handle other unexpected exceptions
+                    logger.error(f"Error editing message for /horoscope star rating: {e}", exc_info=True)
                     error_embed = discord.Embed(
                         title="Unexpected Error",
-                        description=(
-                            "An unexpected error occurred while updating the horoscope."
-                        ),
+                        description="An unexpected error occurred while updating the horoscope.",
                         color=discord.Color.red()
                     )
                     error_embed.add_field(
@@ -246,12 +255,9 @@ async def horoscope(interaction: discord.Interaction, sign: SignLiteral):
                         ),
                         inline=False
                     )
-                    await button_interaction.followup.send(
-                        embed=error_embed,
-                        ephemeral=True
-                    )
+                    await button_interaction.followup.send(embed=error_embed, ephemeral=True)
             else:
-                # Error fetching star rating
+                # Error or no data returned for star rating
                 error_embed = discord.Embed(
                     title="Data Retrieval Error",
                     description=(
@@ -267,24 +273,66 @@ async def horoscope(interaction: discord.Interaction, sign: SignLiteral):
                     ),
                     inline=False
                 )
-                await button_interaction.followup.send(
-                    embed=error_embed,
-                    ephemeral=True
-                )
+                await button_interaction.followup.send(embed=error_embed, ephemeral=True)
 
+        # Assign the callback to the button
         button.callback = button_callback
         view.add_item(button)
 
-        # Send the embed and button view to the user
+        # Send the embed and the button
         await interaction.response.send_message(embed=embed, view=view)
 
-    except Exception as e:
-        logger.error(f"Unexpected error: {e}")
-        await interaction.response.send_message(
-            "Oops! An unexpected error occurred while processing your request. Please try again later."
+    except ValueError as ve:
+        # Log ValueError details to console and send a user-friendly message
+        logger.error(f"ValueError in /horoscope: {ve}", exc_info=True)
+        error_embed = discord.Embed(
+            title="Invalid Input",
+            description=str(ve),
+            color=discord.Color.red()
         )
+        await interaction.response.send_message(embed=error_embed)
+
+    except Exception as e:
+        # Log unexpected errors to console
+        logger.error(f"Unexpected error in /horoscope command: {e}", exc_info=True)
+        error_embed = discord.Embed(
+            title="Unexpected Error",
+            description=(
+                "Oops! An unexpected error occurred while processing your request. "
+                "Please try again later."
+            ),
+            color=discord.Color.red()
+        )
+        await interaction.response.send_message(embed=error_embed)
+
+
+# Slash-command-specific error handler
+@horoscope.error
+async def horoscope_error_handler(interaction: discord.Interaction, error: discord.app_commands.AppCommandError):
+    logger.error(f"An error occurred in /horoscope command: {error}", exc_info=True)
+
+    error_embed = discord.Embed(
+        title="Command Error",
+        description="An error occurred while executing the /horoscope command. Please try again later.",
+        color=discord.Color.red(),
+        timestamp=datetime.datetime.now(datetime.timezone.utc)
+    )
+    error_embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
+
+    # If we've already responded to this interaction, send a follow-up instead
+    if interaction.response.is_done():
+        await interaction.followup.send(embed=error_embed)
+    else:
+        await interaction.response.send_message(embed=error_embed)
+
+
+# (Optional) Global error handler for non-command events
+async def on_error(event_method, *args, **kwargs):
+    logger.exception(f"An error occurred in the event: {event_method}", exc_info=True)
 
 
 # Setup function for the bot
 async def setup(client: discord.Client):
     client.tree.add_command(horoscope)
+    # If you want to enable the global error handler, register it:
+    client.event(on_error)
