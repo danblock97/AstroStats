@@ -5,17 +5,14 @@ LATEST_UPDATES = """
 - **Version 1.4.3**:
   **Bug Fixes and Enhancements** 🛠️
 
-  - **League Command Improvements**:
-    - **Missing Champion Icon**: The new champion Ambessa will now show in the Live Game view!
+  - **Error Handling in Commands**:
+    - **All Commands**: All commands now have a better error handling system. If you encounter an error, the bot will now respond with an appropriate embed message.
 
-  - **Horoscope Fixes**:
-    - **Interaction Failed**: Upon using the Star Rating button, you may find without correct permissions, the bot will return nothing but an 'Interaction Failed'. This has been improved to show you errors via embeds.
+  - **UI Enhancements**:
+      - **Improved Readability**: Some commands have been updated to have a better readability and user experience.
 
   - **Voting Reminder**:
     Remember to use `/vote` every 12 hours on **TOP.GG** to gain XP for your pets!
-    
-  - **All known issues**:
-    For all known issues, please visit our [Trello Board](https://trello.com/b/UdZeXlcY/all-known-issues)
 """
 
 
