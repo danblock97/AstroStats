@@ -12,7 +12,10 @@ import asyncio  # Import asyncio to use asyncio.to_thread
 load_dotenv()
 
 # Initialize logger
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO, 
+    format="%(asctime)s %(levelname)s [%(name)s] %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 # Platform Mapping Dictionary
@@ -33,25 +36,39 @@ def fetch_apex_stats(api_platform: str, name: str) -> Optional[Dict]:
 
     headers = {"TRN-Api-Key": api_key}
 
-    logger.info(f"Fetching data from URL: {url}")
+    # Instead of info-level logging for every request,
+    # you can do debug-level or no logging for 200 responses.
+    # logger.debug(f"Fetching data from URL: {url}")
+    # If you want no logging for 200 at all, remove or comment out the line above.
 
     try:
         response = requests.get(url, headers=headers)
-        logger.info(f"Received response status: {response.status_code}")
-        if response.status_code == 200:
+        status_code = response.status_code
+
+        if status_code == 200:
+            # If you want to keep track of successful requests at debug level:
+            # logger.debug(f"Successfully fetched stats for {name} on {api_platform}.")
             return response.json()
-        elif response.status_code == 404:
+
+        elif status_code == 404:
+            logger.warning(f"No data found (404) for {name} on {api_platform}.")
             return None
-        elif response.status_code == 403:
+
+        elif status_code == 403:
             logger.error(
-                f"Access forbidden when fetching stats for {name} on {api_platform}: {response.status_code}"
+                f"Access forbidden (403) when fetching stats for {name} on {api_platform}."
             )
             raise PermissionError("Access forbidden: Invalid API key or insufficient permissions.")
+
         else:
-            logger.error(f"Failed to fetch stats for {name} on {api_platform}: {response.status_code}")
+            # Only log non-200 statuses at error or warning level
+            logger.error(
+                f"Failed to fetch stats for {name} on {api_platform}. HTTP {status_code} received."
+            )
             return None
+
     except requests.RequestException as e:
-        logger.error(f"Request error occurred: {e}")
+        logger.error(f"Request error occurred: {e}", exc_info=True)
         return None
 
 # Helper function to format percentile data
@@ -71,7 +88,7 @@ def format_stat_value(stat_data: Dict) -> str:
         return f"{int(stat_value):,} ({percentile_label} {percentile_value}%)"
     return 'N/A'
 
-# Helper function to send an error embed
+# Helper function to send an error embed to the user
 async def send_error_embed(interaction: discord.Interaction, title: str, description: str):
     embed = discord.Embed(
         title=title,
@@ -83,14 +100,22 @@ async def send_error_embed(interaction: discord.Interaction, title: str, descrip
 
 # Main Apex Legends command
 @discord.app_commands.command(name="apex", description="Check your Apex Legends Player Stats")
-async def apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Playstation', 'Origin (PC)'], name: str):
+async def apex(
+    interaction: discord.Interaction,
+    platform: Literal['Xbox', 'Playstation', 'Origin (PC)'],
+    name: str
+):
     try:
         # Defer the response to allow time for processing
         await interaction.response.defer()
 
         # Validate input
         if not name:
-            await send_error_embed(interaction, "Missing Username", "You need to provide a username for the stats.")
+            await send_error_embed(
+                interaction,
+                "Missing Username",
+                "You need to provide a username for the stats."
+            )
             return
 
         api_platform = PLATFORM_MAPPING.get(platform)
@@ -106,11 +131,13 @@ async def apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
         try:
             data = await asyncio.to_thread(fetch_apex_stats, api_platform, name)
         except PermissionError as e:
-            logger.error(f"Permission Error: {e}")
+            logger.error(f"Permission Error: {e}", exc_info=True)
             await send_error_embed(
                 interaction,
                 "Access Denied",
-                "The bot is currently unable to access the Apex Legends API. This may be due to an invalid API key or exceeding the API rate limits. Please try again later."
+                "The bot is currently unable to access the Apex Legends API. "
+                "This may be due to an invalid API key or exceeding the API rate limits. "
+                "Please try again later."
             )
             return
 
@@ -118,7 +145,8 @@ async def apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
             await send_error_embed(
                 interaction,
                 "Account Not Found",
-                f"No stats found for the username: **{name}** on {platform}. Please double-check your details."
+                f"No stats found for the username: **{name}** on {platform}. "
+                "Please double-check your details."
             )
             return
 
@@ -138,7 +166,8 @@ async def apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
         # Retrieve active legend data
         active_legend_name = data['data'].get('metadata', {}).get('activeLegendName', 'Unknown')
         active_legend_data = next(
-            (legend for legend in segments if legend['metadata']['name'] == active_legend_name), None
+            (legend for legend in segments if legend['metadata']['name'] == active_legend_name), 
+            None
         )
 
         # Build the embed message
@@ -146,16 +175,37 @@ async def apex(interaction: discord.Interaction, platform: Literal['Xbox', 'Play
         await interaction.followup.send(embed=embed)
 
     except ValueError as e:
-        logger.error(f"Validation Error: {e}")
+        logger.error(f"Validation Error: {e}", exc_info=True)
         await send_error_embed(interaction, "Validation Error", str(e))
 
     except Exception as e:
-        logger.error(f"Unexpected Error: {e}")
+        logger.error(f"Unexpected Error: {e}", exc_info=True)
         await send_error_embed(
             interaction,
             "Unexpected Error",
             "An unexpected error occurred. Please try again later."
         )
+
+# Slash-command-specific error handler
+@apex.error
+async def apex_error_handler(interaction: discord.Interaction, error: discord.app_commands.AppCommandError):
+    logger.error(f"An error occurred in /apex command: {error}", exc_info=True)
+    embed = discord.Embed(
+        title="Command Error",
+        description="An error occurred while executing the /apex command. Please try again later.",
+        color=discord.Color.red(),
+        timestamp=datetime.datetime.now(datetime.timezone.utc)
+    )
+    embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
+
+    if interaction.response.is_done():
+        await interaction.followup.send(embed=embed)
+    else:
+        await interaction.response.send_message(embed=embed)
+
+# Bot-wide error event
+async def on_error(event_method, *args, **kwargs):
+    logger.exception(f"An error occurred in the event: {event_method}", exc_info=True)
 
 # Function to build the embed message
 def build_embed(name: str, platform: str, active_legend_data: Dict, lifetime: Dict, ranked: Dict, peak_rank: Dict) -> discord.Embed:
@@ -183,8 +233,10 @@ def build_embed(name: str, platform: str, active_legend_data: Dict, lifetime: Di
             inline=False
         )
 
-    embed.add_field(name="Support Us ❤️",
-                    value="[If you enjoy using this bot, consider supporting us!](https://buymeacoffee.com/danblock97)")
+    embed.add_field(
+        name="Support Us ❤️",
+        value="[If you enjoy using this bot, consider supporting us!](https://buymeacoffee.com/danblock97)"
+    )
 
     embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
     embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
@@ -225,3 +277,4 @@ def format_active_legend_stats(stats: Dict) -> str:
 # Setup function for the bot
 async def setup(client: discord.Client):
     client.tree.add_command(apex)
+    client.event(on_error)
