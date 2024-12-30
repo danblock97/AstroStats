@@ -2,7 +2,7 @@ import discord
 
 # Easily editable text for the latest updates
 LATEST_UPDATES = """
-- **Version 1.4.3**:
+- **Version 1.4.4**:
   **Bug Fixes and Enhancements** 🛠️
 
   - **Error Handling in Commands**:
