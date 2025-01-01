@@ -1,14 +1,10 @@
 import discord
 
 LATEST_UPDATES = (
-    "**Version 1.4.4**:\n"
-    "**Bug Fixes and Enhancements** 🛠️\n\n"
-    "- **Error Handling in Commands**:\n"
-    "  - **All Commands**: All commands now have a better error handling system. "
-    "If you encounter an error, the bot will now respond with an appropriate embed message.\n\n"
-    "- **UI Enhancements**:\n"
-    "  - **Improved Readability**: Some commands have been updated to have a better "
-    "readability and user experience.\n\n"
+    "**Version 1.5.0**:\n"
+    "**Enhancements** 🛠️\n\n"
+    "- **Backend Changes**:\n"
+    "  - Updated the bot's backend to improve performance and stability. All commands have been rewritten but the functionality remains the same.\n"
     "- **Voting Reminder**:\n"
     "  Remember to use `/vote` every 12 hours on **TOP.GG** to gain XP for your pets!"
 )
