@@ -1,14 +1,14 @@
-import discord
 import datetime
 
-# Helper function to build the help embed
+import discord
+
+
 def build_help_embed(guild_count: int) -> discord.Embed:
     embed = discord.Embed(
         title=f"AstroStats Help & Support - Trusted by {guild_count} servers",
         color=0xdd4f7a,
         timestamp=datetime.datetime.now(datetime.timezone.utc)
     )
-    
     embed.add_field(
         name="Commands & Usage",
         value=(
@@ -37,19 +37,16 @@ def build_help_embed(guild_count: int) -> discord.Embed:
         value="[If you enjoy using this bot, consider supporting us!](https://buymeacoffee.com/danblock97)",
         inline=False
     )
-
     embed.set_footer(text="Built By Goldiez ❤️")
     return embed
 
-# Main help command
+
 @discord.app_commands.command(name="help", description="Lists all available commands")
 async def help(interaction: discord.Interaction):
     guild_count = len(interaction.client.guilds)
-    
     embed = build_help_embed(guild_count)
-    
     await interaction.response.send_message(embed=embed)
 
-# Setup function for the bot
+
 async def setup(client: discord.Client):
     client.tree.add_command(help)
