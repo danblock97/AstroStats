@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 REGIONS = Literal[
     "EUW1", "EUN1", "TR1", "RU", "NA1", "BR1", "LA1", "LA2",
-    "JP1", "KR", "OC1", "PH2", "SG2", "TH2", "TW2", "VN2"
+    "JP1", "KR", "OC1", "SG2", "TW2", "VN2"
 ]
 
 QUEUE_TYPE_NAMES = {
@@ -132,7 +132,7 @@ async def league(interaction: discord.Interaction, region: REGIONS, riotid: str)
         headers = {'X-Riot-Token': riot_api_key}
 
         regional_url = (
-            "https://americas.api.riotgames.com/"
+            "https://europe.api.riotgames.com/"
             f"riot/account/v1/accounts/by-riot-id/{game_name}/{tag_line}"
         )
         async with aiohttp.ClientSession() as session:
@@ -379,7 +379,7 @@ async def fetch_participant_data(player, region, headers, session):
             account_data = cached_account_data['data']
         else:
             account_url = (
-                "https://americas.api.riotgames.com/riot/account/v1/"
+                "https://europe.api.riotgames.com/riot/account/v1/"
                 f"accounts/by-puuid/{player_puuid}"
             )
             account_data = await fetch_data(session, account_url, headers)
