@@ -10,7 +10,7 @@ logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %
 
 REGIONS = Literal[
     "EUW1", "EUN1", "TR1", "RU", "NA1", "BR1", "LA1", "LA2",
-    "JP1", "KR", "OC1", "PH2", "SG2", "TH2", "TW2", "VN2"
+    "JP1", "KR", "OC1", "SG2", "TW2", "VN2"
 ]
 
 TFT_QUEUE_TYPE_NAMES = {
@@ -32,7 +32,7 @@ async def tft(interaction: discord.Interaction, region: REGIONS, riotid: str):
         headers = {'X-Riot-Token': riot_api_key}
 
         regional_url = (
-            "https://americas.api.riotgames.com/riot/account/v1/accounts/"
+            "https://europe.api.riotgames.com/riot/account/v1/accounts/"
             f"by-riot-id/{game_name}/{tag_line}"
         )
         response = requests.get(regional_url, headers=headers)
