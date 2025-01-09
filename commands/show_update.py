@@ -1,10 +1,10 @@
 import discord
 
 LATEST_UPDATES = (
-    "**Version 1.5.0**:\n"
-    "**Enhancements** 🛠️\n\n"
-    "- **Backend Changes**:\n"
-    "  - Updated the bot's backend to improve performance and stability. All commands have been rewritten but the functionality remains the same.\n"
+    "**Version 1.5.2**:\n"
+    "**🎮 Main Updates** 🛠️\n\n"
+    "- **Season 15 Assets Update\n"
+    "  - We've updated all in-app assets to reflect the changes for League of Legends Season 15. This includes new visuals, champion updates, and other in-game elements to ensure the app stays in sync with the latest season.\n"
     "- **Voting Reminder**:\n"
     "  Remember to use `/vote` every 12 hours on **TOP.GG** to gain XP for your pets!"
 )
