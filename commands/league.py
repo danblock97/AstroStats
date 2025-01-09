@@ -38,7 +38,8 @@ SPECIAL_EMOJI_NAMES = {
     "Cho'Gath": "Chogath",
     "Nunu & Willump": "Nunu",
     "Lee Sin": "LeeSin",
-    "K'Sante": "KSante"
+    "K'Sante": "KSante",
+    "Kog'Maw": "KogMaw"
 }
 
 async def fetch_data(session: aiohttp.ClientSession, url: str, headers=None) -> dict:
