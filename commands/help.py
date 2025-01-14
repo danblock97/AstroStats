@@ -24,6 +24,8 @@ def build_help_embed(guild_count: int) -> discord.Embed:
             "`/horoscope <sign>`\n\n"
             "**Pet Battles**\n"
             "`/summon_pet`, `/pet_battle`, `/pet_stats`, `/top_pets`"
+            "**Squib Games**\n"
+            "`/squibgames start`, `/squibgames run`, `/squibgames status`"
         ),
         inline=False
     )

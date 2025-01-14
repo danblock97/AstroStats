@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 from commands import (
     apex, league, fortnite, horoscope, help,
-    review, tft, kick, servers, pet_commands, show_update
+    review, tft, kick, servers, pet_commands, show_update, squib_game_commands
 )
 from commands.league import fetch_application_emojis
 
@@ -35,6 +35,7 @@ async def setup_commands():
     await show_update.setup(client)
     await kick.setup(client)
     await servers.setup(client)
+    await squib_game_commands.setup(client)
 
 @client.event
 async def on_ready():
