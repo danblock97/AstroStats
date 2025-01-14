@@ -1,10 +1,10 @@
 import discord
 
 LATEST_UPDATES = (
-    "**Version 1.5.2**:\n"
+    "**Version 1.6.0**:\n"
     "**🎮 Main Updates** 🛠️\n\n"
-    "- **Season 15 Assets Update\n"
-    "  - We've updated all in-app assets to reflect the changes for League of Legends Season 15. This includes new visuals, champion updates, and other in-game elements to ensure the app stays in sync with the latest season.\n"
+    "- **Introducing Squib Games\n"
+    "  - We've added a brand new set of commands for your very own Squid Games on Discord! Checkout /help to see the new commands and get started now!\n"
     "- **Voting Reminder**:\n"
     "  Remember to use `/vote` every 12 hours on **TOP.GG** to gain XP for your pets!"
 )
