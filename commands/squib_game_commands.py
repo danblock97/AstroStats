@@ -34,7 +34,7 @@ def update_squib_game_stats(user_id: str, guild_id: str, win_increment: int = 0)
             "wins": win_increment,
             "games_played": 1
         }
-        result = squib_game_stats.insert_one(new_stats)
+        squib_game_stats.insert_one(new_stats)
         return new_stats["wins"]
     else:
         new_wins = user_stats.get("wins", 0) + win_increment
@@ -79,9 +79,69 @@ MINIGAMES = [
         "emoji": "\U0001F5FA",
         "description": "Players search for hidden treasures under time pressure.",
         "elimination_probability": 0.35
+    },
+    {
+        "name": "Knife Throwing 🗡️",
+        "emoji": "\U0001F5E1",
+        "description": "Players attempt to throw knives at a target with precision.",
+        "elimination_probability": 0.4
+    },
+    {
+        "name": "Marbles Madness 🏀",
+        "emoji": "\U0001F3C0",
+        "description": "Compete in a fast-paced marbles game where the last marble standing wins.",
+        "elimination_probability": 0.3
+    },
+    {
+        "name": "Dollmaker 🪆",
+        "emoji": "\U0001FA86",
+        "description": "Create dolls based on specific criteria; the least creative ones are eliminated.",
+        "elimination_probability": 0.25
+    },
+    {
+        "name": "Heartbeat 💓",
+        "emoji": "\U0001F493",
+        "description": "Players must keep their heartbeats steady; sudden changes lead to elimination.",
+        "elimination_probability": 0.35
+    },
+    {
+        "name": "Tug of War 🤼",
+        "emoji": "\U0001F93C",
+        "description": "Teams compete in a tug of war; the losing team faces elimination.",
+        "elimination_probability": 0.5
+    },
+    {
+        "name": "Quiz Show 🧠",
+        "emoji": "\U0001F4DA",
+        "description": "Answer rapid-fire trivia questions correctly to stay in the game.",
+        "elimination_probability": 0.3
+    },
+    {
+        "name": "Paintball 🖌️",
+        "emoji": "\U0001F58C",
+        "description": "Engage in a virtual paintball match; the last player unhit wins.",
+        "elimination_probability": 0.4
+    },
+    {
+        "name": "Maze Runner 🌀",
+        "emoji": "\U0001F300",
+        "description": "Navigate through a complex maze; failing to find the exit leads to elimination.",
+        "elimination_probability": 0.35
+    },
+    {
+        "name": "Jigsaw Puzzle 🧩",
+        "emoji": "\U0001F9E9",
+        "description": "Complete a jigsaw puzzle within the time limit to avoid elimination.",
+        "elimination_probability": 0.25
+    },
+    {
+        "name": "Scavenger Hunt 🔍",
+        "emoji": "\U0001F50D",
+        "description": "Find hidden items based on clues; failure to locate them results in elimination.",
+        "elimination_probability": 0.3
     }
-    # Add more minigames as desired
 ]
+
 
 # ------------------------------------------------------
 # Flavor Text Generator
@@ -418,7 +478,8 @@ class SquibGames(commands.GroupCog, name="squibgames"):
                 await interaction.response.send_message(embed=embed, ephemeral=True)
                 return
 
-            current_round = 1
+            # Initialize current_round to 0 so that game_loop starts with Round 1
+            current_round = 0
             squib_game_sessions.update_one(
                 {"_id": game["_id"]},
                 {"$set": {
@@ -430,7 +491,7 @@ class SquibGames(commands.GroupCog, name="squibgames"):
             start_embed = discord.Embed(
                 title="Squib Game Started (Auto) 🏁",
                 description=(
-                    f"**Round {current_round}** begins now!\n"
+                    f"**Round {current_round + 1}** begins now!\n"
                     "The game will **proceed automatically** through each round until one winner remains..."
                 ),
                 color=discord.Color.blue()
@@ -439,7 +500,7 @@ class SquibGames(commands.GroupCog, name="squibgames"):
                 start_embed.set_thumbnail(url=host_avatar)
 
             await interaction.response.send_message(embed=start_embed)
-            await asyncio.sleep(2)
+            await asyncio.sleep(8)
 
         else:
             await interaction.response.send_message(
@@ -458,18 +519,32 @@ class SquibGames(commands.GroupCog, name="squibgames"):
             participants_before = game["participants"]
             alive_before = [p for p in participants_before if p["status"] == "alive"]
 
-            # Check for termination condition
-            if len(alive_before) <= 1:
-                final_embed = await self.conclude_game_auto(interaction, game, guild_id, current_round)
+            # Play a minigame only if there are at least two players alive
+            if len(alive_before) < 1:
+
+                if alive_before:
+                    winner = random.choice(alive_before)
+                else:
+                    # Fallback: pick any participant
+                    winner = random.choice(participants_before)
+
+                final_embed = await self.conclude_game_auto(interaction, game, guild_id, current_round, winner=winner)
+                await interaction.followup.send(embed=final_embed)
+                break
+
+            elif len(alive_before) == 1:
+                # Only one player alive, declare them as winner
+                winner = alive_before[0]
+                final_embed = await self.conclude_game_auto(interaction, game, guild_id, current_round, winner=winner)
                 await interaction.followup.send(embed=final_embed)
                 break
 
             # Play a minigame
-            updated_participants, minigame = play_minigame_logic(current_round + 1, participants_before)
+            updated_participants, minigame = play_minigame_logic(current_round + 1, alive_before)
 
             # Determine newly eliminated players
             newly_eliminated = [
-                p["username"] for p, q in zip(participants_before, updated_participants)
+                p["username"] for p, q in zip(alive_before, updated_participants)
                 if p["status"] == "alive" and q["status"] == "eliminated"
             ]
 
@@ -493,7 +568,7 @@ class SquibGames(commands.GroupCog, name="squibgames"):
             round_embed = discord.Embed(
                 title=f"Round {current_round + 1} - {minigame['name']} {minigame['emoji']}",
                 description=(
-                    f"🔥 **Eliminated so far**: {total_eliminated}/{len(updated_participants)}\n"
+                    f"🔥 **Eliminated this round**: {total_eliminated}/{len(updated_participants)}\n"
                     f"🏆 **Players still alive**: {len(alive_after)}\n\n"
                     f"{round_flavor}\n\n"
                     "*Next round will start automatically in a few seconds...*"
@@ -525,31 +600,32 @@ class SquibGames(commands.GroupCog, name="squibgames"):
             await interaction.followup.send(embed=round_embed)
             await asyncio.sleep(5)  # Short delay before next round
 
-    async def conclude_game_auto(self, interaction: discord.Interaction, game_doc: dict, guild_id: str, final_round: int) -> discord.Embed:
+    async def conclude_game_auto(self, interaction: discord.Interaction, game_doc: dict, guild_id: str, final_round: int, winner=None) -> discord.Embed:
         """
-        Concludes the auto-run session by declaring the sole remaining player as the winner.
-        If all players are eliminated, randomly select one participant as the winner.
+        Concludes the auto-run session by declaring the winner.
+        If 'winner' is provided, use it. Otherwise, determine based on remaining players.
         """
         squib_game_sessions.update_one(
             {"_id": game_doc["_id"]},
             {"$set": {"current_game_state": "completed"}}
         )
 
-        participants = game_doc["participants"]
-        alive_players = [p for p in participants if p["status"] == "alive"]
-        total_alive = len(alive_players)
+        if winner is None:
+            participants = game_doc["participants"]
+            alive_players = [p for p in participants if p["status"] == "alive"]
+            total_alive = len(alive_players)
 
-        embed = discord.Embed(title="Game Over! 🏆", color=discord.Color.gold())
-        round_title = f"Final Round {final_round}"
-
-        if total_alive == 1:
-            winner = alive_players[0]
-        elif total_alive > 1:
-            # If multiple alive players (due to some minigame logic), randomly pick one
-            winner = random.choice(alive_players)
+            if total_alive == 1:
+                winner = alive_players[0]
+            elif total_alive > 1:
+                # If multiple alive players (due to some minigame logic), randomly pick one
+                winner = random.choice(alive_players)
+            else:
+                # All players eliminated, pick one randomly from all participants
+                winner = random.choice(participants)
         else:
-            # All players eliminated, pick one randomly from all participants
-            winner = random.choice(participants)
+            # 'winner' was explicitly provided
+            pass
 
         # Increment the winner's wins
         new_wins = update_squib_game_stats(winner["user_id"], guild_id, win_increment=1)
@@ -558,15 +634,23 @@ class SquibGames(commands.GroupCog, name="squibgames"):
         try:
             user_obj = await interaction.client.fetch_user(int(winner["user_id"]))
             if user_obj.avatar:
-                embed.set_thumbnail(url=user_obj.display_avatar.url)
+                thumbnail_url = user_obj.display_avatar.url
+            else:
+                thumbnail_url = None
         except:
-            pass  # If fetching fails, skip setting the thumbnail
+            thumbnail_url = None  # If fetching fails, skip setting the thumbnail
+
+        embed = discord.Embed(title="Game Over! 🏆", color=discord.Color.gold())
+        round_title = f"Final Round {final_round}"
 
         embed.description = (
             f"**{round_title}** concluded.\n\n"
             f"The winner is **{winner['username']}**! 🎉🏆\n\n"
             f"They now have **{new_wins} wins** in this server."
         )
+
+        if thumbnail_url:
+            embed.set_thumbnail(url=thumbnail_url)
 
         embed.set_footer(text="Thanks for playing Squib Game!")
 
