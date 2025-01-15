@@ -395,9 +395,6 @@ class SquibGames(commands.GroupCog, name="squibgames"):
                 # Acknowledge the user
                 await interaction.response.send_message(f"You have joined the game session!", ephemeral=True)
 
-                # Optional: Log the join action
-                logger.info(f"User {interaction.user} joined the game {self.game_id} in guild {self.guild_id}")
-
             except Exception as e:
                 logger.error(f"Error in join_button: {e}")
                 await interaction.response.send_message("An unexpected error occurred. Please try again later.", ephemeral=True)
