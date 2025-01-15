@@ -940,7 +940,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
     # GroupCog Lifecycle Events
     # ------------------------------------------------------
     async def cog_load(self):
-        logger.error("PetBattles Cog loaded.")
+        pass
 
     async def cog_unload(self):
         self.reset_daily_quests.cancel()

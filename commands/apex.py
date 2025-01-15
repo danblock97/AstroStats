@@ -160,7 +160,17 @@ async def apex(
         )
 
         embed = build_embed(name, api_platform, active_legend_data, lifetime, ranked, peak_rank)
-        await interaction.followup.send(embed=embed)
+        
+        # Create the promotional embed
+        promo_embed = discord.Embed(
+            description="⭐ **New:** Squib Games Has Arrived to AstroStats! Check out `/help` for more information!",
+            color=discord.Color.blue(),  # You can choose any color you prefer
+            timestamp=datetime.datetime.now(datetime.timezone.utc)
+        )
+        promo_embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
+
+        # Send both embeds together
+        await interaction.followup.send(embeds=[embed, promo_embed])
 
     except ValueError as e:
         logger.error(f"Validation Error: {e}", exc_info=True)

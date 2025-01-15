@@ -8,7 +8,7 @@ import discord
 import aiohttp
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.ERROR,
     format="%(asctime)s %(levelname)s [%(name)s] %(message)s"
 )
 logger = logging.getLogger(__name__)
@@ -104,7 +104,17 @@ async def fortnite(
         calculated_win_rate = wins / matches if matches > 0 else 0
 
         embed = build_embed(name, account, battle_pass, stats, calculated_win_rate)
-        await interaction.response.send_message(embed=embed)
+        
+        # Create the promotional embed
+        promo_embed = discord.Embed(
+            description="⭐ **New:** Squib Games Has Arrived to AstroStats! Check out `/help` for more information!",
+            color=discord.Color.blue(),  # You can choose any color you prefer
+            timestamp=datetime.datetime.now(datetime.timezone.utc)
+        )
+        promo_embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
+
+        # Send both embeds together
+        await interaction.response.send_message(embeds=[embed, promo_embed])
 
     except ValueError as e:
         logger.error(f"Validation Error: {e}", exc_info=True)

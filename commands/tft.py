@@ -117,7 +117,21 @@ async def tft(interaction: discord.Interaction, region: REGIONS, riotid: str):
 
         embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
         embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
-        await interaction.followup.send(embed=embed)
+
+        # ------------------------------------------------------
+        # Create the Promotional Embed
+        # ------------------------------------------------------
+        promo_embed = discord.Embed(
+            description="⭐ **New:** Squib Games Has Arrived to AstroStats! Check out `/help` for more information!",
+            color=discord.Color.blue(),  # Customize the color as desired
+            timestamp=datetime.datetime.now(datetime.timezone.utc)
+        )
+        promo_embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
+
+        # ------------------------------------------------------
+        # Send Both Embeds Together
+        # ------------------------------------------------------
+        await interaction.followup.send(embeds=[embed, promo_embed])
 
     except requests.exceptions.HTTPError as e:
         if e.response is not None and e.response.status_code == 404:
