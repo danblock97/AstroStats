@@ -2,12 +2,27 @@ import os
 import random
 import asyncio
 from datetime import datetime, timezone
+import logging
 
 import discord
 from discord.ext import commands
 from discord import app_commands
 
 from pymongo import MongoClient
+
+# ------------------------------------------------------
+# Configure Logging
+# ------------------------------------------------------
+logging.basicConfig(
+    level=logging.ERROR,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    handlers=[
+        logging.StreamHandler()
+    ]
+)
+
+# Create a logger instance
+logger = logging.getLogger("SquibGameBot")
 
 # ------------------------------------------------------
 # MongoDB Setup
@@ -296,64 +311,96 @@ class SquibGames(commands.GroupCog, name="squibgames"):
             self.game_id = game_id
             self.guild_id = guild_id
 
+        def disable_all_buttons(self):
+            for child in self.children:
+                child.disabled = True
+
         @discord.ui.button(label="Join", style=discord.ButtonStyle.primary, emoji="➕")
         async def join_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-            # Handle user joining
-            game = squib_game_sessions.find_one({
-                "guild_id": self.guild_id,
-                "session_id": self.game_id,
-                "current_game_state": "waiting_for_players"
-            })
+            try:
+                # Handle user joining
+                game = squib_game_sessions.find_one({
+                    "guild_id": self.guild_id,
+                    "session_id": self.game_id,
+                    "current_game_state": "waiting_for_players"
+                })
 
-            if not game:
-                await interaction.response.send_message("The game is no longer available for joining.", ephemeral=True)
-                self.disable_all_items()
-                await interaction.message.edit(view=self)
-                return
+                if not game:
+                    await interaction.response.send_message("The game is no longer available for joining.", ephemeral=True)
+                    
+                    # Disable all buttons using the helper method
+                    self.disable_all_buttons()
+                    
+                    # Optionally, update the main embed to indicate the game is closed
+                    embeds = interaction.message.embeds
+                    if embeds:
+                        main_embed = embeds[0]
+                        updated_main_embed = discord.Embed(
+                            title=main_embed.title,
+                            description="The game is no longer accepting new players.",
+                            color=discord.Color.red()
+                        )
+                        # Keep the "Players Joined" embed as is or update if desired
+                        player_embed = embeds[1] if len(embeds) > 1 else None
+                        if player_embed:
+                            await interaction.message.edit(embeds=[updated_main_embed, player_embed], view=self)
+                        else:
+                            await interaction.message.edit(embeds=[updated_main_embed], view=self)
+                    else:
+                        await interaction.message.edit(view=self)
+                    
+                    return
 
-            user_id = str(interaction.user.id)
-            if any(p["user_id"] == user_id for p in game["participants"]):
-                await interaction.response.send_message("You are already in the game session.", ephemeral=True)
-                return
+                user_id = str(interaction.user.id)
+                if any(p["user_id"] == user_id for p in game["participants"]):
+                    await interaction.response.send_message("You are already in the game session.", ephemeral=True)
+                    return
 
-            # Add the user to participants
-            new_participant = {
-                "user_id": user_id,
-                "username": interaction.user.display_name,
-                "status": "alive"
-            }
-            squib_game_sessions.update_one(
-                {"_id": game["_id"]},
-                {"$push": {"participants": new_participant}}
-            )
+                # Add the user to participants
+                new_participant = {
+                    "user_id": user_id,
+                    "username": interaction.user.display_name,
+                    "status": "alive"
+                }
+                squib_game_sessions.update_one(
+                    {"_id": game["_id"]},
+                    {"$push": {"participants": new_participant}}
+                )
 
-            # Update the "Players Joined" embed (second embed, index 1)
-            if not interaction.message.embeds or len(interaction.message.embeds) < 2:
-                await interaction.response.send_message("Internal error: no embed found to update.", ephemeral=True)
-                return
+                # Update the "Players Joined" embed (second embed, index 1)
+                if not interaction.message.embeds or len(interaction.message.embeds) < 2:
+                    await interaction.response.send_message("Internal error: no embed found to update.", ephemeral=True)
+                    return
 
-            # Retrieve existing embeds
-            embeds = interaction.message.embeds
-            main_embed = embeds[0]
-            player_embed = embeds[1]
+                # Retrieve existing embeds
+                embeds = interaction.message.embeds
+                main_embed = embeds[0]
+                player_embed = embeds[1]
 
-            # Update the "Players Joined" description
-            player_count = len(game["participants"]) + 1  # since added
+                # Update the "Players Joined" description
+                player_count = len(game["participants"]) + 1  # since added
 
-            new_description = f"{player_count} Player{' has' if player_count == 1 else 's have'} joined the ranks."
+                new_description = f"{player_count} Player{' has' if player_count == 1 else 's have'} joined the ranks."
 
-            # Create a new embed with updated description
-            new_player_embed = discord.Embed(
-                title=player_embed.title,
-                description=new_description,
-                color=player_embed.color
-            )
+                # Create a new embed with updated description
+                new_player_embed = discord.Embed(
+                    title=player_embed.title,
+                    description=new_description,
+                    color=player_embed.color
+                )
 
-            # Edit the message with updated embeds
-            await interaction.message.edit(embeds=[main_embed, new_player_embed], view=self)
+                # Edit the message with updated embeds
+                await interaction.message.edit(embeds=[main_embed, new_player_embed], view=self)
 
-            # Acknowledge the user
-            await interaction.response.send_message(f"You have joined the game session!", ephemeral=True)
+                # Acknowledge the user
+                await interaction.response.send_message(f"You have joined the game session!", ephemeral=True)
+
+                # Optional: Log the join action
+                logger.info(f"User {interaction.user} joined the game {self.game_id} in guild {self.guild_id}")
+
+            except Exception as e:
+                logger.error(f"Error in join_button: {e}")
+                await interaction.response.send_message("An unexpected error occurred. Please try again later.", ephemeral=True)
 
     # ----------------------------------
     # /squibgames start
@@ -432,19 +479,18 @@ class SquibGames(commands.GroupCog, name="squibgames"):
         Auto-run from current_round until only one player remains.
         """
         guild_id = str(interaction.guild_id)
-        user_id = str(interaction.user.id)
+        # user_id = str(interaction.user.id)  # Removed since any user can run
 
         game = squib_game_sessions.find_one({
             "guild_id": guild_id,
-            "host_user_id": user_id,
+            # "host_user_id": user_id,  # Removed to allow any user to run
             "current_game_state": {"$in": ["waiting_for_players", "in_progress"]}
         })
         if not game:
             embed = discord.Embed(
-                title="Not a Host or No Game 🛑",
+                title="No Active or Waiting Game 🛑",
                 description=(
-                    "You are **not** the host of an active/waiting Squib Game session, "
-                    "or no active session exists."
+                "There is **no active or waiting** Squib Game session in this server."
                 ),
                 color=discord.Color.red()
             )
@@ -462,7 +508,7 @@ class SquibGames(commands.GroupCog, name="squibgames"):
             return
 
         # Host's avatar for the embed
-        host_user = await interaction.client.fetch_user(int(user_id))
+        host_user = await interaction.client.fetch_user(int(game["host_user_id"]))
         host_avatar = host_user.display_avatar.url if (host_user and host_user.avatar) else None
 
         current_round = game["current_round"]
@@ -483,15 +529,18 @@ class SquibGames(commands.GroupCog, name="squibgames"):
             squib_game_sessions.update_one(
                 {"_id": game["_id"]},
                 {"$set": {
-                    "current_game_state": "in_progress",
+                 "current_game_state": "in_progress",
                     "current_round": current_round
                 }}
             )
+
+            run_initiator = interaction.user.mention  # User who invoked the run command
 
             start_embed = discord.Embed(
                 title="Squib Game Started (Auto) 🏁",
                 description=(
                     f"**Round {current_round + 1}** begins now!\n"
+                    f"The game was started by {run_initiator}.\n"
                     "The game will **proceed automatically** through each round until one winner remains..."
                 ),
                 color=discord.Color.blue()
@@ -503,8 +552,9 @@ class SquibGames(commands.GroupCog, name="squibgames"):
             await asyncio.sleep(8)
 
         else:
+            run_initiator = interaction.user.mention  # User who invoked the run command
             await interaction.response.send_message(
-                "**Starting automatic rounds...**", ephemeral=True
+                f"**{run_initiator}** has initiated the automatic rounds...", ephemeral=True
             )
 
         # Start the game loop as a background task

@@ -10,6 +10,7 @@ import aiohttp
 import discord
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 REGIONS = Literal[
     "EUW1", "EUN1", "TR1", "RU", "NA1", "BR1", "LA1", "LA2",
@@ -211,7 +212,21 @@ async def league(interaction: discord.Interaction, region: REGIONS, riotid: str)
                 interaction.client, embed, puuid, region,
                 headers, game_name, tag_line
             )
-            await interaction.followup.send(embed=embed, view=view)
+            
+            # ------------------------------------------------------
+            # Create the Promotional Embed
+            # ------------------------------------------------------
+            promo_embed = discord.Embed(
+                description="⭐ **New:** Squib Games Has Arrived to AstroStats! Check out `/help` for more information!",
+                color=discord.Color.blue(),  # Customize the color as desired
+                timestamp=datetime.datetime.now(datetime.timezone.utc)
+            )
+            promo_embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
+
+            # ------------------------------------------------------
+            # Send Both Embeds Together
+            # ------------------------------------------------------
+            await interaction.followup.send(embeds=[embed, promo_embed], view=view)
 
     except aiohttp.ClientError as e:
         logging.error(f"Request Error: {e}")

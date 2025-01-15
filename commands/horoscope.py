@@ -153,6 +153,19 @@ async def horoscope(interaction: discord.Interaction, sign: SignLiteral):
 
         embed = build_horoscope_embed(given_sign, text)
 
+        # ------------------------------------------------------
+        # Create the Promotional Embed
+        # ------------------------------------------------------
+        promo_embed = discord.Embed(
+            description="⭐ **New:** Squib Games Has Arrived to AstroStats! Check out `/help` for more information!",
+            color=discord.Color.blue(),  # Customize the color as desired
+            timestamp=datetime.datetime.now(datetime.timezone.utc)
+        )
+        promo_embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
+
+        # ------------------------------------------------------
+        # Create the View with the Star Rating Button
+        # ------------------------------------------------------
         view = discord.ui.View()
         button = discord.ui.Button(
             label="Check Star Rating",
@@ -245,7 +258,11 @@ async def horoscope(interaction: discord.Interaction, sign: SignLiteral):
 
         button.callback = button_callback
         view.add_item(button)
-        await interaction.response.send_message(embed=embed, view=view)
+
+        # ------------------------------------------------------
+        # Send Both Embeds Together
+        # ------------------------------------------------------
+        await interaction.response.send_message(embeds=[embed, promo_embed], view=view)
 
     except ValueError as ve:
         logger.error(f"ValueError in /horoscope: {ve}", exc_info=True)
