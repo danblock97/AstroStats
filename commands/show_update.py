@@ -1,16 +1,11 @@
 import discord
 
 LATEST_UPDATES = (
-    "**Version 1.6.1**:\n"
-    "**🎮 Main Updates** 🛠️\n\n"
-    "- **Improved Pet Battles Command Names**\n"
-    "  - We've improved the names of all pet battle commands to look a lot cleaner and easier to read! Check out /help for the new command names.\n"
-    "- **No need for a Host!**\n"
-    "  - We've made sure that a SquibGames session can be started by anyone ensuring you don't need to wait for the host to come back online!\n"
-    "- **Squib Game Bugs**\n"
-    "  - Squished a couple of bugs found that happened during a SquibGames session!\n"
-    "- **Voting Reminder**:\n"
-    "  Remember to use `/petbattles vote` every 12 hours on **TOP.GG** to gain XP for your pets!"
+    "**Version 1.6.2**:\n"
+    "**🎮 Bug Fix** 🛠️\n\n"
+    "- **Resolved Pet Battles Response Error**\n"
+    "  - Fixed the issue where the bot would throw a 'Cannot mix embed and embeds' or 'InteractionResponded' error "
+    "during pet battles. The commands now properly handle embeds and follow-up messages."
 )
 
 async def show_update(interaction: discord.Interaction):

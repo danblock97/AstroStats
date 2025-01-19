@@ -695,16 +695,14 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             # ------------------------------------------------------
             # Send Both Embeds Together
             # ------------------------------------------------------
-            await message.edit(embed=battle_embed, embeds=[promo_embed])
+            await message.edit(embeds=[battle_embed, promo_embed])
+
 
         except Exception as e:
             logger.error(f"Error in battle command: {e}")
-            embed = discord.Embed(
-                title="Battle Error",
-                description="An error occurred during the battle. Please try again later.",
-                color=discord.Color.red()
-            )
-            await interaction.response.send_message(embed=embed)
+            error_embed = discord.Embed(title="Error", description="Some error info", color=discord.Color.red())
+            await interaction.followup.send(embed=error_embed)
+
 
     # ------------------------------------------------------
     # /petbattles quests
