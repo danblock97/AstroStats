@@ -218,7 +218,7 @@ async def league(interaction: discord.Interaction, region: REGIONS, riotid: str)
             # Create the Promotional Embed
             # ------------------------------------------------------
             promo_embed = discord.Embed(
-                description="⭐ **New:** Squib Games Has Arrived to AstroStats! Check out `/help` for more information!",
+                description="There are currently some ongoing issues regarding the Riot API and you may find you are unable to update your profile. Sorry for any inconvenience caused",
                 color=discord.Color.blue(),  # Customize the color as desired
                 timestamp=datetime.datetime.now(datetime.timezone.utc)
             )
