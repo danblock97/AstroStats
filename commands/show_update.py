@@ -1,11 +1,11 @@
 import discord
 
 LATEST_UPDATES = (
-    "**Version 1.6.2**:\n"
-    "**🎮 Bug Fix** 🛠️\n\n"
-    "- **Resolved Pet Battles Response Error**\n"
-    "  - Fixed the issue where the bot would throw a 'Cannot mix embed and embeds' or 'InteractionResponded' error "
-    "during pet battles. The commands now properly handle embeds and follow-up messages."
+    "**Version 1.6.3**:\n"
+    "**🎮 Main Update**\n\n"
+    "- **League of Legends**\n"
+    "  - Fixed an issue where Twisted Fate was not showing as a champion icon in the Live Game embed."
+    "  - Mel has now been added to AstroStats so will now show in the live game embed."
 )
 
 async def show_update(interaction: discord.Interaction):
