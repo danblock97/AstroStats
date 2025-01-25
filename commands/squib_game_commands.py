@@ -707,8 +707,6 @@ class SquibGames(commands.GroupCog, name="squibgames"):
         embeds = [final_embed]
         if conditional_embed:
             embeds.append(conditional_embed)
-        else:
-            return None
 
         return embeds
 
