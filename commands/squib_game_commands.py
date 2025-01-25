@@ -10,11 +10,13 @@ from discord import app_commands
 
 from pymongo import MongoClient
 
+from utils.embeds import get_conditional_embed  # Ensure this import is correct
+
 # ------------------------------------------------------
 # Configure Logging
 # ------------------------------------------------------
 logging.basicConfig(
-    level=logging.ERROR,
+    level=logging.ERROR,  # Change to logging.INFO if you want to see info logs
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     handlers=[
         logging.StreamHandler()
@@ -59,7 +61,6 @@ def update_squib_game_stats(user_id: str, guild_id: str, win_increment: int = 0)
             {"$set": {"wins": new_wins, "games_played": new_games_played}}
         )
         return new_wins
-
 
 # ------------------------------------------------------
 # Minigames Configuration
@@ -156,7 +157,6 @@ MINIGAMES = [
         "elimination_probability": 0.3
     }
 ]
-
 
 # ------------------------------------------------------
 # Flavor Text Generator
@@ -275,7 +275,6 @@ def generate_flavor_text(minigame_desc: str, eliminated_this_round: list, alive_
 
     return "\n".join(flavor_sentences)
 
-
 # ------------------------------------------------------
 # Minigame Logic
 # ------------------------------------------------------
@@ -295,7 +294,6 @@ def play_minigame_logic(round_number: int, participants: list) -> (list, dict):
             p["status"] = "eliminated"
 
     return updated, minigame
-
 
 # ------------------------------------------------------
 # Command Group: SquibGames
@@ -399,9 +397,6 @@ class SquibGames(commands.GroupCog, name="squibgames"):
                 logger.error(f"Error in join_button: {e}")
                 await interaction.response.send_message("An unexpected error occurred. Please try again later.", ephemeral=True)
 
-    # ----------------------------------
-    # /squibgames start
-    # ----------------------------------
     @app_commands.command(name="start", description="Start a new multi-minigame Squib Game session")
     async def start(self, interaction: discord.Interaction):
         guild_id = str(interaction.guild_id)
@@ -487,7 +482,7 @@ class SquibGames(commands.GroupCog, name="squibgames"):
             embed = discord.Embed(
                 title="No Active or Waiting Game 🛑",
                 description=(
-                "There is **no active or waiting** Squib Game session in this server."
+                    "There is **no active or waiting** Squib Game session in this server."
                 ),
                 color=discord.Color.red()
             )
@@ -506,7 +501,7 @@ class SquibGames(commands.GroupCog, name="squibgames"):
 
         # Host's avatar for the embed
         host_user = await interaction.client.fetch_user(int(game["host_user_id"]))
-        host_avatar = host_user.display_avatar.url if (host_user and host_user.avatar) else None
+        host_avatar = host_user.display_avatar.url if host_user and host_user.avatar else None
 
         current_round = game["current_round"]
         participants_before = game["participants"]
@@ -568,22 +563,17 @@ class SquibGames(commands.GroupCog, name="squibgames"):
 
             # Play a minigame only if there are at least two players alive
             if len(alive_before) < 1:
-
-                if alive_before:
-                    winner = random.choice(alive_before)
-                else:
-                    # Fallback: pick any participant
-                    winner = random.choice(participants_before)
-
-                final_embed = await self.conclude_game_auto(interaction, game, guild_id, current_round, winner=winner)
-                await interaction.followup.send(embed=final_embed)
+                # Handle game conclusion when no players are alive
+                winner = None  # No winner
+                final_embeds = await self.conclude_game_auto(interaction, game, guild_id, current_round, winner=winner)
+                await interaction.followup.send(embeds=final_embeds)
                 break
 
             elif len(alive_before) == 1:
                 # Only one player alive, declare them as winner
                 winner = alive_before[0]
-                final_embed = await self.conclude_game_auto(interaction, game, guild_id, current_round, winner=winner)
-                await interaction.followup.send(embed=final_embed)
+                final_embeds = await self.conclude_game_auto(interaction, game, guild_id, current_round, winner=winner)
+                await interaction.followup.send(embeds=final_embeds)
                 break
 
             # Play a minigame
@@ -633,6 +623,7 @@ class SquibGames(commands.GroupCog, name="squibgames"):
                     if user_obj.avatar:
                         round_embed.set_thumbnail(url=user_obj.display_avatar.url)
                 except Exception as e:
+                    logger.error(f"Error fetching user avatar: {e}")
                     # Fallback to host avatar if fetching fails
                     host_user = await interaction.client.fetch_user(int(game["host_user_id"]))
                     if host_user and host_user.avatar:
@@ -645,18 +636,22 @@ class SquibGames(commands.GroupCog, name="squibgames"):
                     round_embed.set_thumbnail(url=host_user.display_avatar.url)
 
             await interaction.followup.send(embed=round_embed)
+
             await asyncio.sleep(5)  # Short delay before next round
 
-    async def conclude_game_auto(self, interaction: discord.Interaction, game_doc: dict, guild_id: str, final_round: int, winner=None) -> discord.Embed:
+    async def conclude_game_auto(self, interaction: discord.Interaction, game_doc: dict, guild_id: str, final_round: int, winner=None) -> list:
         """
         Concludes the auto-run session by declaring the winner.
         If 'winner' is provided, use it. Otherwise, determine based on remaining players.
+        Returns a list of embeds to be sent.
         """
+        # Update game state to 'completed'
         squib_game_sessions.update_one(
             {"_id": game_doc["_id"]},
             {"$set": {"current_game_state": "completed"}}
         )
 
+        # Determine the winner if not already provided
         if winner is None:
             participants = game_doc["participants"]
             alive_players = [p for p in participants if p["status"] == "alive"]
@@ -665,10 +660,10 @@ class SquibGames(commands.GroupCog, name="squibgames"):
             if total_alive == 1:
                 winner = alive_players[0]
             elif total_alive > 1:
-                # If multiple alive players (due to some minigame logic), randomly pick one
+                # Randomly select one if multiple players are alive
                 winner = random.choice(alive_players)
             else:
-                # All players eliminated, pick one randomly from all participants
+                # If all players are eliminated, randomly pick a participant
                 winner = random.choice(participants)
         else:
             # 'winner' was explicitly provided
@@ -684,24 +679,38 @@ class SquibGames(commands.GroupCog, name="squibgames"):
                 thumbnail_url = user_obj.display_avatar.url
             else:
                 thumbnail_url = None
-        except:
+        except Exception as e:
+            logger.error(f"Error fetching user avatar: {e}")
             thumbnail_url = None  # If fetching fails, skip setting the thumbnail
 
-        embed = discord.Embed(title="Game Over! 🏆", color=discord.Color.gold())
+        # Create the main winner embed
+        final_embed = discord.Embed(title="Game Over! 🏆", color=discord.Color.gold())
         round_title = f"Final Round {final_round}"
 
-        embed.description = (
+        final_embed.description = (
             f"**{round_title}** concluded.\n\n"
             f"The winner is **{winner['username']}**! 🎉🏆\n\n"
             f"They now have **{new_wins} wins** in this server."
         )
 
         if thumbnail_url:
-            embed.set_thumbnail(url=thumbnail_url)
+            final_embed.set_thumbnail(url=thumbnail_url)
 
-        embed.set_footer(text="Thanks for playing Squib Game!")
+        final_embed.set_footer(text="Thanks for playing Squib Game!")
 
-        return embed
+        # Fetch the conditional embed using 'SQUIB_GAME_COMMANDS_EMBED' key
+        conditional_embed = await get_conditional_embed(
+            interaction, 'SQUIB_GAME_COMMANDS_EMBED', discord.Color.orange()
+        )
+
+        # Prepare the list of embeds to send
+        embeds = [final_embed]
+        if conditional_embed:
+            embeds.append(conditional_embed)
+        else:
+            return None
+
+        return embeds
 
     # ----------------------------------
     # /squibgames status
@@ -756,14 +765,14 @@ class SquibGames(commands.GroupCog, name="squibgames"):
         embed.set_footer(text="Will you survive the next round?")
 
         host_id = game["host_user_id"]
-        host_user = await interaction.client.fetch_user(int(host_id))
-        if host_user and host_user.avatar:
-            embed.set_thumbnail(url=host_user.display_avatar.url)
+        try:
+            host_user = await interaction.client.fetch_user(int(host_id))
+            if host_user and host_user.avatar:
+                embed.set_thumbnail(url=host_user.display_avatar.url)
+        except Exception as e:
+            logger.error(f"Error fetching host avatar: {e}")
 
         await interaction.response.send_message(embed=embed)
 
-# ------------------------------------------------------
-# Setup
-# ------------------------------------------------------
 async def setup(bot_client: commands.Bot):
     await bot_client.add_cog(SquibGames(bot_client))

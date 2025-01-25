@@ -9,6 +9,8 @@ import discord
 import requests 
 from dotenv import load_dotenv
 
+from utils.embeds import get_conditional_embed
+
 # Load environment variables
 load_dotenv()
 
@@ -23,7 +25,6 @@ PLATFORM_MAPPING = {
     'Playstation': 'psn',
     'Origin (PC)': 'origin',
 }
-
 
 def fetch_apex_stats(api_platform: str, name: str) -> Optional[Dict]:
     name_encoded = quote(name)
@@ -51,15 +52,13 @@ def fetch_apex_stats(api_platform: str, name: str) -> Optional[Dict]:
             raise PermissionError("Access forbidden: Invalid API key or insufficient permissions.")
         else:
             logger.error(
-                f"Failed to fetch stats for {name} on {api_platform}."
-                f"HTTP {status_code} received."
+                f"Failed to fetch stats for {name} on {api_platform}. HTTP {status_code} received."
             )
             return None
 
     except requests.RequestException as e:
         logger.error(f"Request error occurred: {e}", exc_info=True)
         return None
-
 
 def get_percentile_label(percentile: Optional[float]) -> str:
     if percentile is None:
@@ -68,7 +67,6 @@ def get_percentile_label(percentile: Optional[float]) -> str:
         return '🌟 Top'
     return 'Top' if percentile >= 50 else 'Bottom'
 
-
 def format_stat_value(stat_data: Dict) -> str:
     stat_value = stat_data.get('value')
     if stat_value is not None:
@@ -76,7 +74,6 @@ def format_stat_value(stat_data: Dict) -> str:
         percentile_value = int(stat_data.get('percentile', 0)) if percentile_label != 'N/A' else 0
         return f"{int(stat_value):,} ({percentile_label} {percentile_value}%)"
     return 'N/A'
-
 
 async def send_error_embed(interaction: discord.Interaction, title: str, description: str):
     embed = discord.Embed(
@@ -89,7 +86,6 @@ async def send_error_embed(interaction: discord.Interaction, title: str, descrip
         timestamp=datetime.datetime.now(datetime.timezone.utc)
     )
     await interaction.followup.send(embed=embed)
-
 
 @discord.app_commands.command(name="apex", description="Check your Apex Legends Player Stats")
 async def apex(
@@ -160,8 +156,12 @@ async def apex(
 
         embed = build_embed(name, api_platform, active_legend_data, lifetime, ranked, peak_rank)
         
-        # Send only the main embed
-        await interaction.followup.send(embed=embed)
+        conditional_embed = await get_conditional_embed(interaction, 'APEX_EMBED', discord.Color.orange())
+        embeds = [embed]
+        if conditional_embed:
+            embeds.append(conditional_embed)
+
+        await interaction.followup.send(embeds=embeds)
 
     except ValueError as e:
         logger.error(f"Validation Error: {e}", exc_info=True)
@@ -174,7 +174,6 @@ async def apex(
             "Unexpected Error",
             "An unexpected error occurred. Please try again later."
         )
-
 
 @apex.error
 async def apex_error_handler(interaction: discord.Interaction, error: discord.app_commands.AppCommandError):
@@ -195,10 +194,8 @@ async def apex_error_handler(interaction: discord.Interaction, error: discord.ap
     else:
         await interaction.response.send_message(embed=embed)
 
-
 async def on_error(event_method, *args, **kwargs):
     logger.exception(f"An error occurred in the event: {event_method}", exc_info=True)
-
 
 def build_embed(
     name: str,
@@ -254,7 +251,6 @@ def build_embed(
     embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
     return embed
 
-
 def format_lifetime_stats(lifetime: Dict) -> str:
     formatted_stats = [
         f"Level: **{format_stat_value(lifetime.get('level', {}))}**",
@@ -265,7 +261,6 @@ def format_lifetime_stats(lifetime: Dict) -> str:
     ]
     return "\n".join(formatted_stats)
 
-
 def format_ranked_stats(ranked: Dict) -> str:
     rank_name = ranked.get('metadata', {}).get('rankName', 'Unranked')
     rank_value = ranked.get('value', 0)
@@ -273,19 +268,16 @@ def format_ranked_stats(ranked: Dict) -> str:
     percentile_display = f"(Top {int(rank_percentile)}%)" if rank_percentile else ""
     return f"**{rank_name}**: {int(rank_value):,} {percentile_display}"
 
-
 def format_peak_rank(peak_rank: Dict) -> str:
     peak_name = peak_rank.get('metadata', {}).get('rankName', 'Unknown')
     peak_value = peak_rank.get('value', 0)
     return f"**{peak_name}**: {int(peak_value):,}"
-
 
 def format_active_legend_stats(stats: Dict) -> str:
     return "\n".join(
         f"{stat_data['displayName']}: **{int(stat_data.get('value', 0))}**"
         for stat_data in stats.values()
     )
-
 
 async def setup(client: discord.Client):
     client.tree.add_command(apex)

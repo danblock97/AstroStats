@@ -6,6 +6,12 @@ from typing import Literal, Optional, Dict
 
 import discord
 import aiohttp
+from dotenv import load_dotenv
+
+from utils.embeds import get_conditional_embed
+
+# Load environment variables
+load_dotenv() 
 
 logging.basicConfig(
     level=logging.ERROR,
@@ -60,7 +66,7 @@ async def send_error_embed(interaction: discord.Interaction, title: str, descrip
         color=discord.Color.red(),
         timestamp=datetime.datetime.now(datetime.timezone.utc)
     )
-    await interaction.response.send_message(embed=embed)
+    await interaction.followup.send(embed=embed)
 
 @discord.app_commands.command(name="fortnite", description="Check your Fortnite Player Stats")
 async def fortnite(
@@ -69,6 +75,8 @@ async def fortnite(
     name: str = None
 ):
     try:
+        await interaction.response.defer()
+
         if not name:
             await send_error_embed(
                 interaction,
@@ -78,6 +86,14 @@ async def fortnite(
             return
 
         time_window = TIME_MAPPING.get(time)
+        if not time_window:
+            await send_error_embed(
+                interaction,
+                "Invalid Time Window",
+                "Please choose a valid time window (Season or Lifetime)."
+            )
+            return
+
         data = await fetch_fortnite_stats(name, time_window)
 
         if not data or 'data' not in data:
@@ -93,17 +109,22 @@ async def fortnite(
             return
 
         stats = data['data']
-        account = stats['account']
-        battle_pass = stats['battlePass']
+        account = stats.get('account', {})
+        battle_pass = stats.get('battlePass', {})
 
-        wins = stats['stats']['all']['overall']['wins']
-        matches = stats['stats']['all']['overall']['matches']
+        overall_stats = stats.get('stats', {}).get('all', {}).get('overall', {})
+        wins = overall_stats.get('wins', 0)
+        matches = overall_stats.get('matches', 0)
         calculated_win_rate = wins / matches if matches > 0 else 0
 
         embed = build_embed(name, account, battle_pass, stats, calculated_win_rate)
         
-        # Send only the main embed
-        await interaction.response.send_message(embed=embed)
+        conditional_embed = await get_conditional_embed(interaction, 'FORTNITE_EMBED', discord.Color.orange())
+        embeds = [embed]
+        if conditional_embed:
+            embeds.append(conditional_embed)
+
+        await interaction.followup.send(embeds=embeds)
 
     except ValueError as e:
         logger.error(f"Validation Error: {e}", exc_info=True)
@@ -152,44 +173,44 @@ def build_embed(name: str, account: Dict, battle_pass: Dict, stats: Dict, calcul
         url=f"https://fortnitetracker.com/profile/all/{encoded_name}"
     )
     embed.set_thumbnail(
-        url="https://seeklogo.com/images/F/fortnite-logo-1F7897BD1E-seeklogo.com.png"
+        url="https://seeklogo.com/images/F/fortnite-logo-1F7897BD1E-seeklogo.com.png"  # Updated thumbnail URL
     )
 
     embed.add_field(
         name="Account",
-        value=f"Name: {account['name']}\nLevel: {battle_pass['level']}",
+        value=f"Name: {account.get('name', 'N/A')}\nLevel: {battle_pass.get('level', 'N/A')}",
         inline=True
     )
     embed.add_field(
         name="Match Placements",
         value=(
-            f"Victory Royales: {stats['stats']['all']['overall']['wins']}\n"
-            f"Top 5: {stats['stats']['all']['overall']['top5']}\n"
-            f"Top 12: {stats['stats']['all']['overall']['top12']}"
+            f"Victory Royales: {stats.get('stats', {}).get('all', {}).get('overall', {}).get('wins', 0)}\n"
+            f"Top 5: {stats.get('stats', {}).get('all', {}).get('overall', {}).get('top5', 0)}\n"
+            f"Top 12: {stats.get('stats', {}).get('all', {}).get('overall', {}).get('top12', 0)}"
         ),
         inline=True
     )
     embed.add_field(
         name="Kill Stats",
         value=(
-            f"Kills/Deaths: {stats['stats']['all']['overall']['kills']:,}/"
-            f"{stats['stats']['all']['overall']['deaths']:,}\n"
-            f"KD Ratio: {stats['stats']['all']['overall']['kd']:.2f}\n"
-            f"Kills Per Minute: {stats['stats']['all']['overall']['killsPerMin']:.2f}\n"
-            f"Kills Per Match: {stats['stats']['all']['overall']['killsPerMatch']:.2f}\n"
-            f"Players Outlived: {stats['stats']['all']['overall']['playersOutlived']:,}"
+            f"Kills/Deaths: {stats.get('stats', {}).get('all', {}).get('overall', {}).get('kills', 0):,}/"
+            f"{stats.get('stats', {}).get('all', {}).get('overall', {}).get('deaths', 0):,}\n"
+            f"KD Ratio: {stats.get('stats', {}).get('all', {}).get('overall', {}).get('kd', 0.0):.2f}\n"
+            f"Kills Per Minute: {stats.get('stats', {}).get('all', {}).get('overall', {}).get('killsPerMin', 0.0):.2f}\n"
+            f"Kills Per Match: {stats.get('stats', {}).get('all', {}).get('overall', {}).get('killsPerMatch', 0.0):.2f}\n"
+            f"Players Outlived: {stats.get('stats', {}).get('all', {}).get('overall', {}).get('playersOutlived', 0):,}"
         ),
         inline=False
     )
     embed.add_field(
         name="Match Stats",
         value=(
-            f"Total Matches Played: {stats['stats']['all']['overall']['matches']:,}\n"
+            f"Total Matches Played: {stats.get('stats', {}).get('all', {}).get('overall', {}).get('matches', 0):,}\n"
             f"Win Rate: {calculated_win_rate:.2%}\n"
-            f"Total Score: {stats['stats']['all']['overall']['score']:,}\n"
-            f"Score Per Minute: {stats['stats']['all']['overall']['scorePerMin']:.0f}\n"
-            f"Score Per Match: {stats['stats']['all']['overall']['scorePerMatch']:.0f}\n"
-            f"Total Minutes Played: {stats['stats']['all']['overall']['minutesPlayed']:,}"
+            f"Total Score: {stats.get('stats', {}).get('all', {}).get('overall', {}).get('score', 0):,}\n"
+            f"Score Per Minute: {stats.get('stats', {}).get('all', {}).get('overall', {}).get('scorePerMin', 0):.0f}\n"
+            f"Score Per Match: {stats.get('stats', {}).get('all', {}).get('overall', {}).get('scorePerMatch', 0):.0f}\n"
+            f"Total Minutes Played: {stats.get('stats', {}).get('all', {}).get('overall', {}).get('minutesPlayed', 0):,}"
         ),
         inline=False
     )

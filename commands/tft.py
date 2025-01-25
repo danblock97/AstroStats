@@ -7,6 +7,8 @@ import discord
 from discord import app_commands
 import requests
 
+from utils.embeds import get_conditional_embed  # Added import for conditional embed
+
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
 
 REGIONS = Literal[
@@ -120,13 +122,20 @@ async def tft(interaction: discord.Interaction, region: REGIONS, riotid: str):
         embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
 
         # ------------------------------------------------------
-        # Removed the Promotional Embed
+        # Add Conditional Embed Here
         # ------------------------------------------------------
+        conditional_embed = await get_conditional_embed(
+            interaction, 'TFT_EMBED', discord.Color.orange()
+        )
+
+        embeds = [embed]
+        if conditional_embed:
+            embeds.append(conditional_embed)
 
         # ------------------------------------------------------
-        # Send Only the Main Embed
+        # Send the Main Embed and Conditional Embed if Exists
         # ------------------------------------------------------
-        await interaction.followup.send(embed=embed)
+        await interaction.followup.send(embeds=embeds)
 
     except requests.exceptions.HTTPError as e:
         if e.response is not None and e.response.status_code == 404:

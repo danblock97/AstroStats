@@ -6,6 +6,8 @@ import aiohttp
 import discord
 from bs4 import BeautifulSoup
 
+from utils.embeds import get_conditional_embed
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -136,6 +138,8 @@ async def horoscope(interaction: discord.Interaction, sign: SignLiteral):
         if given_sign not in SIGNS:
             raise ValueError(f"Invalid sign provided: {given_sign}")
 
+        await interaction.response.defer()
+
         text = await fetch_horoscope_text(given_sign)
         if not text:
             error_embed = discord.Embed(
@@ -146,14 +150,11 @@ async def horoscope(interaction: discord.Interaction, sign: SignLiteral):
                 ),
                 color=discord.Color.red()
             )
-            await interaction.response.send_message(embed=error_embed)
+            await interaction.followup.send(embed=error_embed)
             return
 
         embed = build_horoscope_embed(given_sign, text)
 
-        # ------------------------------------------------------
-        # Create the View with the Star Rating Button
-        # ------------------------------------------------------
         view = discord.ui.View()
         button = discord.ui.Button(
             label="Check Star Rating",
@@ -247,10 +248,11 @@ async def horoscope(interaction: discord.Interaction, sign: SignLiteral):
         button.callback = button_callback
         view.add_item(button)
 
-        # ------------------------------------------------------
-        # Send Only the Main Embed with the View
-        # ------------------------------------------------------
-        await interaction.response.send_message(embed=embed, view=view)
+        conditional_embed = await get_conditional_embed(interaction, 'HOROSCOPE_EMBED', discord.Color.orange())
+        embeds = [embed]
+        if conditional_embed:
+            embeds.append(conditional_embed)
+        await interaction.followup.send(embeds=embeds, view=view)
     except Exception as e:
         logger.error(f"An error occurred in /horoscope command: {e}", exc_info=True)
         error_embed = discord.Embed(
@@ -258,24 +260,26 @@ async def horoscope(interaction: discord.Interaction, sign: SignLiteral):
             description="An error occurred while executing the /horoscope command. Please try again later.",
             color=discord.Color.red()
         )
+        await interaction.followup.send(embed=error_embed)
+
+@horoscope.error
+async def horoscope_error_handler(interaction: discord.Interaction, error: discord.app_commands.AppCommandError):
+    logger = logging.getLogger(__name__)
+    logger.error(f"An error occurred in /horoscope command: {error}", exc_info=True)
+    error_embed = discord.Embed(
+        title="Command Error",
+        description="An error occurred while executing the /horoscope command. Please try again later.",
+        color=discord.Color.red(),
+        timestamp=datetime.datetime.now(datetime.timezone.utc)
+    )
+    error_embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
+    if interaction.response.is_done():
+        await interaction.followup.send(embed=error_embed)
+    else:
         await interaction.response.send_message(embed=error_embed)
 
-    @horoscope.error
-    async def horoscope_error_handler(interaction: discord.Interaction, error: discord.app_commands.AppCommandError):
-        logger.error(f"An error occurred in /horoscope command: {error}", exc_info=True)
-        error_embed = discord.Embed(
-            title="Command Error",
-            description="An error occurred while executing the /horoscope command. Please try again later.",
-            color=discord.Color.red(),
-            timestamp=datetime.datetime.now(datetime.timezone.utc)
-        )
-        error_embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
-        if interaction.response.is_done():
-            await interaction.followup.send(embed=error_embed)
-        else:
-            await interaction.response.send_message(embed=error_embed)
-
 async def on_error(event_method, *args, **kwargs):
+    logger = logging.getLogger(__name__)
     logger.exception(f"An error occurred in the event: {event_method}", exc_info=True)
 
 async def setup(client: discord.Client):

@@ -10,34 +10,25 @@ from pymongo import MongoClient
 import topgg
 
 from quests_and_achievements import DAILY_QUESTS, ACHIEVEMENTS
+from utils.embeds import get_conditional_embed
 
-# ------------------------------------------------------
-# Configure Logging
-# ------------------------------------------------------
 import logging
 
 logging.basicConfig(
-    level=logging.ERROR,  # Set logging level to ERROR only
+    level=logging.ERROR,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     handlers=[
         logging.StreamHandler()
     ]
 )
 
-# Create a logger instance
 logger = logging.getLogger("PetBattlesCog")
 
-# ------------------------------------------------------
-# MongoDB Setup
-# ------------------------------------------------------
 mongo_client = MongoClient(os.getenv('MONGODB_URI'))
 db = mongo_client['pet_database']
 pets_collection = db['pets']
 battle_logs_collection = db['battle_logs']
 
-# ------------------------------------------------------
-# Constants
-# ------------------------------------------------------
 INITIAL_STATS = {
     "level": 1,
     "xp": 0,
@@ -71,9 +62,6 @@ COLOR_LIST = {
     "purple": 0x800080
 }
 
-# ------------------------------------------------------
-# Utility Functions
-# ------------------------------------------------------
 def calculate_xp_needed(level: int) -> int:
     return level ** 2 * 100
 
@@ -141,7 +129,6 @@ def update_quests_and_achievements(pet: dict, battle_stats: dict):
     completed_quests = []
     completed_achievements = []
 
-    # Update Daily Quests
     for quest in pet['daily_quests']:
         if quest['completed']:
             continue
@@ -172,7 +159,6 @@ def update_quests_and_achievements(pet: dict, battle_stats: dict):
             pet['xp'] += quest['xp_reward']
             completed_quests.append(quest)
 
-    # Update Achievements
     for achievement in pet['achievements']:
         if achievement['completed']:
             continue
@@ -196,9 +182,6 @@ def update_quests_and_achievements(pet: dict, battle_stats: dict):
 
     return completed_quests, completed_achievements
 
-# ------------------------------------------------------
-# PetBattles GroupCog
-# ------------------------------------------------------
 class PetBattles(commands.GroupCog, name="petbattles"):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -206,9 +189,6 @@ class PetBattles(commands.GroupCog, name="petbattles"):
         self.topgg_client = None
         self.bot.loop.create_task(self.initialize_topgg_client())
 
-    # ------------------------------------------------------
-    # Top.gg Client Initialization
-    # ------------------------------------------------------
     async def initialize_topgg_client(self):
         topgg_token = os.getenv('TOPGG_TOKEN')
         if not topgg_token:
@@ -219,9 +199,6 @@ class PetBattles(commands.GroupCog, name="petbattles"):
         except Exception as e:
             logger.error(f"Failed to initialize Top.gg client: {e}")
 
-    # ------------------------------------------------------
-    # Daily Quests Reset Task
-    # ------------------------------------------------------
     @tasks.loop(time=dtime(hour=0, minute=0, tzinfo=timezone.utc))
     async def reset_daily_quests(self):
         try:
@@ -231,9 +208,6 @@ class PetBattles(commands.GroupCog, name="petbattles"):
         except Exception as e:
             logger.error(f"Error resetting daily quests: {e}")
 
-    # ------------------------------------------------------
-    # /petbattles summon
-    # ------------------------------------------------------
     @app_commands.command(name="summon", description="Summon a new pet")
     @app_commands.describe(name="Name your pet", pet="Choose your pet")
     @app_commands.choices(
@@ -300,6 +274,8 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                     "(https://buymeacoffee.com/danblock97)"
                 )
             )
+            embed.timestamp = datetime.now(timezone.utc)
+            embed.set_footer(text="Built By Goldiez ❤️ Visit clutchgg.lol for more!")
             await interaction.response.send_message(embed=embed)
         except Exception as e:
             logger.error(f"Error in summon command: {e}")
@@ -310,9 +286,6 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             )
             await interaction.response.send_message(embed=embed)
 
-    # ------------------------------------------------------
-    # /petbattles stats
-    # ------------------------------------------------------
     @app_commands.command(name="stats", description="View your pet's stats")
     async def stats(self, interaction: discord.Interaction):
         user_id = str(interaction.user.id)
@@ -362,11 +335,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             )
             await interaction.response.send_message(embed=embed)
 
-    # ------------------------------------------------------
-    # /petbattles battle
-    # ------------------------------------------------------
     @app_commands.command(name="battle", description="Engage in a pet battle")
-    @app_commands.describe(opponent="Choose a member to battle their pet")
     async def battle(self, interaction: discord.Interaction, opponent: discord.Member):
         user_id = str(interaction.user.id)
         opponent_id = str(opponent.id)
@@ -612,7 +581,6 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                 await asyncio.sleep(2)
                 round_number += 1
 
-            # Update killstreaks and loss streaks
             if user_health > 0:
                 user_pet['killstreak'] = user_pet.get('killstreak', 0) + 1
                 user_pet['loss_streak'] = 0
@@ -682,28 +650,28 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             else:
                 battle_embed.set_thumbnail(url=opponent_pet['icon'])
 
-            # ------------------------------------------------------
-            # Removed the Promotional Embed
-            # ------------------------------------------------------
+            conditional_embed = await get_conditional_embed(interaction, 'PET_COMMANDS_EMBED', discord.Color.orange())
+            embeds = [battle_embed]
+            if conditional_embed:
+                embeds.append(conditional_embed)
 
-            # ------------------------------------------------------
-            # Send Only the Main Battle Embed
-            # ------------------------------------------------------
-            await message.edit(embed=battle_embed)
+            await message.edit(embeds=embeds)
 
         except Exception as e:
             logger.error(f"Error in battle command: {e}")
-            error_embed = discord.Embed(
-                title="Error",
-                description="An error occurred during the battle. Please try again later.",
+            embed = discord.Embed(
+                title="Battle Error",
+                description="An unexpected error occurred during the battle. Please try again later.",
                 color=discord.Color.red()
             )
-            await interaction.followup.send(embed=error_embed)
+            try:
+                await interaction.followup.send(embed=embed)
+            except discord.errors.InteractionResponded:
+                # If the interaction has already been responded to, use followup
+                await message.edit(embed=embed)
+            except Exception as inner_e:
+                logger.error(f"Failed to send error message: {inner_e}")
 
-
-    # ------------------------------------------------------
-    # /petbattles quests
-    # ------------------------------------------------------
     @app_commands.command(name="quests", description="View your current daily quests")
     async def quests(self, interaction: discord.Interaction):
         user_id = str(interaction.user.id)
@@ -749,6 +717,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                     value=f"{quest['progress']} / {quest['progress_required']}\n{progress_bar}",
                     inline=False
                 )
+
             await interaction.response.send_message(embed=embed)
         except Exception as e:
             logger.error(f"Error in quests command: {e}")
@@ -759,9 +728,6 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             )
             await interaction.response.send_message(embed=embed)
 
-    # ------------------------------------------------------
-    # /petbattles achievements
-    # ------------------------------------------------------
     @app_commands.command(name="achievements", description="View your achievements")
     async def achievements(self, interaction: discord.Interaction):
         user_id = str(interaction.user.id)
@@ -795,6 +761,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                     value=f"{status}\n{progress_bar}",
                     inline=False
                 )
+
             await interaction.response.send_message(embed=embed)
         except Exception as e:
             logger.error(f"Error in achievements command: {e}")
@@ -805,9 +772,6 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             )
             await interaction.response.send_message(embed=embed)
 
-    # ------------------------------------------------------
-    # /petbattles leaderboard
-    # ------------------------------------------------------
     @app_commands.command(name="leaderboard", description="View the top pets leaderboard")
     async def leaderboard(self, interaction: discord.Interaction):
         guild_id = str(interaction.guild.id)
@@ -830,6 +794,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                 name="Support Us ❤️",
                 value="[If you enjoy using this bot, consider supporting us!](https://buymeacoffee.com/danblock97)"
             )
+
             await interaction.response.send_message(embed=embed)
         except Exception as e:
             logger.error(f"Error in leaderboard command: {e}")
@@ -840,9 +805,6 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             )
             await interaction.response.send_message(embed=embed)
 
-    # ------------------------------------------------------
-    # /petbattles vote
-    # ------------------------------------------------------
     @app_commands.command(name="vote", description="Vote for the bot and earn rewards")
     async def vote(self, interaction: discord.Interaction):
         user_id = str(interaction.user.id)
@@ -921,6 +883,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                         name="Level Up!",
                         value=f"Your pet is now level {pet['level']}!"
                     )
+
                 await interaction.response.send_message(embed=embed)
         except Exception as e:
             logger.error(f"Error in vote command: {e}")
@@ -931,19 +894,10 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             )
             await interaction.response.send_message(embed=embed)
 
-    # ------------------------------------------------------
-    # GroupCog Lifecycle Events
-    # ------------------------------------------------------
-    async def cog_load(self):
-        pass
-
     async def cog_unload(self):
         self.reset_daily_quests.cancel()
         if self.topgg_client:
             await self.topgg_client.close()
 
-# ------------------------------------------------------
-# Setup Function
-# ------------------------------------------------------
 async def setup(bot: commands.Bot):
     await bot.add_cog(PetBattles(bot))

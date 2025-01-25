@@ -1,7 +1,9 @@
 import datetime
 
 import discord
+from discord import app_commands
 
+from utils.embeds import get_conditional_embed
 
 def build_help_embed(guild_count: int) -> discord.Embed:
     embed = discord.Embed(
@@ -44,11 +46,33 @@ def build_help_embed(guild_count: int) -> discord.Embed:
 
 
 @discord.app_commands.command(name="help", description="Lists all available commands")
-async def help(interaction: discord.Interaction):
+async def help_command(interaction: discord.Interaction):
     guild_count = len(interaction.client.guilds)
-    embed = build_help_embed(guild_count)
-    await interaction.response.send_message(embed=embed)
+    main_embed = build_help_embed(guild_count)
+    
+    conditional_embed = await get_conditional_embed(interaction, 'HELP_EMBED', discord.Color.orange())
+    embeds = [main_embed]
+    if conditional_embed:
+        embeds.append(conditional_embed)
+
+    await interaction.response.send_message(embeds=embeds)
+
+
+@help_command.error
+async def help_error_handler(interaction: discord.Interaction, error: discord.app_commands.AppCommandError):
+    embed = discord.Embed(
+        title="Command Error",
+        description="An error occurred while executing the /help command. Please try again later.",
+        color=discord.Color.red(),
+        timestamp=datetime.datetime.now(datetime.timezone.utc)
+    )
+    embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
+
+    if interaction.response.is_done():
+        await interaction.followup.send(embed=embed)
+    else:
+        await interaction.response.send_message(embed=embed)
 
 
 async def setup(client: discord.Client):
-    client.tree.add_command(help)
+    client.tree.add_command(help_command)

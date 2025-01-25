@@ -9,6 +9,8 @@ from collections import defaultdict
 import aiohttp
 import discord
 
+from utils.embeds import get_conditional_embed
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
@@ -209,7 +211,12 @@ async def league(interaction: discord.Interaction, region: REGIONS, riotid: str)
                 headers, game_name, tag_line
             )
 
-            await interaction.followup.send(embed=embed, view=view)
+            conditional_embed = await get_conditional_embed(interaction, 'LEAGUE_EMBED', discord.Color.orange())
+            embeds = [embed]
+            if conditional_embed:
+                embeds.append(conditional_embed)
+
+            await interaction.followup.send(embeds=embeds, view=view)
 
     except aiohttp.ClientError as e:
         logging.error(f"Request Error: {e}")
@@ -243,35 +250,35 @@ def create_live_game_view(client, embed, puuid, region, headers, game_name, tag_
     view = discord.ui.View()
     live_game_button = discord.ui.Button(label="Live Game", style=discord.ButtonStyle.primary)
 
-    async def live_game_callback(interaction: discord.Interaction):
+    async def live_game_callback(button_interaction: discord.Interaction):
         try:
             live_game_button.label = "Fetching..."
             live_game_button.disabled = True
-            await interaction.response.edit_message(view=view)
+            await button_interaction.response.edit_message(view=view)
 
             async with aiohttp.ClientSession() as session:
                 await update_live_game_view(
-                    interaction, embed, puuid, region, headers,
+                    button_interaction, embed, puuid, region, headers,
                     live_game_button, game_name, tag_line, view, session
                 )
         except aiohttp.ClientError as e:
             logging.error(f"Error fetching live game data: {e}")
             await send_error_embed(
-                interaction,
+                button_interaction,
                 "Live Game Error",
                 "Unable to fetch live game data. Please check again or try re-searching your account."
             )
         except Exception as e:
             logging.error(f"Unexpected Error in live_game_callback: {e}")
             await send_error_embed(
-                interaction,
+                button_interaction,
                 "Live Game Error",
                 "An unexpected error occurred while trying to fetch the live game."
             )
         finally:
             live_game_button.disabled = False
             live_game_button.label = "Live Game"
-            await interaction.edit_original_response(view=view)
+            await button_interaction.edit_original_response(view=view)
 
     live_game_button.callback = live_game_callback
     view.add_item(live_game_button)
