@@ -44,7 +44,6 @@ async def fetch_horoscope_text(sign: str) -> Optional[str]:
                         raise ValueError("Failed to find horoscope text on the webpage.")
                     return container.find("p").text.strip()
                 elif response.status == 404:
-                    logger.warning(f"No horoscope text found for {sign} (404).")
                     return None
                 else:
                     logger.error(f"Failed to fetch horoscope for {sign}: HTTP {response.status}")
@@ -98,7 +97,6 @@ async def fetch_star_rating(sign: str, embed: discord.Embed) -> Optional[discord
                         )
                     return embed
                 elif response.status == 404:
-                    logger.warning(f"No star rating found for {sign} (404).")
                     return None
                 else:
                     logger.error(f"Failed to fetch star rating for {sign}: HTTP {response.status}")
@@ -152,16 +150,6 @@ async def horoscope(interaction: discord.Interaction, sign: SignLiteral):
             return
 
         embed = build_horoscope_embed(given_sign, text)
-
-        # ------------------------------------------------------
-        # Create the Promotional Embed
-        # ------------------------------------------------------
-        promo_embed = discord.Embed(
-            description="⭐ **New:** Squib Games Has Arrived to AstroStats! Check out `/help` for more information!",
-            color=discord.Color.blue(),  # Customize the color as desired
-            timestamp=datetime.datetime.now(datetime.timezone.utc)
-        )
-        promo_embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
 
         # ------------------------------------------------------
         # Create the View with the Star Rating Button
@@ -260,44 +248,32 @@ async def horoscope(interaction: discord.Interaction, sign: SignLiteral):
         view.add_item(button)
 
         # ------------------------------------------------------
-        # Send Both Embeds Together
+        # Send Only the Main Embed with the View
         # ------------------------------------------------------
-        await interaction.response.send_message(embeds=[embed, promo_embed], view=view)
-
-    except ValueError as ve:
-        logger.error(f"ValueError in /horoscope: {ve}", exc_info=True)
-        error_embed = discord.Embed(
-            title="Invalid Input",
-            description=str(ve),
-            color=discord.Color.red()
-        )
-        await interaction.response.send_message(embed=error_embed)
+        await interaction.response.send_message(embed=embed, view=view)
     except Exception as e:
-        logger.error(f"Unexpected error in /horoscope command: {e}", exc_info=True)
+        logger.error(f"An error occurred in /horoscope command: {e}", exc_info=True)
         error_embed = discord.Embed(
-            title="Unexpected Error",
-            description=(
-                "Oops! An unexpected error occurred while processing your request. "
-                "Please try again later."
-            ),
+            title="Command Error",
+            description="An error occurred while executing the /horoscope command. Please try again later.",
             color=discord.Color.red()
         )
         await interaction.response.send_message(embed=error_embed)
 
-@horoscope.error
-async def horoscope_error_handler(interaction: discord.Interaction, error: discord.app_commands.AppCommandError):
-    logger.error(f"An error occurred in /horoscope command: {error}", exc_info=True)
-    error_embed = discord.Embed(
-        title="Command Error",
-        description="An error occurred while executing the /horoscope command. Please try again later.",
-        color=discord.Color.red(),
-        timestamp=datetime.datetime.now(datetime.timezone.utc)
-    )
-    error_embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
-    if interaction.response.is_done():
-        await interaction.followup.send(embed=error_embed)
-    else:
-        await interaction.response.send_message(embed=error_embed)
+    @horoscope.error
+    async def horoscope_error_handler(interaction: discord.Interaction, error: discord.app_commands.AppCommandError):
+        logger.error(f"An error occurred in /horoscope command: {error}", exc_info=True)
+        error_embed = discord.Embed(
+            title="Command Error",
+            description="An error occurred while executing the /horoscope command. Please try again later.",
+            color=discord.Color.red(),
+            timestamp=datetime.datetime.now(datetime.timezone.utc)
+        )
+        error_embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
+        if interaction.response.is_done():
+            await interaction.followup.send(embed=error_embed)
+        else:
+            await interaction.response.send_message(embed=error_embed)
 
 async def on_error(event_method, *args, **kwargs):
     logger.exception(f"An error occurred in the event: {event_method}", exc_info=True)

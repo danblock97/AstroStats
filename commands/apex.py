@@ -43,7 +43,6 @@ def fetch_apex_stats(api_platform: str, name: str) -> Optional[Dict]:
         if status_code == 200:
             return response.json()
         elif status_code == 404:
-            logger.warning(f"No data found (404) for {name} on {api_platform}.")
             return None
         elif status_code == 403:
             logger.error(
@@ -52,7 +51,7 @@ def fetch_apex_stats(api_platform: str, name: str) -> Optional[Dict]:
             raise PermissionError("Access forbidden: Invalid API key or insufficient permissions.")
         else:
             logger.error(
-                f"Failed to fetch stats for {name} on {api_platform}. "
+                f"Failed to fetch stats for {name} on {api_platform}."
                 f"HTTP {status_code} received."
             )
             return None
@@ -136,7 +135,7 @@ async def apex(
                 interaction,
                 "Account Not Found",
                 f"No stats found for the username: **{name}** on {platform}. "
-                "Please double-check your details."
+                "Please double-check your details are up to date on [Apex Tracker](https://apex.tracker.gg)."
             )
             return
 
@@ -161,16 +160,8 @@ async def apex(
 
         embed = build_embed(name, api_platform, active_legend_data, lifetime, ranked, peak_rank)
         
-        # Create the promotional embed
-        promo_embed = discord.Embed(
-            description="⭐ **New:** Squib Games Has Arrived to AstroStats! Check out `/help` for more information!",
-            color=discord.Color.blue(),  # You can choose any color you prefer
-            timestamp=datetime.datetime.now(datetime.timezone.utc)
-        )
-        promo_embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
-
-        # Send both embeds together
-        await interaction.followup.send(embeds=[embed, promo_embed])
+        # Send only the main embed
+        await interaction.followup.send(embed=embed)
 
     except ValueError as e:
         logger.error(f"Validation Error: {e}", exc_info=True)

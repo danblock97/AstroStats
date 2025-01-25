@@ -37,9 +37,6 @@ async def fetch_fortnite_stats(name: str, time_window: str) -> Optional[Dict]:
                 if status == 200:
                     return await response.json()
                 elif status == 404:
-                    logger.warning(
-                        f"No data found (404) for username: {name} (time_window={time_window})."
-                    )
                     return None
                 else:
                     logger.error(
@@ -105,16 +102,8 @@ async def fortnite(
 
         embed = build_embed(name, account, battle_pass, stats, calculated_win_rate)
         
-        # Create the promotional embed
-        promo_embed = discord.Embed(
-            description="⭐ **New:** Squib Games Has Arrived to AstroStats! Check out `/help` for more information!",
-            color=discord.Color.blue(),  # You can choose any color you prefer
-            timestamp=datetime.datetime.now(datetime.timezone.utc)
-        )
-        promo_embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
-
-        # Send both embeds together
-        await interaction.response.send_message(embeds=[embed, promo_embed])
+        # Send only the main embed
+        await interaction.response.send_message(embed=embed)
 
     except ValueError as e:
         logger.error(f"Validation Error: {e}", exc_info=True)

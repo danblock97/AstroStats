@@ -683,24 +683,21 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                 battle_embed.set_thumbnail(url=opponent_pet['icon'])
 
             # ------------------------------------------------------
-            # Create the Promotional Embed
+            # Removed the Promotional Embed
             # ------------------------------------------------------
-            promo_embed = discord.Embed(
-                description="⭐ **New:** Squib Games Has Arrived to AstroStats! Check out `/help` for more information!",
-                color=discord.Color.blue(),  # Customize the color as desired
-                timestamp=datetime.now(timezone.utc)
-            )
-            promo_embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
 
             # ------------------------------------------------------
-            # Send Both Embeds Together
+            # Send Only the Main Battle Embed
             # ------------------------------------------------------
-            await message.edit(embeds=[battle_embed, promo_embed])
-
+            await message.edit(embed=battle_embed)
 
         except Exception as e:
             logger.error(f"Error in battle command: {e}")
-            error_embed = discord.Embed(title="Error", description="Some error info", color=discord.Color.red())
+            error_embed = discord.Embed(
+                title="Error",
+                description="An error occurred during the battle. Please try again later.",
+                color=discord.Color.red()
+            )
             await interaction.followup.send(embed=error_embed)
 
 

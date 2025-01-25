@@ -50,11 +50,9 @@ async def fetch_data(session: aiohttp.ClientSession, url: str, headers=None) -> 
             if response.status == 200:
                 return await response.json()
             elif response.status == 404:
-                logging.warning(f"Resource at {url} returned 404. Possibly not found.")
                 return None
             elif response.status == 429:
                 retry_after = int(response.headers.get('Retry-After', '1'))
-                logging.warning(f"Rate limit exceeded. Retrying after {retry_after} seconds.")
                 await asyncio.sleep(retry_after)
                 return await fetch_data(session, url, headers)
             else:
@@ -69,7 +67,7 @@ async def fetch_summoner_data(session: aiohttp.ClientSession, puuid: str, region
         summoner_url = f"https://{region.lower()}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/{puuid}"
         data = await fetch_data(session, summoner_url, headers)
         if not data:
-            logging.info(f"No summoner data found for PUUID {puuid} in region {region}.")
+            return None
         return data
     except Exception as e:
         logging.error(f"Failed to fetch summoner data: {e}")
@@ -80,7 +78,7 @@ async def fetch_league_data(session: aiohttp.ClientSession, summoner_id: str, re
         league_url = f"https://{region.lower()}.api.riotgames.com/lol/league/v4/entries/by-summoner/{summoner_id}"
         data = await fetch_data(session, league_url, headers)
         if not data:
-            logging.info(f"No league data found for summoner ID {summoner_id} in region {region}.")
+            return None
         return data
     except Exception as e:
         logging.error(f"Failed to fetch league data: {e}")
@@ -91,7 +89,7 @@ async def fetch_live_game(session: aiohttp.ClientSession, puuid: str, region: st
         live_game_url = f"https://{region.lower()}.api.riotgames.com/lol/spectator/v5/active-games/by-summoner/{puuid}"
         data = await fetch_data(session, live_game_url, headers)
         if not data:
-            logging.info(f"No live game data found for PUUID {puuid} in region {region}.")
+            return None
         return data
     except Exception as e:
         logging.error(f"Failed to fetch live game data: {e}")
@@ -114,7 +112,6 @@ async def league(interaction: discord.Interaction, region: REGIONS, riotid: str)
     try:
         await interaction.response.defer()
         if "#" not in riotid:
-            logging.info("User provided Riot ID without '#' separator.")
             await send_error_embed(
                 interaction,
                 "Invalid Riot ID",
@@ -143,7 +140,6 @@ async def league(interaction: discord.Interaction, region: REGIONS, riotid: str)
             puuid = account_data.get('puuid') if account_data else None
 
             if not puuid:
-                logging.info(f"Failed to retrieve PUUID for {riotid}. Possibly invalid or no account found.")
                 await send_error_embed(
                     interaction,
                     "Account Not Found",
@@ -156,7 +152,6 @@ async def league(interaction: discord.Interaction, region: REGIONS, riotid: str)
 
             summoner_data = await fetch_summoner_data(session, puuid, region, headers)
             if not summoner_data:
-                logging.info(f"Summoner data not found for PUUID {puuid} in region {region}.")
                 await send_error_embed(
                     interaction,
                     "No Data Found",
@@ -213,21 +208,8 @@ async def league(interaction: discord.Interaction, region: REGIONS, riotid: str)
                 interaction.client, embed, puuid, region,
                 headers, game_name, tag_line
             )
-            
-            # ------------------------------------------------------
-            # Create the Promotional Embed
-            # ------------------------------------------------------
-            promo_embed = discord.Embed(
-                description="There are currently some ongoing issues regarding the Riot API and you may find you are unable to update your profile. Sorry for any inconvenience caused",
-                color=discord.Color.blue(),  # Customize the color as desired
-                timestamp=datetime.datetime.now(datetime.timezone.utc)
-            )
-            promo_embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
 
-            # ------------------------------------------------------
-            # Send Both Embeds Together
-            # ------------------------------------------------------
-            await interaction.followup.send(embeds=[embed, promo_embed], view=view)
+            await interaction.followup.send(embed=embed, view=view)
 
     except aiohttp.ClientError as e:
         logging.error(f"Request Error: {e}")
@@ -309,7 +291,6 @@ async def update_live_game_view(
 ):
     live_game_data = await fetch_live_game(session, puuid, region, headers)
     if not live_game_data or 'status' in live_game_data:
-        logging.info("No live game found or error in live game data response.")
         no_game_embed = discord.Embed(
             title="No Live Game Found",
             description=(
@@ -325,14 +306,13 @@ async def update_live_game_view(
 
     game_id = live_game_data['gameId']
     if last_game_ids[puuid] == game_id:
-        logging.info("User attempted to fetch the same live game data again.")
         await interaction.followup.send(
             "No new game data since the last fetch. You may still be in the same game.",
             ephemeral=True
         )
     else:
         last_game_ids[puuid] = game_id
-        await process_game_data(interaction, embed, live_game_data, puuid, region, headers, session)
+        await process_game_data(interaction, embed, live_game_data, region, headers, session)
 
     last_fetch_times[puuid] = datetime.datetime.utcnow()
 
@@ -340,7 +320,6 @@ async def process_game_data(
     interaction: discord.Interaction,
     embed: discord.Embed,
     live_game_data: dict,
-    puuid: str,
     region: str,
     headers: dict,
     session: aiohttp.ClientSession
@@ -422,7 +401,6 @@ async def get_player_rank(session: aiohttp.ClientSession, puuid: str, region: st
     try:
         summoner_data = await fetch_summoner_data(session, puuid, region, headers)
         if not summoner_data:
-            logging.info(f"No summoner data returned when attempting to get rank for PUUID {puuid}.")
             return "Unranked"
 
         summoner_id = summoner_data.get('id')

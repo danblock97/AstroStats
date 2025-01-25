@@ -1,9 +1,10 @@
 import os
 import logging
 import datetime
-from typing import Literal
+from typing import Literal, Optional
 
 import discord
+from discord import app_commands
 import requests
 
 logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -119,19 +120,13 @@ async def tft(interaction: discord.Interaction, region: REGIONS, riotid: str):
         embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
 
         # ------------------------------------------------------
-        # Create the Promotional Embed
+        # Removed the Promotional Embed
         # ------------------------------------------------------
-        promo_embed = discord.Embed(
-            description="⭐ **New:** Squib Games Has Arrived to AstroStats! Check out `/help` for more information!",
-            color=discord.Color.blue(),  # Customize the color as desired
-            timestamp=datetime.datetime.now(datetime.timezone.utc)
-        )
-        promo_embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
 
         # ------------------------------------------------------
-        # Send Both Embeds Together
+        # Send Only the Main Embed
         # ------------------------------------------------------
-        await interaction.followup.send(embeds=[embed, promo_embed])
+        await interaction.followup.send(embed=embed)
 
     except requests.exceptions.HTTPError as e:
         if e.response is not None and e.response.status_code == 404:
