@@ -3,11 +3,10 @@ from discord import app_commands
 from utils.embeds import get_conditional_embed  # Ensure correct import path
 
 LATEST_UPDATES = (
-    "**Version 1.6.3**:\n"
+    "**Version 1.7.0**:\n"
     "**🎮 Main Update**\n\n"
-    "- **League of Legends**\n"
-    "  - Fixed an issue where Twisted Fate was not showing as a champion icon in the Live Game embed."
-    "  - Mel has now been added to AstroStats so will now show in the live game embed."
+    "- **All Commands**\n"
+    "  - Added some conditional embeds to show some extra information when there are known issues.\n"
 )
 
 async def show_update(interaction: discord.Interaction):
