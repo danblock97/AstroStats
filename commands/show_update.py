@@ -1,12 +1,13 @@
 import discord
-from discord import app_commands
-from utils.embeds import get_conditional_embed  # Ensure correct import path
+from utils.embeds import get_conditional_embed
 
 LATEST_UPDATES = (
-    "**Version 1.7.0**:\n"
+    "**Version 1.7.1**:\n"
     "**🎮 Main Update**\n\n"
-    "- **All Commands**\n"
-    "  - Added some conditional embeds to show some extra information when there are known issues.\n"
+    "- **Pet Battles**\n"
+    "  - Pet Battles has been refactored to improve performance.\n"
+    "- **Squib Games**\n"
+    "  - Slight improvements made to Squib Games to improve suspense and server related users.\n"
 )
 
 async def show_update(interaction: discord.Interaction):
