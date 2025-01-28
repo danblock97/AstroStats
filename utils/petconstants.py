@@ -30,3 +30,40 @@ ACHIEVEMENTS = [
     {"id": 4, "description": "Land 50 critical hits", "progress_required": 50, "xp_reward": 2200},
     {"id": 5, "description": "Land 25 lucky hits", "progress_required": 25, "xp_reward": 1800}
 ]
+
+# Basic pet stats that every new pet starts with
+INITIAL_STATS = {
+    "level": 1,
+    "xp": 0,
+    "strength": 10,
+    "defense": 10,
+    "health": 100
+}
+
+# How much, stats increase when a pet levels up
+LEVEL_UP_INCREASES = {
+    "strength": 5,
+    "defense": 5,
+    "health": 20
+}
+
+# The list of available pet icons (by pet name)
+PET_LIST = {
+    "lion": "https://raw.githubusercontent.com/danblock97/astrostats/main/images/lion.png",
+    "dog": "https://raw.githubusercontent.com/danblock97/astrostats/main/images/dog.png",
+    "cat": "https://raw.githubusercontent.com/danblock97/astrostats/main/images/cat.png",
+    "tiger": "https://raw.githubusercontent.com/danblock97/astrostats/main/images/tiger.png",
+    "rhino": "https://raw.githubusercontent.com/danblock97/astrostats/main/images/rhino.png",
+    "panda": "https://raw.githubusercontent.com/danblock97/astrostats/main/images/panda.png",
+    "red panda": "https://raw.githubusercontent.com/danblock97/astrostats/main/images/red_panda.png",
+    "fox": "https://raw.githubusercontent.com/danblock97/astrostats/main/images/fox.png"
+}
+
+# A small color palette for random embed colors
+COLOR_LIST = {
+    "red": 0xFF0000,
+    "green": 0x00FF00,
+    "blue": 0x0000FF,
+    "yellow": 0xFFFF00,
+    "purple": 0x800080
+}

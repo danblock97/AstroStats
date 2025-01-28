@@ -1,6 +1,7 @@
 import os
 import random
 import asyncio
+import logging
 from datetime import datetime, timedelta, timezone, time as dtime
 
 import discord
@@ -9,10 +10,20 @@ from discord import app_commands
 from pymongo import MongoClient
 import topgg
 
-from quests_and_achievements import DAILY_QUESTS, ACHIEVEMENTS
 from utils.embeds import get_conditional_embed
 
-import logging
+from utils.petconstants import (
+    INITIAL_STATS,
+    DAILY_QUESTS,
+    ACHIEVEMENTS,
+    PET_LIST,
+    COLOR_LIST
+)
+from utils.petstats import (
+    calculate_xp_needed,
+    check_level_up,
+    create_xp_bar
+)
 
 logging.basicConfig(
     level=logging.ERROR,
@@ -28,62 +39,6 @@ mongo_client = MongoClient(os.getenv('MONGODB_URI'))
 db = mongo_client['pet_database']
 pets_collection = db['pets']
 battle_logs_collection = db['battle_logs']
-
-INITIAL_STATS = {
-    "level": 1,
-    "xp": 0,
-    "strength": 10,
-    "defense": 10,
-    "health": 100
-}
-
-LEVEL_UP_INCREASES = {
-    "strength": 5,
-    "defense": 5,
-    "health": 20
-}
-
-PET_LIST = {
-    "lion": "https://raw.githubusercontent.com/danblock97/astrostats/main/images/lion.png",
-    "dog": "https://raw.githubusercontent.com/danblock97/astrostats/main/images/dog.png",
-    "cat": "https://raw.githubusercontent.com/danblock97/astrostats/main/images/cat.png",
-    "tiger": "https://raw.githubusercontent.com/danblock97/astrostats/main/images/tiger.png",
-    "rhino": "https://raw.githubusercontent.com/danblock97/astrostats/main/images/rhino.png",
-    "panda": "https://raw.githubusercontent.com/danblock97/astrostats/main/images/panda.png",
-    "red panda": "https://raw.githubusercontent.com/danblock97/astrostats/main/images/red_panda.png",
-    "fox": "https://raw.githubusercontent.com/danblock97/astrostats/main/images/fox.png"
-}
-
-COLOR_LIST = {
-    "red": 0xFF0000,
-    "green": 0x00FF00,
-    "blue": 0x0000FF,
-    "yellow": 0xFFFF00,
-    "purple": 0x800080
-}
-
-def calculate_xp_needed(level: int) -> int:
-    return level ** 2 * 100
-
-def check_level_up(pet: dict):
-    leveled_up = False
-    while True:
-        xp_needed = calculate_xp_needed(pet['level'])
-        if pet['xp'] >= xp_needed:
-            pet['level'] += 1
-            pet['xp'] -= xp_needed
-            pet['strength'] += LEVEL_UP_INCREASES["strength"]
-            pet['defense'] += LEVEL_UP_INCREASES["defense"]
-            pet['health'] += LEVEL_UP_INCREASES["health"]
-            leveled_up = True
-        else:
-            break
-    return pet, leveled_up
-
-def create_xp_bar(current: int, total: int) -> str:
-    total_blocks = 10
-    filled_blocks = int((current / total) * total_blocks)
-    return "█" * filled_blocks + "░" * (total_blocks - filled_blocks)
 
 def assign_daily_quests(pet: dict) -> dict:
     random_daily_quests = random.sample(DAILY_QUESTS, 3)
@@ -387,12 +342,13 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             user_pet = ensure_quests_and_achievements(user_pet)
             opponent_pet = ensure_quests_and_achievements(opponent_pet)
 
+            # Enforce the level difference limit
             if (opponent_pet['level'] > user_pet['level'] + 1
                     or opponent_pet['level'] < user_pet['level'] - 1):
                 embed = discord.Embed(
                     title="Battle Error",
                     description=(
-                        "You can only battle someone with a pet that is at most one level above or below yours."
+                        "You can only battle a pet that is at most one level above or below yours."
                     ),
                     color=discord.Color.red()
                 )
@@ -408,6 +364,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                 "timestamp": {"$gte": start_of_day}
             })
 
+            # Limit how many times these two can battle each other per day
             if recent_battles >= 5:
                 embed = discord.Embed(
                     title="Battle Limit Reached",
@@ -473,6 +430,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             battle_embed.set_image(url=opponent_pet['icon'])
             message = await interaction.followup.send(embed=battle_embed)
 
+            # Inner function to calculate damage
             def calculate_damage(attacker: dict, defender: dict):
                 attack_multiplier = random.randint(8, 15) / 10
                 defense_multiplier = random.randint(8, 15) / 10
@@ -482,14 +440,19 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                     - (defender['defense'] * defense_multiplier)
                     * (random.randint(3, 10) / 10)
                 )
+                # Minimum damage for each hit
                 base_damage = max(5, base_damage)
+
+                # Increased crit chance if attacker is lower level
                 crit_chance = 15 + (10 if attacker['level'] < defender['level'] else 0)
                 critical_hit = random.randint(1, 100) <= crit_chance
+
                 if critical_hit:
                     crit_multiplier = random.randint(15, 30) / 10
                     base_damage = int(base_damage * crit_multiplier)
 
-                if random.randint(1, 10) == 1:  # 10% chance
+                # 10% "lucky hit" chance for extra flat damage
+                if random.randint(1, 10) == 1:
                     luck_damage = random.randint(15, 50)
                     base_damage += luck_damage
                     return base_damage, critical_hit, "luck"
@@ -498,6 +461,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
 
             round_number = 1
             battle_result = ""
+
             while user_health > 0 and opponent_health > 0:
                 round_log = f"**Round {round_number}**\n"
                 user_damage, user_crit, user_event = calculate_damage(user_pet, opponent_pet)
@@ -521,6 +485,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                         f"{interaction.user.display_name}'s pet attacks for {user_damage} damage.\n"
                     )
 
+                # Check if opponent is defeated
                 if opponent_health <= 0:
                     round_log += f"{opponent.display_name}'s pet has been defeated!\n"
                     battle_result = f"{interaction.user.display_name}'s pet wins the battle!"
@@ -557,6 +522,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                         f"{opponent.display_name}'s pet attacks for {opponent_damage} damage.\n"
                     )
 
+                # Check if user is defeated
                 if user_health <= 0:
                     round_log += f"{interaction.user.display_name}'s pet has been defeated!\n"
                     battle_result = f"{opponent.display_name}'s pet wins the battle!"
@@ -581,6 +547,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                 await asyncio.sleep(2)
                 round_number += 1
 
+            # Update killstreaks/loss streaks
             if user_health > 0:
                 user_pet['killstreak'] = user_pet.get('killstreak', 0) + 1
                 user_pet['loss_streak'] = 0
@@ -595,6 +562,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             user_battle_stats['killstreak'] = user_pet.get('killstreak', 0)
             opponent_battle_stats['killstreak'] = opponent_pet.get('killstreak', 0)
 
+            # Update quests/achievements
             completed_quests_user, completed_achievements_user = update_quests_and_achievements(
                 user_pet, user_battle_stats
             )
@@ -602,6 +570,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                 opponent_pet, opponent_battle_stats
             )
 
+            # Check for level-ups
             user_pet, user_leveled_up = check_level_up(user_pet)
             opponent_pet, opponent_leveled_up = check_level_up(opponent_pet)
 
@@ -617,6 +586,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                 f"**{opponent_battle_stats['xp_earned']} XP**\n"
             )
 
+            # Add quest/achievement completion info
             if completed_quests_user or completed_achievements_user:
                 completion_message = ""
                 for quest in completed_quests_user:
@@ -631,6 +601,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                     )
                 battle_embed.description += f"\n{completion_message}"
 
+            # Add level-up info
             if user_leveled_up or opponent_leveled_up:
                 level_up_message = ""
                 if user_leveled_up:
@@ -645,11 +616,13 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                     )
                 battle_embed.description += f"\n{level_up_message}"
 
+            # Final embed thumbnail
             if user_health > 0:
                 battle_embed.set_thumbnail(url=user_pet['icon'])
             else:
                 battle_embed.set_thumbnail(url=opponent_pet['icon'])
 
+            # If you have a conditional embed
             conditional_embed = await get_conditional_embed(interaction, 'PET_COMMANDS_EMBED', discord.Color.orange())
             embeds = [battle_embed]
             if conditional_embed:
@@ -667,7 +640,6 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             try:
                 await interaction.followup.send(embed=embed)
             except discord.errors.InteractionResponded:
-                # If the interaction has already been responded to, use followup
                 await message.edit(embed=embed)
             except Exception as inner_e:
                 logger.error(f"Failed to send error message: {inner_e}")
@@ -893,11 +865,6 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                 color=discord.Color.red()
             )
             await interaction.response.send_message(embed=embed)
-
-    async def cog_unload(self):
-        self.reset_daily_quests.cancel()
-        if self.topgg_client:
-            await self.topgg_client.close()
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(PetBattles(bot))
