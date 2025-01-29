@@ -212,7 +212,7 @@ async def horoscope(interaction: discord.Interaction, sign: SignLiteral):
                         inline=False
                     )
                     await button_interaction.followup.send(embed=edit_error_embed, ephemeral=True)
-                    await button_interaction.followup.send(embed=updated_embed, ephemeral=True)
+                    await button_interaction.followup.send(embed=updated_embed)
                 except Exception as e:
                     logger.error(f"Error editing message for /horoscope star rating: {e}", exc_info=True)
                     unexpected_error_embed = discord.Embed(

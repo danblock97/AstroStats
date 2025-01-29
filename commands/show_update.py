@@ -8,6 +8,8 @@ LATEST_UPDATES = (
     "  - Pet Battles has been refactored to improve performance.\n"
     "- **Squib Games**\n"
     "  - Slight improvements made to Squib Games to improve suspense and server related users.\n"
+    "- **Horoscope**\n"
+    "  - Fixed an Unknown interaction error in /horoscope\n"
 )
 
 async def show_update(interaction: discord.Interaction):
