@@ -9,7 +9,7 @@ LATEST_UPDATES = (
     "- **Squib Games**\n"
     "  - Slight improvements made to Squib Games to improve suspense and server related users.\n"
     "- **Horoscope**\n"
-    "  - Fixed an Unknown interaction error in /horoscope\n"
+    "  - Removed the need to manually fetch a star rating to avoid interaction issues.\n"
 )
 
 async def show_update(interaction: discord.Interaction):

@@ -155,104 +155,18 @@ async def horoscope(interaction: discord.Interaction, sign: SignLiteral):
 
         embed = build_horoscope_embed(given_sign, text)
 
-        view = discord.ui.View()
-        button = discord.ui.Button(
-            label="Check Star Rating",
-            style=discord.ButtonStyle.primary,
-            custom_id=f"star_rating_{given_sign}"
-        )
-
-        async def button_callback(button_interaction: discord.Interaction):
-            permissions = button_interaction.channel.permissions_for(
-                button_interaction.guild.me
-            )
-            if not permissions.send_messages or not permissions.read_message_history:
-                perm_error_embed = discord.Embed(
-                    title="Permission Error",
-                    description=(
-                        "I lack the necessary permissions to send messages or read "
-                        "message history in this channel."
-                    ),
-                    color=discord.Color.red()
-                )
-                perm_error_embed.add_field(
-                    name="Need Help?",
-                    value=(
-                        "If you've set up correct permissions but the issue persists, "
-                        "[please report it here](https://github.com/danblock97/AstroStats/issues)."
-                    ),
-                    inline=False
-                )
-                await button_interaction.response.send_message(
-                    embed=perm_error_embed,
-                    ephemeral=True
-                )
-                return
-
-            await button_interaction.response.defer()
-            updated_embed = await fetch_star_rating(given_sign, embed)
-            if updated_embed:
-                button.disabled = True
-                button.label = "Star Rating Fetched"
-                try:
-                    await button_interaction.message.edit(embed=updated_embed, view=view)
-                except discord.Forbidden:
-                    logger.error("Bot is forbidden from editing the original message.", exc_info=True)
-                    edit_error_embed = discord.Embed(
-                        title="Permission Error",
-                        description="I couldn't edit the original message due to missing permissions.",
-                        color=discord.Color.red()
-                    )
-                    edit_error_embed.add_field(
-                        name="Need Help?",
-                        value=(
-                            "If you've set up correct permissions but the issue persists, "
-                            "[please report it here](https://github.com/danblock97/AstroStats/issues)."
-                        ),
-                        inline=False
-                    )
-                    await button_interaction.followup.send(embed=edit_error_embed, ephemeral=True)
-                    await button_interaction.followup.send(embed=updated_embed)
-                except Exception as e:
-                    logger.error(f"Error editing message for /horoscope star rating: {e}", exc_info=True)
-                    unexpected_error_embed = discord.Embed(
-                        title="Unexpected Error",
-                        description="An unexpected error occurred while updating the horoscope.",
-                        color=discord.Color.red()
-                    )
-                    unexpected_error_embed.add_field(
-                        name="Need Help?",
-                        value=(
-                            "If you've set up correct permissions but the issue persists, "
-                            "[please report it here](https://github.com/danblock97/AstroStats/issues)."
-                        ),
-                        inline=False
-                    )
-                    await button_interaction.followup.send(embed=unexpected_error_embed, ephemeral=True)
-            else:
-                data_error_embed = discord.Embed(
-                    title="Data Retrieval Error",
-                    description="Sorry, I couldn't retrieve the star rating at the moment. Please try again later.",
-                    color=discord.Color.red()
-                )
-                data_error_embed.add_field(
-                    name="Need Help?",
-                    value=(
-                        "If the issue persists, "
-                        "[please report it here](https://github.com/danblock97/AstroStats/issues)."
-                    ),
-                    inline=False
-                )
-                await button_interaction.followup.send(embed=data_error_embed, ephemeral=True)
-
-        button.callback = button_callback
-        view.add_item(button)
+        # Fetch and attach star rating immediately
+        updated_embed = await fetch_star_rating(given_sign, embed)
+        if updated_embed:
+            embed = updated_embed
 
         conditional_embed = await get_conditional_embed(interaction, 'HOROSCOPE_EMBED', discord.Color.orange())
         embeds = [embed]
         if conditional_embed:
             embeds.append(conditional_embed)
-        await interaction.followup.send(embeds=embeds, view=view)
+
+        # Send final embed(s)
+        await interaction.followup.send(embeds=embeds)
     except Exception as e:
         logger.error(f"An error occurred in /horoscope command: {e}", exc_info=True)
         error_embed = discord.Embed(
