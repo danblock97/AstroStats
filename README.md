@@ -1,9 +1,10 @@
-### AstroStats v1.6.2
+### AstroStats v1.7.2
 
-## 🎮 Bug Fix
+## 🎮 Main Updates
 
-- **Resolved Pet Battles Response Error**:
-  - Fixed the issue where the bot would throw a 'Cannot mix embed and embeds' or 'InteractionResponded' error "
-    "during pet battles. The commands now properly handle embeds and follow-up messages.
+- **League of Legends**:
+  - League commands have been grouped via /league for profile and match history.
+  - The Live Game button has been removed in place for direct checking upon calling /league profile
+  - The new /league championmastery command will show your top 10 most played champions!
 
 Thank you for using AstroStats! We’re excited for the new season and will continue to bring you the best Discord Bot experience.

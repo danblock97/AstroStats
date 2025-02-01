@@ -17,7 +17,7 @@ def build_help_embed(guild_count: int) -> discord.Embed:
             "**Apex Legends Lifetime Stats**\n"
             "`/apex <platform> <username>`\n\n"
             "**LoL Player Stats**\n"
-            "`/league <Summoner#0001>`\n\n"
+            "`/league profile`, `/league championmastery`\n\n"
             "**TFT Player Stats**\n"
             "`/tft <Summoner#0001>`\n\n"
             "**Fortnite Player Stats**\n"
