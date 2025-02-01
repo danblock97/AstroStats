@@ -2,14 +2,12 @@ import discord
 from utils.embeds import get_conditional_embed
 
 LATEST_UPDATES = (
-    "**Version 1.7.1**:\n"
+    "**Version 1.7.2**:\n"
     "**🎮 Main Update**\n\n"
-    "- **Pet Battles**\n"
-    "  - Pet Battles has been refactored to improve performance.\n"
-    "- **Squib Games**\n"
-    "  - Slight improvements made to Squib Games to improve suspense and server related users.\n"
-    "- **Horoscope**\n"
-    "  - Removed the need to manually fetch a star rating to avoid interaction issues.\n"
+    "- **League of Legends**\n"
+    "  - League commands have been grouped via /league for profile and match history\n"
+    "  - The Live Game button has been removed in place for direct checking upon calling /league profile\n"
+    "  - The new /league championmastery command will show your top 10 most played champions!\n"
 )
 
 async def show_update(interaction: discord.Interaction):
