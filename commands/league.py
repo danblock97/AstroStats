@@ -25,8 +25,6 @@ QUEUE_TYPE_NAMES = {
     "CHERRY": "Arena"
 }
 
-last_fetch_times = defaultdict(lambda: datetime.datetime.min)
-last_game_ids = defaultdict(lambda: None)
 account_data_cache = {}
 CACHE_EXPIRY_SECONDS = 300
 emojis = {}
@@ -46,6 +44,7 @@ SPECIAL_EMOJI_NAMES = {
     "Twisted Fate": "TwistedFate",
 }
 
+
 async def fetch_data(session: aiohttp.ClientSession, url: str, headers=None) -> dict:
     try:
         async with session.get(url, headers=headers) as response:
@@ -64,6 +63,7 @@ async def fetch_data(session: aiohttp.ClientSession, url: str, headers=None) -> 
         logging.error(f"Exception during fetch_data: {e}")
         return None
 
+
 async def fetch_summoner_data(session: aiohttp.ClientSession, puuid: str, region: str, headers: dict) -> dict:
     try:
         summoner_url = f"https://{region.lower()}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/{puuid}"
@@ -74,6 +74,7 @@ async def fetch_summoner_data(session: aiohttp.ClientSession, puuid: str, region
     except Exception as e:
         logging.error(f"Failed to fetch summoner data: {e}")
         return None
+
 
 async def fetch_league_data(session: aiohttp.ClientSession, summoner_id: str, region: str, headers: dict) -> dict:
     try:
@@ -86,6 +87,7 @@ async def fetch_league_data(session: aiohttp.ClientSession, summoner_id: str, re
         logging.error(f"Failed to fetch league data: {e}")
         return None
 
+
 async def fetch_live_game(session: aiohttp.ClientSession, puuid: str, region: str, headers: dict) -> dict:
     try:
         live_game_url = f"https://{region.lower()}.api.riotgames.com/lol/spectator/v5/active-games/by-summoner/{puuid}"
@@ -96,6 +98,7 @@ async def fetch_live_game(session: aiohttp.ClientSession, puuid: str, region: st
     except Exception as e:
         logging.error(f"Failed to fetch live game data: {e}")
         return None
+
 
 async def send_error_embed(interaction: discord.Interaction, title: str, description: str):
     embed = discord.Embed(
@@ -108,6 +111,7 @@ async def send_error_embed(interaction: discord.Interaction, title: str, descrip
         timestamp=datetime.datetime.now(datetime.timezone.utc)
     )
     await interaction.followup.send(embed=embed)
+
 
 @discord.app_commands.command(name="league", description="Check your League of Legends Player Stats")
 async def league(interaction: discord.Interaction, region: REGIONS, riotid: str):
@@ -168,7 +172,8 @@ async def league(interaction: discord.Interaction, region: REGIONS, riotid: str)
             league_data = await fetch_league_data(session, summoner_data['id'], region, headers)
             embed = discord.Embed(
                 title=f"{game_name}#{tag_line} - Level {summoner_data['summonerLevel']}",
-                color=0x1a78ae
+                color=0x1a78ae,
+                url=f"https://www.clutchgg.lol/profile?gameName={game_name}&tagLine={tag_line}&region={region}"
             )
             embed.set_thumbnail(
                 url=(
@@ -198,6 +203,11 @@ async def league(interaction: discord.Interaction, region: REGIONS, riotid: str)
             else:
                 embed.add_field(name="Rank", value="Unranked", inline=False)
 
+            # Check for live game data and, if available, add it to the embed.
+            live_game_data = await fetch_live_game(session, puuid, region, headers)
+            if live_game_data and 'status' not in live_game_data:
+                await add_live_game_data_to_embed(embed, live_game_data, region, headers, session)
+
             embed.add_field(
                 name="Support Us ❤️",
                 value="[If you enjoy using this bot, consider supporting us!](https://buymeacoffee.com/danblock97)",
@@ -206,17 +216,12 @@ async def league(interaction: discord.Interaction, region: REGIONS, riotid: str)
             embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
             embed.set_footer(text="Built By Goldiez ❤️ Visit clutchgg.lol for more!")
 
-            view = create_live_game_view(
-                interaction.client, embed, puuid, region,
-                headers, game_name, tag_line
-            )
-
             conditional_embed = await get_conditional_embed(interaction, 'LEAGUE_EMBED', discord.Color.orange())
             embeds = [embed]
             if conditional_embed:
                 embeds.append(conditional_embed)
 
-            await interaction.followup.send(embeds=embeds, view=view)
+            await interaction.followup.send(embeds=embeds)
 
     except aiohttp.ClientError as e:
         logging.error(f"Request Error: {e}")
@@ -246,130 +251,63 @@ async def league(interaction: discord.Interaction, region: REGIONS, riotid: str)
             )
         )
 
-def create_live_game_view(client, embed, puuid, region, headers, game_name, tag_line):
-    view = discord.ui.View()
-    live_game_button = discord.ui.Button(label="Live Game", style=discord.ButtonStyle.primary)
 
-    async def live_game_callback(button_interaction: discord.Interaction):
-        try:
-            live_game_button.label = "Fetching..."
-            live_game_button.disabled = True
-            await button_interaction.response.edit_message(view=view)
+async def add_live_game_data_to_embed(embed: discord.Embed, live_game_data: dict, region: str, headers: dict, session: aiohttp.ClientSession):
+    """
+    Processes live game data and appends live game information to the provided embed.
+    """
+    try:
+        tasks = []
+        for player in live_game_data.get('participants', []):
+            tasks.append(fetch_participant_data(player, region, headers, session))
 
-            async with aiohttp.ClientSession() as session:
-                await update_live_game_view(
-                    button_interaction, embed, puuid, region, headers,
-                    live_game_button, game_name, tag_line, view, session
-                )
-        except aiohttp.ClientError as e:
-            logging.error(f"Error fetching live game data: {e}")
-            await send_error_embed(
-                button_interaction,
-                "Live Game Error",
-                "Unable to fetch live game data. Please check again or try re-searching your account."
-            )
-        except Exception as e:
-            logging.error(f"Unexpected Error in live_game_callback: {e}")
-            await send_error_embed(
-                button_interaction,
-                "Live Game Error",
-                "An unexpected error occurred while trying to fetch the live game."
-            )
-        finally:
-            live_game_button.disabled = False
-            live_game_button.label = "Live Game"
-            await button_interaction.edit_original_response(view=view)
+        participants_data = await asyncio.gather(*tasks)
+        blue_team = []
+        red_team = []
+        for player_data, team_id in participants_data:
+            if team_id == 100:
+                blue_team.append(player_data)
+            else:
+                red_team.append(player_data)
 
-    live_game_button.callback = live_game_callback
-    view.add_item(live_game_button)
-    return view
+        # Add a divider field for Live Game Info
+        embed.add_field(name="\u200b", value="**Currently In Game**", inline=False)
 
-async def update_live_game_view(
-    interaction: discord.Interaction,
-    embed: discord.Embed,
-    puuid: str,
-    region: str,
-    headers: dict,
-    live_game_button: discord.ui.Button,
-    game_name: str,
-    tag_line: str,
-    view: discord.ui.View,
-    session: aiohttp.ClientSession
-):
-    live_game_data = await fetch_live_game(session, puuid, region, headers)
-    if not live_game_data or 'status' in live_game_data:
-        no_game_embed = discord.Embed(
-            title="No Live Game Found",
-            description=(
-                "It seems you're not in a live game. Make sure you're in champion select or loading. "
-                "Try searching again if you believe you should have a live match. "
-                "You may also need to re-run the /league command if your account data is stale."
-            ),
-            color=discord.Color.orange(),
-            timestamp=datetime.datetime.now(datetime.timezone.utc)
-        )
-        await interaction.followup.send(embed=no_game_embed)
-        return
-
-    game_id = live_game_data['gameId']
-    if last_game_ids[puuid] == game_id:
-        await interaction.followup.send(
-            "No new game data since the last fetch. You may still be in the same game.",
-            ephemeral=True
-        )
-    else:
-        last_game_ids[puuid] = game_id
-        await process_game_data(interaction, embed, live_game_data, region, headers, session)
-
-    last_fetch_times[puuid] = datetime.datetime.utcnow()
-
-async def process_game_data(
-    interaction: discord.Interaction,
-    embed: discord.Embed,
-    live_game_data: dict,
-    region: str,
-    headers: dict,
-    session: aiohttp.ClientSession
-):
-    blue_team = []
-    red_team = []
-    tasks = []
-    for player in live_game_data['participants']:
-        tasks.append(fetch_participant_data(player, region, headers, session))
-
-    participants_data = await asyncio.gather(*tasks)
-    for player_data, team_id in participants_data:
-        if team_id == 100:
-            blue_team.append(player_data)
+        # Instead of displaying the game ID, show the game mode.
+        # If available, use the queue configuration ID to display a human-readable name.
+        queue_config_id = live_game_data.get("gameQueueConfigId")
+        if queue_config_id:
+            game_mode_name = {
+                420: "Ranked Solo/Duo",
+                440: "Ranked Flex 5v5",
+                450: "ARAM",
+            }.get(queue_config_id, f"Queue ID {queue_config_id}")
         else:
-            red_team.append(player_data)
+            game_mode_name = live_game_data.get("gameMode", "Unknown")
+        embed.add_field(name="Game Mode", value=game_mode_name, inline=False)
 
-    embed.clear_fields()
-    embed.title = f"Live Game Info (ID: {live_game_data['gameId']})"
+        blue_team_champions = '\n'.join([
+            f"{await get_emoji_for_champion(p['champion_name'])} {p['champion_name']}" for p in blue_team
+        ]) or "No data"
+        blue_team_names = '\n'.join([p['summoner_name'] for p in blue_team]) or "No data"
+        blue_team_ranks = '\n'.join([p['rank'] for p in blue_team]) or "No data"
 
-    blue_team_champions = '\n'.join([
-        f"{await get_emoji_for_champion(p['champion_name'])} {p['champion_name']}" for p in blue_team
-    ])
-    blue_team_names = '\n'.join([p['summoner_name'] for p in blue_team])
-    blue_team_ranks = '\n'.join([p['rank'] for p in blue_team])
+        red_team_champions = '\n'.join([
+            f"{await get_emoji_for_champion(p['champion_name'])} {p['champion_name']}" for p in red_team
+        ]) or "No data"
+        red_team_names = '\n'.join([p['summoner_name'] for p in red_team]) or "No data"
+        red_team_ranks = '\n'.join([p['rank'] for p in red_team]) or "No data"
 
-    red_team_champions = '\n'.join([
-        f"{await get_emoji_for_champion(p['champion_name'])} {p['champion_name']}" for p in red_team
-    ])
-    red_team_names = '\n'.join([p['summoner_name'] for p in red_team])
-    red_team_ranks = '\n'.join([p['rank'] for p in red_team])
+        embed.add_field(name="Blue Team Champions", value=blue_team_champions, inline=True)
+        embed.add_field(name="Blue Team Names", value=blue_team_names, inline=True)
+        embed.add_field(name="Blue Team Ranks", value=blue_team_ranks, inline=True)
 
-    embed.add_field(name="Blue Team", value=blue_team_champions or "No data", inline=True)
-    embed.add_field(name="Summoner Names", value=blue_team_names or "No data", inline=True)
-    embed.add_field(name="Rank", value=blue_team_ranks or "No data", inline=True)
+        embed.add_field(name="Red Team Champions", value=red_team_champions, inline=True)
+        embed.add_field(name="Red Team Names", value=red_team_names, inline=True)
+        embed.add_field(name="Red Team Ranks", value=red_team_ranks, inline=True)
+    except Exception as e:
+        logging.error(f"Error adding live game data to embed: {e}")
 
-    embed.add_field(name="Red Team", value=red_team_champions or "No data", inline=True)
-    embed.add_field(name="Summoner Names", value=red_team_names or "No data", inline=True)
-    embed.add_field(name="Rank", value=red_team_ranks or "No data", inline=True)
-
-    embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
-    embed.set_footer(text="Live Game Data - Provided by AstroStats")
-    await interaction.followup.send(embed=embed)
 
 async def fetch_participant_data(player, region, headers, session):
     try:
@@ -402,7 +340,8 @@ async def fetch_participant_data(player, region, headers, session):
         return {'summoner_name': summoner_name, 'champion_name': champion_name, 'rank': rank}, team_id
     except Exception as e:
         logging.error(f"Error fetching participant data: {e}")
-        return {'summoner_name': 'Unknown', 'champion_name': 'Unknown', 'rank': 'Unranked'}, player['teamId']
+        return {'summoner_name': 'Unknown', 'champion_name': 'Unknown', 'rank': 'Unranked'}, player.get('teamId', 0)
+
 
 async def get_player_rank(session: aiohttp.ClientSession, puuid: str, region: str, headers: dict) -> str:
     try:
@@ -426,6 +365,7 @@ async def get_player_rank(session: aiohttp.ClientSession, puuid: str, region: st
         logging.error(f"Error getting player rank: {e}")
         return "Unranked"
 
+
 async def fetch_champion_name(session: aiohttp.ClientSession, champion_id: int) -> str:
     try:
         versions_url = "https://ddragon.leagueoflegends.com/api/versions.json"
@@ -442,6 +382,7 @@ async def fetch_champion_name(session: aiohttp.ClientSession, champion_id: int) 
         logging.error(f"Error fetching champion name for ID {champion_id}: {e}")
     return "Unknown"
 
+
 async def get_emoji_for_champion(champion_name: str) -> str:
     global emojis
     if not emojis:
@@ -456,6 +397,7 @@ async def get_emoji_for_champion(champion_name: str) -> str:
 
     normalized_champion_name = SPECIAL_EMOJI_NAMES.get(champion_name, champion_name)
     return emojis.get(normalized_champion_name.lower(), "")
+
 
 async def fetch_application_emojis():
     application_id = os.getenv('DISCORD_APP_ID')
@@ -486,6 +428,7 @@ async def fetch_application_emojis():
     except Exception as e:
         logging.error(f"Exception fetching emojis: {e}")
         return None
+
 
 async def setup(client: discord.Client):
     client.tree.add_command(league)
