@@ -145,7 +145,7 @@ async def add_live_game_data_to_embed(embed: discord.Embed, live_game_data: dict
             }.get(queue_config_id, f"Queue ID {queue_config_id}")
         else:
             game_mode_name = live_game_data.get("gameMode", "Unknown")
-        embed.add_field(name="Game Mode", value=game_mode_name, inline=False)
+        embed.add_field(name=f"Game Mode: {game_mode_name}", inline=False)
     
         blue_team_champions = '\n'.join([
             f"{await get_emoji_for_champion(p['champion_name'])} {p['champion_name']}" for p in blue_team
