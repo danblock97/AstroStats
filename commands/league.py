@@ -514,7 +514,7 @@ class League(commands.GroupCog, group_name="league"):
                 if mastery_points != "N/A":
                     mastery_points = f"{mastery_points:,}"
     
-                    description_lines.append(
+                description_lines.append(
                     f"{emoji} **{champion_name}** - Level {mastery_level} - {mastery_points} pts"
                 )
 
