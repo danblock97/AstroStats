@@ -139,9 +139,15 @@ async def add_live_game_data_to_embed(embed: discord.Embed, live_game_data: dict
         queue_config_id = live_game_data.get("gameQueueConfigId")
         if queue_config_id:
             game_mode_name = {
+                400: "Normal Draft",
                 420: "Ranked Solo/Duo",
                 440: "Ranked Flex 5v5",
                 450: "ARAM",
+                700: "Clash",
+                830: "Co-op vs. AI Intro",
+                840: "Co-op vs. AI Beginner",
+                850: "Co-op vs. AI Intermediate",
+                900: "URF",
             }.get(queue_config_id, f"Queue ID {queue_config_id}")
         else:
             game_mode_name = live_game_data.get("gameMode", "Unknown")
