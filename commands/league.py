@@ -43,6 +43,11 @@ SPECIAL_EMOJI_NAMES = {
     "K'Sante": "KSante",
     "Kog'Maw": "KogMaw",
     "Twisted Fate": "TwistedFate",
+    "Dr. Mundo": "DrMundo",
+    "Rek'Sai": "RekSai",
+    "Kai'Sa": "KaiSa",
+    "Vel'Koz": "Velkoz",
+    "Kha'Zix": "Khazix",
 }
 
 
