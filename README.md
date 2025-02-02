@@ -1,10 +1,11 @@
-### AstroStats v1.7.2
+### AstroStats v1.7.3
 
 ## 🎮 Main Updates
 
 - **League of Legends**:
-  - League commands have been grouped via /league for profile and match history.
-  - The Live Game button has been removed in place for direct checking upon calling /league profile
-  - The new /league championmastery command will show your top 10 most played champions!
+  - Added Missing Champion Icons to Live Game View
+  - Added Missing Modes to Live Game View
+  - Improved the UI of the Live Game View
+  - Improved the UI of the Champion Mastery Command
 
 Thank you for using AstroStats! We’re excited for the new season and will continue to bring you the best Discord Bot experience.
