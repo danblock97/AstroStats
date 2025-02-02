@@ -511,12 +511,12 @@ class League(commands.GroupCog, group_name="league"):
                     mastery_points = mastery.get("championPoints", "N/A")
     
                 # If mastery_points is a number, format it with commas
-                if mastery_points != "N/A":
-                    mastery_points = f"{mastery_points:,}"
+                    if mastery_points != "N/A":
+                        mastery_points = f"{mastery_points:,}"
     
-                description_lines.append(
-                    f"{emoji} **{champion_name}** - Level {mastery_level} - {mastery_points} pts"
-                )
+                    description_lines.append(
+                        f"{emoji} **{champion_name}** - Level {mastery_level} - {mastery_points} pts"
+                    )
 
                 embed.description = "\n".join(description_lines)
                 embed.set_footer(text="Built By Goldiez ❤️ Visit clutchgg.lol for more!")
