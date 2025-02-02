@@ -2,12 +2,13 @@ import discord
 from utils.embeds import get_conditional_embed
 
 LATEST_UPDATES = (
-    "**Version 1.7.2**:\n"
+    "**Version 1.7.3**:\n"
     "**🎮 Main Update**\n\n"
     "- **League of Legends**\n"
-    "  - League commands have been grouped via /league for profile and match history\n"
-    "  - The Live Game button has been removed in place for direct checking upon calling /league profile\n"
-    "  - The new /league championmastery command will show your top 10 most played champions!\n"
+    "  - Added Missing Champion Icons to Live Game View\n"
+    "  - Added Missing Modes to Live Game View\n"
+    "  - Improved the UI of the Live Game View\n"
+    "  - Improved the UI of the Champion Mastery Command\n"
 )
 
 async def show_update(interaction: discord.Interaction):

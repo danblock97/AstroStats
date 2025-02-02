@@ -509,7 +509,15 @@ class League(commands.GroupCog, group_name="league"):
                     emoji = await get_emoji_for_champion(champion_name)
                     mastery_level = mastery.get("championLevel", "N/A")
                     mastery_points = mastery.get("championPoints", "N/A")
-                    description_lines.append(f"{emoji} **{champion_name}** - Level {mastery_level} - {mastery_points} pts")
+    
+                # If mastery_points is a number, format it with commas
+                if mastery_points != "N/A":
+                    mastery_points = f"{mastery_points:,}"
+    
+                    description_lines.append(
+                    f"{emoji} **{champion_name}** - Level {mastery_level} - {mastery_points} pts"
+                )
+
                 embed.description = "\n".join(description_lines)
                 embed.set_footer(text="Built By Goldiez ❤️ Visit clutchgg.lol for more!")
                 await interaction.followup.send(embed=embed)
