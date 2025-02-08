@@ -512,7 +512,7 @@ class League(commands.GroupCog, group_name="league"):
                         mastery_points = f"{mastery_points:,}"
     
                     description_lines.append(
-                        f"{emoji} **{champion_name}** - Level {mastery_level} - {mastery_points} pts"
+                        f"{emoji} **{champion_name}: Mastery {mastery_level} - {mastery_points} pts**"
                     )
 
                 embed.description = "\n".join(description_lines)
