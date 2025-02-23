@@ -217,15 +217,19 @@ async def get_player_rank(session: aiohttp.ClientSession, puuid: str, region: st
         summoner_data = await fetch_summoner_data(session, puuid, region, headers)
         if not summoner_data:
             return "Unranked"
-    
+
         summoner_id = summoner_data.get('id')
         league_data = await fetch_league_data(session, summoner_id, region, headers)
-        if not league_data:
+        if not isinstance(league_data, list):
             return "Unranked"
-    
+
         for entry in league_data:
-            if entry['queueType'] == 'RANKED_SOLO_5x5':
-                tier = entry.get('tier', 'Unranked').capitalize()
+            if isinstance(entry, dict) and entry.get('queueType') == 'RANKED_SOLO_5x5':
+                tier = entry.get('tier') or "Unranked"
+                if isinstance(tier, str):
+                    tier = tier.capitalize()
+                else:
+                    tier = "Unranked"
                 rank = entry.get('rank', '').upper()
                 lp = entry.get('leaguePoints', 0)
                 return f"{tier} {rank} {lp} LP"
