@@ -153,7 +153,7 @@ async def setup_commands():
     await squib_game_commands.setup(client)
 
 
-@tasks.loop(minutes=60)
+@tasks.loop(minutes=1)
 async def poll_jira():
     global processed_issues
     auth = aiohttp.BasicAuth(JIRA_EMAIL, JIRA_API_TOKEN)
@@ -175,6 +175,19 @@ async def poll_jira():
             for issue in issues:
                 issue_key = issue.get("key")
                 new_embed, new_snapshot, attachment_file = build_embed(issue)
+                # Check if the issue status is Done
+                if new_snapshot.get("status") == "Done":
+                    # If a message was previously sent, delete it
+                    if issue_key in processed_issues:
+                        try:
+                            msg = await channel.fetch_message(processed_issues[issue_key]["message_id"])
+                            await msg.delete()
+                            del processed_issues[issue_key]
+                            print(f"Deleted message for {issue_key} as status is Done.")
+                        except Exception as e:
+                            print(f"Failed to delete message for {issue_key}: {e}")
+                    continue  # Skip sending or updating the embed if done
+
                 if issue_key not in processed_issues:
                     try:
                         if attachment_file is not None:
@@ -188,14 +201,12 @@ async def poll_jira():
                     except Exception as e:
                         print(f"Failed to send embed for {issue_key}: {e}")
                 else:
-                    # Edit existing embed if key fields have changed.
                     stored = processed_issues[issue_key]["snapshot"]
                     if any(new_snapshot.get(k) != stored.get(k) for k in
                            ["summary", "description", "status", "priority", "components_text", "att_text"]):
                         try:
                             msg = await channel.fetch_message(processed_issues[issue_key]["message_id"])
                             await msg.edit(embed=new_embed)
-                            # Note: Message edits cannot update attachments.
                             processed_issues[issue_key]["snapshot"] = new_snapshot
                         except Exception as e:
                             print(f"Failed to update embed for {issue_key}: {e}")
