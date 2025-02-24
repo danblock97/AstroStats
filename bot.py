@@ -153,7 +153,7 @@ async def setup_commands():
     await squib_game_commands.setup(client)
 
 
-@tasks.loop(minutes=10)
+@tasks.loop(minutes=60)
 async def poll_jira():
     global processed_issues
     auth = aiohttp.BasicAuth(JIRA_EMAIL, JIRA_API_TOKEN)
