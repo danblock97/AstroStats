@@ -183,7 +183,6 @@ async def poll_jira():
                             msg = await channel.fetch_message(processed_issues[issue_key]["message_id"])
                             await msg.delete()
                             del processed_issues[issue_key]
-                            print(f"Deleted message for {issue_key} as status is Done.")
                         except Exception as e:
                             print(f"Failed to delete message for {issue_key}: {e}")
                     continue  # Skip sending or updating the embed if done
