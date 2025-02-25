@@ -12,17 +12,17 @@ JIRA_PROJECTS = {
         "base_url": os.getenv("JIRA_BASE_URL"),
         "email": os.getenv("JIRA_EMAIL"),
         "token": os.getenv("JIRA_API_TOKEN"),
-        "jql": os.getenv("JIRA_JQL_CLUTCHGG", 'project = "ClutchGG.LOL" AND type = Bug'),
+        "jql": 'project = "ClutchGG.LOL" AND type = Bug',
         "fields": "key,summary,description,issuetype,attachment,status,priority,components,reporter,project",
         # For ClutchGG.LOL we show the clutchgg image (via attachment).
         "thumbnail": "attachment://clutchgg.png",
         "attachment_file": "images/clutchgg.png",
     },
-    "AstroStats": {
+    "AstroStats Bot": {
         "base_url": os.getenv("JIRA_BASE_URL"),
         "email": os.getenv("JIRA_EMAIL"),
         "token": os.getenv("JIRA_API_TOKEN"),
-        "jql": os.getenv("JIRA_JQL_ASTRO", 'project = "AstroStats" AND type = Bug'),
+        "jql": 'project = "AstroStats Bot" AND type = Bug',
         "fields": "key,summary,description,issuetype,attachment,status,priority,components,reporter,project",
         # For AstroStats (and Diverse Diaries) we show AstroStats.png.
         "thumbnail": "https://astrostats.vercel.app/images/astrostats.png",
@@ -32,7 +32,7 @@ JIRA_PROJECTS = {
         "base_url": os.getenv("JIRA_BASE_URL"),
         "email": os.getenv("JIRA_EMAIL"),
         "token": os.getenv("JIRA_API_TOKEN"),
-        "jql": os.getenv("JIRA_JQL_DD", 'project = "Diverse Diaries" AND type = Bug'),
+        "jql": 'project = "Diverse Diaries" AND type = Bug',
         "fields": "key,summary,description,issuetype,attachment,status,priority,components,reporter,project",
         # Diverse Diaries uses the same image as AstroStats.
         "thumbnail": "https://astrostats.vercel.app/images/astrostats.png",
