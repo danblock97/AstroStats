@@ -1,8 +1,11 @@
-### AstroStats v1.7.4
+### AstroStats v1.8.0
 
 ## 🎮 Main Updates
 
-- **League of Legends**:
-  - Improved UI on the champion mastery command
+- **Jira Integration**:
+    - Refactored the Jira polling logic into a separate module.
+    - Now supports multiple Jira projects (ClutchGG.LOL, AstroStats, and Diverse Diaries) using common Jira credentials
+      with project-specific JQL queries and image settings.
 
-Thank you for using AstroStats! We’re excited for the new season and will continue to bring you the best Discord Bot experience.
+Thank you for using AstroStats! We’re excited for the new season and remain dedicated to bringing you the best Discord
+Bot experience.
