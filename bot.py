@@ -63,8 +63,8 @@ async def poll_jira():
             unique_key = f"{project_name}_{issue_key}"
             new_embed, new_snapshot, attachment_file = build_embed(issue, config)
 
-            # If the issue is marked as "Released", delete any previous message.
-                if new_snapshot.get("status") == "Released":
+            # If the issue is marked as "Released" or "Rejected", delete any previous message.
+            if new_snapshot.get("status") in ("Released", "Rejected"):
                 if unique_key in processed_issues:
                     try:
                         msg = await channel.fetch_message(processed_issues[unique_key]["message_id"])
