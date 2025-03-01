@@ -28,6 +28,15 @@ JIRA_PROJECTS = {
         "thumbnail": "https://astrostats.vercel.app/images/astrostats.png",
         "attachment_file": None,
     },
+    "Diverse Diaries": {
+        "base_url": os.getenv("JIRA_BASE_URL"),
+        "email": os.getenv("JIRA_EMAIL"),
+        "token": os.getenv("JIRA_API_TOKEN"),
+        "jql": 'project = "Diverse Diaries" AND type = Bug',
+        "fields": "key,summary,description,issuetype,attachment,status,priority,components,reporter,project",
+        "thumbnail": "attachment://diversediaries.png",
+        "attachment_file": "images/diversediaries.png",
+    },
 }
 
 
