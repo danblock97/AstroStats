@@ -48,6 +48,7 @@ SPECIAL_EMOJI_NAMES = {
     "Kai'Sa": "KaiSa",
     "Vel'Koz": "Velkoz",
     "Kha'Zix": "Khazix",
+    "Master Yi": "MasterYi",
 }
 
 
