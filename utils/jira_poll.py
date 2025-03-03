@@ -35,7 +35,7 @@ JIRA_PROJECTS = {
         "jql": 'project = "Diverse Diaries" AND type = Bug',
         "fields": "key,summary,description,issuetype,attachment,status,priority,components,reporter,project",
         "thumbnail": "attachment://diversediaries.png",
-        "attachment_file": "images/diversediaries.png",
+        "attachment_file": None,
     },
 }
 
