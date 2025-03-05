@@ -5,6 +5,7 @@ import logging
 import datetime
 from typing import Literal
 from collections import defaultdict
+from urllib.parse import urlencode
 
 import aiohttp
 import discord
@@ -124,58 +125,77 @@ async def add_live_game_data_to_embed(embed: discord.Embed, live_game_data: dict
                                       session: aiohttp.ClientSession):
     """
     Processes live game data and appends live game information to the provided embed.
+    Special handling is added for Arena mode (queueId 1700) where the game is split into 8 teams of 2.
     """
     try:
         tasks = []
         for player in live_game_data.get('participants', []):
             tasks.append(fetch_participant_data(player, region, headers, session))
-
         participants_data = await asyncio.gather(*tasks)
-        blue_team = []
-        red_team = []
-        for player_data, team_id in participants_data:
-            if team_id == 100:
-                blue_team.append(player_data)
-            else:
-                red_team.append(player_data)
 
-        # Display the game mode (or queue configuration)
+        # Determine game mode based on queue id.
         queue_config_id = live_game_data.get("gameQueueConfigId")
-        if queue_config_id:
-            game_mode_name = {
-                400: "Normal Draft",
-                420: "Ranked Solo/Duo",
-                440: "Ranked Flex 5v5",
-                450: "ARAM",
-                700: "Clash",
-                830: "Co-op vs. AI Intro",
-                840: "Co-op vs. AI Beginner",
-                850: "Co-op vs. AI Intermediate",
-                900: "URF",
-            }.get(queue_config_id, f"Queue ID {queue_config_id}")
+        if queue_config_id == 1700:
+            # Arena mode – group participants by team id.
+            game_mode_name = "Arena"
+            teams = defaultdict(list)
+            for player_data, team_id in participants_data:
+                teams[team_id].append(player_data)
+            # Add a header field specifically for Arena.
+            embed.add_field(name="\u200b", value=f"**Currently In Game - {game_mode_name}**",
+                            inline=False)
+            # Sort teams (e.g. by team id) and add one field per team.
+            for index, (team_id, team_players) in enumerate(sorted(teams.items()), start=1):
+                team_details = "\n".join([
+                    f"{await get_emoji_for_champion(p['champion_name'])} {p['champion_name']} - {p['summoner_name']} ({p['rank']})"
+                    for p in team_players
+                ])
+                embed.add_field(name=f"All Players", value=team_details, inline=True)
         else:
-            game_mode_name = live_game_data.get("gameMode", "Unknown")
-        embed.add_field(name="\u200b", value=f"**Currently In Game - {game_mode_name}**", inline=False)
+            # Non-Arena modes – keep the current two-team (blue/red) layout.
+            if queue_config_id:
+                game_mode_name = {
+                    400: "Normal Draft",
+                    420: "Ranked Solo/Duo",
+                    440: "Ranked Flex 5v5",
+                    450: "ARAM",
+                    700: "Clash",
+                    830: "Co-op vs. AI Intro",
+                    840: "Co-op vs. AI Beginner",
+                    850: "Co-op vs. AI Intermediate",
+                    900: "URF",
+                }.get(queue_config_id, f"Queue ID {queue_config_id}")
+            else:
+                game_mode_name = live_game_data.get("gameMode", "Unknown")
+            embed.add_field(name="\u200b", value=f"**Currently In Game - {game_mode_name}**", inline=False)
 
-        blue_team_champions = '\n'.join([
-            f"{await get_emoji_for_champion(p['champion_name'])} {p['champion_name']}" for p in blue_team
-        ]) or "No data"
-        blue_team_names = '\n'.join([p['summoner_name'] for p in blue_team]) or "No data"
-        blue_team_ranks = '\n'.join([p['rank'] for p in blue_team]) or "No data"
+            blue_team = []
+            red_team = []
+            for player_data, team_id in participants_data:
+                if team_id == 100:
+                    blue_team.append(player_data)
+                else:
+                    red_team.append(player_data)
 
-        red_team_champions = '\n'.join([
-            f"{await get_emoji_for_champion(p['champion_name'])} {p['champion_name']}" for p in red_team
-        ]) or "No data"
-        red_team_names = '\n'.join([p['summoner_name'] for p in red_team]) or "No data"
-        red_team_ranks = '\n'.join([p['rank'] for p in red_team]) or "No data"
+            blue_team_champions = '\n'.join([
+                f"{await get_emoji_for_champion(p['champion_name'])} {p['champion_name']}" for p in blue_team
+            ]) or "No data"
+            blue_team_names = '\n'.join([p['summoner_name'] for p in blue_team]) or "No data"
+            blue_team_ranks = '\n'.join([p['rank'] for p in blue_team]) or "No data"
 
-        embed.add_field(name="Blue Team Champions", value=blue_team_champions, inline=True)
-        embed.add_field(name="Blue Team Names", value=blue_team_names, inline=True)
-        embed.add_field(name="Blue Team Ranks", value=blue_team_ranks, inline=True)
+            red_team_champions = '\n'.join([
+                f"{await get_emoji_for_champion(p['champion_name'])} {p['champion_name']}" for p in red_team
+            ]) or "No data"
+            red_team_names = '\n'.join([p['summoner_name'] for p in red_team]) or "No data"
+            red_team_ranks = '\n'.join([p['rank'] for p in red_team]) or "No data"
 
-        embed.add_field(name="Red Team Champions", value=red_team_champions, inline=True)
-        embed.add_field(name="Red Team Names", value=red_team_names, inline=True)
-        embed.add_field(name="Red Team Ranks", value=red_team_ranks, inline=True)
+            embed.add_field(name="Blue Team", value=blue_team_champions, inline=True)
+            embed.add_field(name="RiotID", value=blue_team_names, inline=True)
+            embed.add_field(name="Rank", value=blue_team_ranks, inline=True)
+
+            embed.add_field(name="Red Team", value=red_team_champions, inline=True)
+            embed.add_field(name="RiotID", value=red_team_names, inline=True)
+            embed.add_field(name="Rank", value=red_team_ranks, inline=True)
     except Exception as e:
         logging.error(f"Error adding live game data to embed: {e}")
 
@@ -368,10 +388,17 @@ class League(commands.GroupCog, group_name="league"):
                     return
 
                 league_data = await fetch_league_data(session, summoner_data['id'], region, headers)
+                query_params = urlencode({
+                    "gameName": game_name,
+                    "tagLine": tag_line,
+                    "region": region
+                })
+                profile_url = f"https://www.clutchgg.lol/profile?{query_params}"
+
                 embed = discord.Embed(
                     title=f"{game_name}#{tag_line} - Level {summoner_data['summonerLevel']}",
                     color=0x1a78ae,
-                    url=f"https://www.clutchgg.lol/profile?gameName={game_name}&tagLine={tag_line}&region={region}"
+                    url=profile_url
                 )
                 embed.set_thumbnail(
                     url=(
