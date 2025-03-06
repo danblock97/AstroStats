@@ -136,21 +136,18 @@ async def add_live_game_data_to_embed(embed: discord.Embed, live_game_data: dict
         # Determine game mode based on queue id.
         queue_config_id = live_game_data.get("gameQueueConfigId")
         if queue_config_id == 1700:
-            # Arena mode – group participants by team id.
             game_mode_name = "Arena"
-            teams = defaultdict(list)
-            for player_data, team_id in participants_data:
-                teams[team_id].append(player_data)
-            # Add a header field specifically for Arena.
-            embed.add_field(name="\u200b", value=f"**Currently In Game - {game_mode_name}**",
-                            inline=False)
-            # Sort teams (e.g. by team id) and add one field per team.
-            for index, (team_id, team_players) in enumerate(sorted(teams.items()), start=1):
+            embed.add_field(name="\u200b", value=f"**Currently In Game - {game_mode_name}**", inline=False)
+            # Extract player data from participants_data (ignoring any team_id, since Arena teams are implicit)
+            arena_players = [p for p, _ in participants_data]
+            # Split the 16 players into 8 teams of 2
+            for i in range(0, len(arena_players), 2):
+                team = arena_players[i:i + 2]
                 team_details = "\n".join([
                     f"{await get_emoji_for_champion(p['champion_name'])} {p['champion_name']} - {p['summoner_name']} ({p['rank']})"
-                    for p in team_players
+                    for p in team
                 ])
-                embed.add_field(name=f"All Players", value=team_details, inline=True)
+                embed.add_field(name=f"Team {i // 2 + 1}", value=team_details, inline=True)
         else:
             # Non-Arena modes – keep the current two-team (blue/red) layout.
             if queue_config_id:
