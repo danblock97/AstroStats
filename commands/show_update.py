@@ -2,12 +2,10 @@ import discord
 from utils.embeds import get_conditional_embed
 
 LATEST_UPDATES = (
-    "**Version 1.8.2**:\n"
+    "**Version 1.9.0**:\n"
     "**🎮 Main Update**\n\n"
-    "- **League of Legends**\n"
-    "  - Fixed an issue where Master Yi would not show up as an icon in the embed.\n"
     "- **Backend Performance**\n"
-    "  - Fixed some minor backend issues to improve performance.\n"
+    "  - Improved the backend structure of some bigger command groups in order to improve performance\n"
 )
 
 
