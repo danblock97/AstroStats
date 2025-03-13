@@ -23,7 +23,7 @@ logging.basicConfig(
 logger = logging.getLogger("SquibGameBot")
 
 mongo_client = MongoClient(os.getenv('MONGODB_URI'))
-db = mongo_client['pet_database']
+db = mongo_client['astrostats_database']
 
 squib_game_sessions = db['squib_game_sessions']
 squib_game_stats = db['squib_game_stats']
