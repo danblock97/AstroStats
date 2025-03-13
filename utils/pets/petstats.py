@@ -1,4 +1,4 @@
-from utils.petconstants import LEVEL_UP_INCREASES
+from utils.pets.petconstants import LEVEL_UP_INCREASES
 
 def calculate_xp_needed(level: int) -> int:
     """

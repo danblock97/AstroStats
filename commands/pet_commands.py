@@ -12,130 +12,36 @@ import topgg
 
 from utils.embeds import get_conditional_embed
 
-from utils.petconstants import (
+from utils.pets.petconstants import (
     INITIAL_STATS,
-    DAILY_QUESTS,
-    ACHIEVEMENTS,
     PET_LIST,
     COLOR_LIST
 )
-from utils.petstats import (
+from utils.pets.petstats import (
     calculate_xp_needed,
     check_level_up,
     create_xp_bar
 )
+from utils.pets.petquests import (
+    assign_daily_quests,
+    assign_achievements,
+    ensure_quests_and_achievements,
+    update_quests_and_achievements
+)
+from utils.pets.petbattle import calculate_damage
 
 logging.basicConfig(
     level=logging.ERROR,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    handlers=[
-        logging.StreamHandler()
-    ]
+    handlers=[logging.StreamHandler()]
 )
 
 logger = logging.getLogger("PetBattlesCog")
 
 mongo_client = MongoClient(os.getenv('MONGODB_URI'))
-db = mongo_client['pet_database']
+db = mongo_client['astrostats_database']
 pets_collection = db['pets']
 battle_logs_collection = db['battle_logs']
-
-def assign_daily_quests(pet: dict) -> dict:
-    random_daily_quests = random.sample(DAILY_QUESTS, 3)
-    pet_daily_quests = []
-    for quest in random_daily_quests:
-        pet_daily_quests.append({
-            "id": quest["id"],
-            "description": quest["description"],
-            "progress_required": quest["progress_required"],
-            "progress": 0,
-            "completed": False,
-            "xp_reward": quest["xp_reward"]
-        })
-    pet['daily_quests'] = pet_daily_quests
-    if pet.get('_id') is not None:
-        pets_collection.update_one({"_id": pet["_id"]}, {"$set": {"daily_quests": pet_daily_quests}})
-    return pet
-
-def assign_achievements(pet: dict) -> dict:
-    pet_achievements = []
-    for achievement in ACHIEVEMENTS:
-        pet_achievements.append({
-            "id": achievement["id"],
-            "description": achievement["description"],
-            "progress_required": achievement["progress_required"],
-            "progress": 0,
-            "completed": False,
-            "xp_reward": achievement["xp_reward"]
-        })
-    pet['achievements'] = pet_achievements
-    if pet.get('_id') is not None:
-        pets_collection.update_one({"_id": pet["_id"]}, {"$set": {"achievements": pet_achievements}})
-    return pet
-
-def ensure_quests_and_achievements(pet: dict) -> dict:
-    if 'daily_quests' not in pet or not pet['daily_quests']:
-        pet = assign_daily_quests(pet)
-    if 'achievements' not in pet or not pet['achievements']:
-        pet = assign_achievements(pet)
-    return pet
-
-def update_quests_and_achievements(pet: dict, battle_stats: dict):
-    completed_quests = []
-    completed_achievements = []
-
-    for quest in pet['daily_quests']:
-        if quest['completed']:
-            continue
-        if "Win " in quest['description']:
-            quest['progress'] += battle_stats.get('battles_won', 0)
-        elif "battle win streak" in quest['description']:
-            if pet.get('killstreak', 0) >= quest['progress_required']:
-                quest['progress'] = quest['progress_required']
-        elif "battle killstreak" in quest['description']:
-            if pet.get('killstreak', 0) >= quest['progress_required']:
-                quest['progress'] = quest['progress_required']
-        elif "Inflict" in quest['description'] and "critical hits" in quest['description']:
-            quest['progress'] += battle_stats.get('critical_hits', 0)
-        elif "Land" in quest['description'] and "lucky hits" in quest['description']:
-            quest['progress'] += battle_stats.get('lucky_hits', 0)
-        elif "Lose" in quest['description']:
-            quest['progress'] += battle_stats.get('battles_lost', 0)
-        elif "Earn" in quest['description'] and "XP from battles" in quest['description']:
-            quest['progress'] += battle_stats.get('xp_earned', 0)
-        elif "Participate in" in quest['description'] and "battles" in quest['description']:
-            quest['progress'] += 1
-        elif "Deal" in quest['description'] and "damage in total" in quest['description']:
-            quest['progress'] += battle_stats.get('damage_dealt', 0)
-
-        if quest['progress'] >= quest['progress_required']:
-            quest['progress'] = quest['progress_required']
-            quest['completed'] = True
-            pet['xp'] += quest['xp_reward']
-            completed_quests.append(quest)
-
-    for achievement in pet['achievements']:
-        if achievement['completed']:
-            continue
-        if "Win " in achievement['description']:
-            achievement['progress'] += battle_stats.get('battles_won', 0)
-        elif "battle killstreak" in achievement['description']:
-            if pet.get('killstreak', 0) >= achievement['progress_required']:
-                achievement['progress'] = achievement['progress_required']
-        elif "Deal" in achievement['description'] and "total damage" in achievement['description']:
-            achievement['progress'] += battle_stats.get('damage_dealt', 0)
-        elif "Land" in achievement['description'] and "critical hits" in achievement['description']:
-            achievement['progress'] += battle_stats.get('critical_hits', 0)
-        elif "Land" in achievement['description'] and "lucky hits" in achievement['description']:
-            achievement['progress'] += battle_stats.get('lucky_hits', 0)
-
-        if achievement['progress'] >= achievement['progress_required']:
-            achievement['progress'] = achievement['progress_required']
-            achievement['completed'] = True
-            pet['xp'] += achievement['xp_reward']
-            completed_achievements.append(achievement)
-
-    return completed_quests, completed_achievements
 
 class PetBattles(commands.GroupCog, name="petbattles"):
     def __init__(self, bot: commands.Bot):
@@ -152,7 +58,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
         try:
             self.topgg_client = topgg.DBLClient(self.bot, topgg_token)
         except Exception as e:
-            logger.error(f"Failed to initialize Top.gg client: {e}")
+            logger.error(f"Failed to initialise Top.gg client: {e}")
 
     @tasks.loop(time=dtime(hour=0, minute=0, tzinfo=timezone.utc))
     async def reset_daily_quests(self):
@@ -224,10 +130,8 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             embed.add_field(name="Health", value=new_pet['health'], inline=False)
             embed.add_field(
                 name="Support Us ❤️",
-                value=(
-                    "[If you enjoy using this bot, consider supporting us!]"
-                    "(https://buymeacoffee.com/danblock97)"
-                )
+                value=("[If you enjoy using this bot, consider supporting us!]"
+                       "(https://buymeacoffee.com/danblock97)")
             )
             embed.timestamp = datetime.now(timezone.utc)
             embed.set_footer(text="Built By Goldiez ❤️ Visit clutchgg.lol for more!")
@@ -251,10 +155,8 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             if not pet:
                 embed = discord.Embed(
                     title="No Pet Found",
-                    description=(
-                        f"{interaction.user.mention}, you don't have a pet in this server. "
-                        "Summon one with `/petbattles summon`!"
-                    ),
+                    description=(f"{interaction.user.mention}, you don't have a pet in this server. "
+                                 "Summon one with `/petbattles summon`!"),
                     color=discord.Color.red()
                 )
                 await interaction.response.send_message(embed=embed)
@@ -321,10 +223,8 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             if not user_pet:
                 embed = discord.Embed(
                     title="No Pet Found",
-                    description=(
-                        f"{interaction.user.mention}, you don't have a pet in this server. "
-                        "Summon one with `/petbattles summon`!"
-                    ),
+                    description=(f"{interaction.user.mention}, you don't have a pet in this server. "
+                                 "Summon one with `/petbattles summon`!"),
                     color=discord.Color.red()
                 )
                 await interaction.response.send_message(embed=embed)
@@ -333,7 +233,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             if not opponent_pet:
                 embed = discord.Embed(
                     title="Opponent Has No Pet",
-                    description=f"{opponent.mention} doesn't have a pet in this server. They need to summon one first.",
+                    description=(f"{opponent.mention} doesn't have a pet in this server. They need to summon one first."),
                     color=discord.Color.red()
                 )
                 await interaction.response.send_message(embed=embed)
@@ -342,14 +242,11 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             user_pet = ensure_quests_and_achievements(user_pet)
             opponent_pet = ensure_quests_and_achievements(opponent_pet)
 
-            # Enforce the level difference limit
-            if (opponent_pet['level'] > user_pet['level'] + 1
-                    or opponent_pet['level'] < user_pet['level'] - 1):
+            if (opponent_pet['level'] > user_pet['level'] + 1 or
+                    opponent_pet['level'] < user_pet['level'] - 1):
                 embed = discord.Embed(
                     title="Battle Error",
-                    description=(
-                        "You can only battle a pet that is at most one level above or below yours."
-                    ),
+                    description="You can only battle a pet that is at most one level above or below yours.",
                     color=discord.Color.red()
                 )
                 await interaction.response.send_message(embed=embed)
@@ -364,14 +261,11 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                 "timestamp": {"$gte": start_of_day}
             })
 
-            # Limit how many times these two can battle each other per day
             if recent_battles >= 5:
                 embed = discord.Embed(
                     title="Battle Limit Reached",
-                    description=(
-                        f"You have already battled {opponent.display_name} 5 times today in this server. "
-                        "Please try again tomorrow."
-                    ),
+                    description=(f"You have already battled {opponent.display_name} 5 times today in this server. "
+                                 "Please try again tomorrow."),
                     color=discord.Color.red()
                 )
                 await interaction.response.send_message(embed=embed)
@@ -386,10 +280,8 @@ class PetBattles(commands.GroupCog, name="petbattles"):
 
             battle_intro_embed = discord.Embed(
                 title="Battle Begins!",
-                description=(
-                    f"{interaction.user.display_name}'s pet **{user_pet['name']}** vs "
-                    f"{opponent.display_name}'s pet **{opponent_pet['name']}**"
-                ),
+                description=(f"{interaction.user.display_name}'s pet **{user_pet['name']}** vs "
+                             f"{opponent.display_name}'s pet **{opponent_pet['name']}**"),
                 color=discord.Color.blue()
             )
             battle_intro_embed.set_thumbnail(url=user_pet['icon'])
@@ -421,43 +313,12 @@ class PetBattles(commands.GroupCog, name="petbattles"):
 
             battle_embed = discord.Embed(
                 title="Battle in Progress...",
-                description=(
-                    f"{interaction.user.display_name}'s pet vs {opponent.display_name}'s pet"
-                ),
+                description=(f"{interaction.user.display_name}'s pet vs {opponent.display_name}'s pet"),
                 color=discord.Color.orange()
             )
             battle_embed.set_thumbnail(url=user_pet['icon'])
             battle_embed.set_image(url=opponent_pet['icon'])
             message = await interaction.followup.send(embed=battle_embed)
-
-            # Inner function to calculate damage
-            def calculate_damage(attacker: dict, defender: dict):
-                attack_multiplier = random.randint(8, 15) / 10
-                defense_multiplier = random.randint(8, 15) / 10
-                base_damage = int(
-                    (attacker['strength'] * attack_multiplier)
-                    * (random.randint(5, 15) / 10)
-                    - (defender['defense'] * defense_multiplier)
-                    * (random.randint(3, 10) / 10)
-                )
-                # Minimum damage for each hit
-                base_damage = max(5, base_damage)
-
-                # Increased crit chance if attacker is lower level
-                crit_chance = 15 + (10 if attacker['level'] < defender['level'] else 0)
-                critical_hit = random.randint(1, 100) <= crit_chance
-
-                if critical_hit:
-                    crit_multiplier = random.randint(15, 30) / 10
-                    base_damage = int(base_damage * crit_multiplier)
-
-                # 10% "lucky hit" chance for extra flat damage
-                if random.randint(1, 10) == 1:
-                    luck_damage = random.randint(15, 50)
-                    base_damage += luck_damage
-                    return base_damage, critical_hit, "luck"
-
-                return base_damage, critical_hit, "normal"
 
             round_number = 1
             battle_result = ""
@@ -470,22 +331,15 @@ class PetBattles(commands.GroupCog, name="petbattles"):
 
                 if user_event == "luck":
                     user_battle_stats['lucky_hits'] += 1
-                    round_log += (
-                        f"{interaction.user.display_name}'s pet lands a **lucky hit** "
-                        f"for {user_damage} damage!\n"
-                    )
+                    round_log += (f"{interaction.user.display_name}'s pet lands a **lucky hit** "
+                                  f"for {user_damage} damage!\n")
                 elif user_crit:
                     user_battle_stats['critical_hits'] += 1
-                    round_log += (
-                        f"{interaction.user.display_name}'s pet lands a **critical hit** "
-                        f"for {user_damage} damage!\n"
-                    )
+                    round_log += (f"{interaction.user.display_name}'s pet lands a **critical hit** "
+                                  f"for {user_damage} damage!\n")
                 else:
-                    round_log += (
-                        f"{interaction.user.display_name}'s pet attacks for {user_damage} damage.\n"
-                    )
+                    round_log += (f"{interaction.user.display_name}'s pet attacks for {user_damage} damage.\n")
 
-                # Check if opponent is defeated
                 if opponent_health <= 0:
                     round_log += f"{opponent.display_name}'s pet has been defeated!\n"
                     battle_result = f"{interaction.user.display_name}'s pet wins the battle!"
@@ -507,22 +361,15 @@ class PetBattles(commands.GroupCog, name="petbattles"):
 
                 if opponent_event == "luck":
                     opponent_battle_stats['lucky_hits'] += 1
-                    round_log += (
-                        f"{opponent.display_name}'s pet lands a **lucky hit** "
-                        f"for {opponent_damage} damage!\n"
-                    )
+                    round_log += (f"{opponent.display_name}'s pet lands a **lucky hit** "
+                                  f"for {opponent_damage} damage!\n")
                 elif opponent_crit:
                     opponent_battle_stats['critical_hits'] += 1
-                    round_log += (
-                        f"{opponent.display_name}'s pet lands a **critical hit** "
-                        f"for {opponent_damage} damage!\n"
-                    )
+                    round_log += (f"{opponent.display_name}'s pet lands a **critical hit** "
+                                  f"for {opponent_damage} damage!\n")
                 else:
-                    round_log += (
-                        f"{opponent.display_name}'s pet attacks for {opponent_damage} damage.\n"
-                    )
+                    round_log += (f"{opponent.display_name}'s pet attacks for {opponent_damage} damage.\n")
 
-                # Check if user is defeated
                 if user_health <= 0:
                     round_log += f"{interaction.user.display_name}'s pet has been defeated!\n"
                     battle_result = f"{opponent.display_name}'s pet wins the battle!"
@@ -538,16 +385,13 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                     await message.edit(embed=battle_embed)
                     break
 
-                round_log += (
-                    f"\n{interaction.user.display_name}'s pet health: {user_health}\n"
-                    f"{opponent.display_name}'s pet health: {opponent_health}\n"
-                )
+                round_log += (f"\n{interaction.user.display_name}'s pet health: {user_health}\n"
+                              f"{opponent.display_name}'s pet health: {opponent_health}\n")
                 battle_embed.description = round_log
                 await message.edit(embed=battle_embed)
                 await asyncio.sleep(2)
                 round_number += 1
 
-            # Update killstreaks/loss streaks
             if user_health > 0:
                 user_pet['killstreak'] = user_pet.get('killstreak', 0) + 1
                 user_pet['loss_streak'] = 0
@@ -562,15 +406,9 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             user_battle_stats['killstreak'] = user_pet.get('killstreak', 0)
             opponent_battle_stats['killstreak'] = opponent_pet.get('killstreak', 0)
 
-            # Update quests/achievements
-            completed_quests_user, completed_achievements_user = update_quests_and_achievements(
-                user_pet, user_battle_stats
-            )
-            completed_quests_opponent, completed_achievements_opponent = update_quests_and_achievements(
-                opponent_pet, opponent_battle_stats
-            )
+            completed_quests_user, completed_achievements_user = update_quests_and_achievements(user_pet, user_battle_stats)
+            completed_quests_opponent, completed_achievements_opponent = update_quests_and_achievements(opponent_pet, opponent_battle_stats)
 
-            # Check for level-ups
             user_pet, user_leveled_up = check_level_up(user_pet)
             opponent_pet, opponent_leveled_up = check_level_up(opponent_pet)
 
@@ -586,43 +424,27 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                 f"**{opponent_battle_stats['xp_earned']} XP**\n"
             )
 
-            # Add quest/achievement completion info
             if completed_quests_user or completed_achievements_user:
                 completion_message = ""
                 for quest in completed_quests_user:
-                    completion_message += (
-                        f"📝 **Quest Completed**: {quest['description']} "
-                        f"(+{quest['xp_reward']} XP)\n"
-                    )
+                    completion_message += (f"📝 **Quest Completed**: {quest['description']} (+{quest['xp_reward']} XP)\n")
                 for achievement in completed_achievements_user:
-                    completion_message += (
-                        f"🏆 **Achievement Unlocked**: {achievement['description']} "
-                        f"(+{achievement['xp_reward']} XP)\n"
-                    )
+                    completion_message += (f"🏆 **Achievement Unlocked**: {achievement['description']} (+{achievement['xp_reward']} XP)\n")
                 battle_embed.description += f"\n{completion_message}"
 
-            # Add level-up info
             if user_leveled_up or opponent_leveled_up:
                 level_up_message = ""
                 if user_leveled_up:
-                    level_up_message += (
-                        f"{interaction.user.display_name}'s pet leveled up to "
-                        f"**Level {user_pet['level']}**!\n"
-                    )
+                    level_up_message += (f"{interaction.user.display_name}'s pet leveled up to **Level {user_pet['level']}**!\n")
                 if opponent_leveled_up:
-                    level_up_message += (
-                        f"{opponent.display_name}'s pet leveled up to "
-                        f"**Level {opponent_pet['level']}**!\n"
-                    )
+                    level_up_message += (f"{opponent.display_name}'s pet leveled up to **Level {opponent_pet['level']}**!\n")
                 battle_embed.description += f"\n{level_up_message}"
 
-            # Final embed thumbnail
             if user_health > 0:
                 battle_embed.set_thumbnail(url=user_pet['icon'])
             else:
                 battle_embed.set_thumbnail(url=opponent_pet['icon'])
 
-            # If you have a conditional embed
             conditional_embed = await get_conditional_embed(interaction, 'PET_COMMANDS_EMBED', discord.Color.orange())
             embeds = [battle_embed]
             if conditional_embed:
@@ -654,10 +476,8 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             if not pet:
                 embed = discord.Embed(
                     title="No Pet Found",
-                    description=(
-                        f"{interaction.user.mention}, you don't have a pet in this server. "
-                        "Summon one with `/petbattles summon`!"
-                    ),
+                    description=(f"{interaction.user.mention}, you don't have a pet in this server. "
+                                 "Summon one with `/petbattles summon`!"),
                     color=discord.Color.red()
                 )
                 await interaction.response.send_message(embed=embed)
@@ -710,10 +530,8 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             if not pet:
                 embed = discord.Embed(
                     title="No Pet Found",
-                    description=(
-                        f"{interaction.user.mention}, you don't have a pet in this server. "
-                        "Summon one with `/petbattles summon`!"
-                    ),
+                    description=(f"{interaction.user.mention}, you don't have a pet in this server. "
+                                 "Summon one with `/petbattles summon`!"),
                     color=discord.Color.red()
                 )
                 await interaction.response.send_message(embed=embed)
@@ -724,9 +542,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             embed = discord.Embed(title="Your Achievements", color=discord.Color.gold())
 
             for achievement in achievements_list:
-                status = "✅ Completed" if achievement['completed'] else (
-                    f"{achievement['progress']} / {achievement['progress_required']}"
-                )
+                status = "✅ Completed" if achievement['completed'] else f"{achievement['progress']} / {achievement['progress_required']}"
                 progress_bar = create_xp_bar(achievement['progress'], achievement['progress_required'])
                 embed.add_field(
                     name=achievement['description'],
@@ -789,10 +605,8 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             if not pet:
                 embed = discord.Embed(
                     title="No Pet Found",
-                    description=(
-                        f"{interaction.user.mention}, you don't have a pet in this server. "
-                        "Summon one with `/petbattles summon`!"
-                    ),
+                    description=(f"{interaction.user.mention}, you don't have a pet in this server. "
+                                 "Summon one with `/petbattles summon`!"),
                     color=discord.Color.red()
                 )
                 await interaction.response.send_message(embed=embed)
@@ -814,10 +628,8 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                 vote_url = f"https://top.gg/bot/{bot_id}/vote"
                 embed = discord.Embed(
                     title="Vote for the Bot",
-                    description=(
-                        "To earn rewards, please vote for the bot on Top.gg.\n"
-                        f"Click [here]({vote_url}) to vote."
-                    ),
+                    description=("To earn rewards, please vote for the bot on Top.gg.\n"
+                                 f"Click [here]({vote_url}) to vote."),
                     color=discord.Color.blue()
                 )
                 await interaction.response.send_message(embed=embed)
