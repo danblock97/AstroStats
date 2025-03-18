@@ -32,6 +32,14 @@ def build_help_embed(guild_count: int) -> discord.Embed:
         inline=False
     )
     embed.add_field(
+        name="Check Out My Other Apps",
+        value=(
+            "[ClutchGG.LOL](https://clutchgg.lol)\n"
+            "[Diverse Diaries](https://diversediaries.com)"
+        ),
+        inline=False
+    )
+    embed.add_field(
         name="Support",
         value="For support please visit [AstroStats](https://astrostats.vercel.app)",
         inline=False

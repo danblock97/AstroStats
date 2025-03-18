@@ -165,6 +165,14 @@ async def on_guild_join(guild: discord.Guild):
         inline=False
     )
     embed.add_field(
+        name="Check Out My Other Apps",
+        value=(
+            "[ClutchGG.LOL](https://clutchgg.lol)\n"
+            "[Diverse Diaries](https://diversediaries.com)"
+        ),
+        inline=False
+    )
+    embed.add_field(
         name="Links",
         value=(
             "[Documentation](https://astrostats.vercel.app)\n"
