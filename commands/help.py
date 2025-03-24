@@ -35,7 +35,8 @@ def build_help_embed(guild_count: int) -> discord.Embed:
         name="Check Out My Other Apps",
         value=(
             "[ClutchGG.LOL](https://clutchgg.lol)\n"
-            "[Diverse Diaries](https://diversediaries.com)"
+            "[Diverse Diaries](https://diversediaries.com)\n"
+            "[SwiftTasks](https://swifttasks.co.uk)"
         ),
         inline=False
     )
