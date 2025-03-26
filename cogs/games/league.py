@@ -379,7 +379,7 @@ class LeagueCog(commands.GroupCog, group_name="league"):
 
             # Determine game mode based on queue id.
             queue_config_id = live_game_data.get("gameQueueConfigId")
-            if queue_config_id == 1700:
+            if queue_config_id == 1700 or queue_config_id == 1710:
                 game_mode_name = "Arena"
                 embed.add_field(name="\u200b", value=f"**Currently In Game - {game_mode_name}**", inline=False)
                 # Extract player data from participants_data (ignoring any team_id, since Arena teams are implicit)
