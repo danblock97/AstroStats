@@ -1,24 +1,38 @@
-﻿from typing import Dict, List, Optional, Union
+﻿# services/database/models.py
+from typing import Dict, List, Optional, Union, Any
 from dataclasses import dataclass, field
 import datetime
+
+# Structure for active items/buffs
+@dataclass
+class ActiveItem:
+    item_id: str
+    name: str
+    stat: str # e.g., 'strength', 'defense', 'health'
+    value: int # The amount of buff
+    battles_remaining: int # How many battles the buff lasts
 
 @dataclass
 class PetQuest:
     id: int
     description: str
     progress_required: int
+    xp_reward: int
+    cash_reward: int # Added cash reward
     progress: int = 0
     completed: bool = False
-    xp_reward: int = 0
+
 
 @dataclass
 class PetAchievement:
     id: int
     description: str
     progress_required: int
+    xp_reward: int
+    cash_reward: int # Added cash reward
     progress: int = 0
     completed: bool = False
-    xp_reward: int = 0
+
 
 @dataclass
 class Pet:
@@ -32,12 +46,15 @@ class Pet:
     strength: int = 10
     defense: int = 10
     health: int = 100
+    balance: int = 0 # Added balance field
     killstreak: int = 0
     loss_streak: int = 0
     daily_quests: List[PetQuest] = field(default_factory=list)
     achievements: List[PetAchievement] = field(default_factory=list)
+    active_items: List[ActiveItem] = field(default_factory=list) # Added active items/buffs
     last_vote_reward_time: Optional[str] = None
-    _id: Optional[str] = None
+    claimed_daily_completion_bonus: bool = False # Track if daily bonus was claimed
+    _id: Optional[Any] = None # Use Any for ObjectId compatibility
 
 @dataclass
 class BattleLog:
@@ -45,7 +62,7 @@ class BattleLog:
     opponent_id: str
     guild_id: str
     timestamp: datetime.datetime
-    _id: Optional[str] = None
+    _id: Optional[Any] = None # Use Any for ObjectId compatibility
 
 @dataclass
 class SquibGameParticipant:
@@ -62,7 +79,7 @@ class SquibGameSession:
     current_game_state: str = "waiting_for_players"
     participants: List[SquibGameParticipant] = field(default_factory=list)
     created_at: datetime.datetime = field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
-    _id: Optional[str] = None
+    _id: Optional[Any] = None # Use Any for ObjectId compatibility
 
 @dataclass
 class SquibGameStats:
@@ -70,4 +87,4 @@ class SquibGameStats:
     guild_id: str
     wins: int = 0
     games_played: int = 0
-    _id: Optional[str] = None
+    _id: Optional[Any] = None # Use Any for ObjectId compatibility

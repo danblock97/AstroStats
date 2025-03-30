@@ -51,9 +51,13 @@ SPECIAL_EMOJI_NAMES = {
 
 # Latest bot updates
 LATEST_UPDATES = (
-    "**Version 2.0.0**:\n"
-    "**🎮 Main Update**\n\n"
-    "- **Full Bot Rewrite**\n"
-    "  - AstroStats has been rewritten from the ground up. You won't notice anything different other than maybe performance but this allows for better development\n"
-    "  - The voting command has now been fixed after not working, you can now gain XP for voting for AstroStats\n"
+    "**Version 2.1.0 (Pet Battles Overhaul & Maintenance)**:\n\n"
+    "**🐾 Pet Battles Major Update**\n"
+    "- **Economy System:** Introduced Pet Balance (🪙)! Pets now start with 0 balance.\n"
+    "- **Cash Rewards:** Daily Quests and Achievements now grant cash rewards alongside XP.\n"
+    "- **Daily Bonus:** Earn bonus XP and cash for completing all daily quests.\n"
+    "- **Item Shop:** Added `/petbattles shop` and `/petbattles buy` commands. Purchase temporary stat-boosting items (potions, etc.) using your pet's balance.\n"
+    "- **UI Enhancements:** Improved the visual presentation of all Pet Battles command embeds for better readability.\n\n"
+    "**🧹 Maintenance**\n"
+    "- **Database Migration:** Implemented necessary database updates for the new features. To ensure a smooth transition, pet data inactive for over 3 months prior to this update has been removed. All recently active pets have been successfully migrated.\n\n"
 )

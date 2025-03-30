@@ -1,13 +1,77 @@
-﻿import logging
+﻿# core/client.py
+import logging
 import discord
 from discord.ext import commands, tasks
 import datetime
+from pymongo import MongoClient, UpdateOne # Import UpdateOne
+from bson import ObjectId # Import ObjectId
 
-from config.settings import TOKEN, BLACKLISTED_GUILDS
+from config.settings import TOKEN, BLACKLISTED_GUILDS, MONGODB_URI # Import MONGODB_URI
 from core.errors import setup_error_handlers
 
-logger = logging.getLogger('discord.gateway')
-logger.setLevel(logging.ERROR)
+logger = logging.getLogger(__name__) # Use __name__ for logger
+# logger = logging.getLogger('discord.gateway') # Keep gateway logs less verbose if needed
+# logger.setLevel(logging.ERROR)
+
+# --- Database Migration Logic ---
+async def run_database_migration():
+    """Adds new fields to existing pet documents if they don't exist."""
+    try:
+        client = MongoClient(MONGODB_URI)
+        db = client['astrostats_database']
+        pets_collection = db['pets']
+        logger.info("Running database migration check for pets...")
+
+        # Fields to ensure exist with default values
+        fields_to_add = {
+            "balance": 0,
+            "active_items": [],
+            "claimed_daily_completion_bonus": False
+        }
+
+        updates = []
+        # Find pets missing any of the new fields
+        pets_to_update = pets_collection.find({
+            "$or": [
+                {"balance": {"$exists": False}},
+                {"active_items": {"$exists": False}},
+                {"claimed_daily_completion_bonus": {"$exists": False}}
+            ]
+        })
+
+        count = 0
+        for pet in pets_to_update:
+             # Ensure _id is ObjectId
+            pet_id = pet.get('_id')
+            if pet_id is None:
+                continue # Skip if no ID somehow
+
+            if not isinstance(pet_id, ObjectId):
+                 try:
+                     pet_id = ObjectId(pet_id)
+                 except Exception:
+                     logger.warning(f"Skipping migration for invalid pet ID: {pet_id}")
+                     continue
+
+            update_doc = {"$set": {}}
+            for field, default_value in fields_to_add.items():
+                if field not in pet:
+                    update_doc["$set"][field] = default_value
+
+            if update_doc["$set"]: # Only add if there's something to set
+                updates.append(UpdateOne({"_id": pet_id}, update_doc))
+                count += 1
+
+        if updates:
+            result = pets_collection.bulk_write(updates)
+            logger.info(f"Database migration completed. Updated {result.modified_count} pet documents.")
+        else:
+            logger.info("No pet documents required migration.")
+
+        client.close()
+    except Exception as e:
+        logger.error(f"Database migration failed: {e}", exc_info=True)
+# --- End Database Migration Logic ---
 
 
 class AstroStatsBot(commands.Bot):
@@ -15,13 +79,18 @@ class AstroStatsBot(commands.Bot):
 
     def __init__(self):
         intents = discord.Intents.default()
+        # Add message content intent if needed, but be mindful of verification requirements
+        # intents.message_content = True
         super().__init__(command_prefix="/", intents=intents)
-        # Use a different attribute name to avoid conflict with potential built-in property
         self._emoji_cache = {}
         self.processed_issues = {}
 
     async def setup_hook(self):
         """Called when the bot is started. Used to load cogs and sync commands."""
+        # --- Run Database Migration ---
+        await run_database_migration()
+        # --- End Database Migration ---
+
         # Import cog setup functions only when needed to avoid circular imports
         from cogs.games.apex import setup as setup_apex
         from cogs.games.league import setup as setup_league
@@ -57,31 +126,52 @@ class AstroStatsBot(commands.Bot):
         self.update_presence.start()
 
         # Sync commands
-        await self.tree.sync()
-        logger.info("Commands synced successfully.")
+        # Sync globally first
+        try:
+            synced = await self.tree.sync()
+            logger.info(f"Synced {len(synced)} global application commands.")
+        except Exception as e:
+            logger.error(f"Failed to sync global commands: {e}")
+
+        # Sync guild-specific commands if needed (e.g., for admin commands)
+        # Example: await self.tree.sync(guild=discord.Object(id=YOUR_GUILD_ID))
+
+        logger.info("Command syncing process completed.")
+
 
     @tasks.loop(hours=1)
     async def update_presence(self):
         """Update the bot's presence with the server count."""
         guild_count = len(self.guilds)
-        presence = discord.Game(name=f"/help | {guild_count} servers")
-        await self.change_presence(activity=presence)
+        activity_name = f"/help | {guild_count} servers"
+        # Use Playing status which is common for bots
+        presence = discord.Activity(type=discord.ActivityType.playing, name=activity_name)
+        try:
+            await self.change_presence(activity=presence)
+        except Exception as e:
+            logger.error(f"Failed to update presence: {e}")
+
 
     @update_presence.before_loop
     async def before_update_presence(self):
         """Wait until the bot is ready before updating presence."""
         await self.wait_until_ready()
+        logger.info("Bot is ready, starting presence update loop.")
 
     async def on_ready(self):
         """Called when the bot is ready."""
-        logger.info(f"{self.user} connected to Discord.")
+        logger.info(f"{self.user} connected to Discord (ID: {self.user.id}). Ready!")
 
     async def on_guild_join(self, guild: discord.Guild):
         """Called when the bot joins a new guild."""
+        logger.info(f"Joined guild: {guild.name} (ID: {guild.id})")
         # Check if the guild is blacklisted
         if guild.id in BLACKLISTED_GUILDS:
-            await guild.leave()
-            logger.info(f"Left blacklisted guild: {guild.name} ({guild.id})")
+            logger.warning(f"Leaving blacklisted guild: {guild.name} ({guild.id})")
+            try:
+                await guild.leave()
+            except discord.HTTPException as e:
+                logger.error(f"Failed to leave blacklisted guild {guild.id}: {e}")
             return
 
         # Send welcome message
@@ -90,60 +180,57 @@ class AstroStatsBot(commands.Bot):
     async def send_welcome_message(self, guild: discord.Guild):
         """Sends a welcome message to a new guild."""
         embed = discord.Embed(
-            title=guild.name,
-            description="Thank you for using AstroStats!",
+            title=f"Thanks for adding AstroStats to {guild.name}!",
+            description="I'm here to help you track game stats and have fun with mini-games!",
             color=discord.Color.blue()
         )
         if guild.icon:
             embed.set_thumbnail(url=guild.icon.url)
 
         embed.add_field(
-            name="\u200b",
+            name="🚀 Getting Started",
             value=(
-                "AstroStats helps you keep track of your gaming stats for titles like Apex, "
-                "Fortnite, League of Legends, and TFT."
+                "Use `/help` to see all my commands.\n"
+                "Track stats for Apex, Fortnite, LoL, and TFT.\n"
+                "Try the `/petbattles` or `/squibgames` mini-games!"
             ),
             inline=False
         )
         embed.add_field(
-            name="Important Commands",
-            value="/help - Lists all commands & support\n/review - Leave a review on Top.gg",
-            inline=False
-        )
-        embed.add_field(
-            name="Check Out My Other Apps",
+            name="🔗 Important Links",
             value=(
-                "[ClutchGG.LOL](https://clutchgg.lol)\n"
-                "[Diverse Diaries](https://diversediaries.com)\n"
-                "[SwiftTasks](https://swifttasks.co.uk)"
-            ),
-            inline=False
-        )
-        embed.add_field(
-            name="Links",
-            value=(
-                "[Documentation](https://astrostats.vercel.app)\n"
-                "[Support Server](https://discord.com/invite/BeszQxTn9D)\n"
+                "[Documentation](https://astrostats.vercel.app) | "
+                "[Support Server](https://discord.com/invite/BeszQxTn9D) | "
                 "[Support Us ❤️](https://buymeacoffee.com/danblock97)"
             ),
             inline=False
         )
+        embed.add_field(
+            name="⭐ Leave a Review!",
+            value="Enjoying the bot? Consider leaving a review with `/review`!",
+            inline=False
+        )
+        embed.set_footer(text="Let the stats tracking begin!")
 
-        # Find a channel to send the welcome message
-        channel = guild.system_channel
-        if channel is None or not channel.permissions_for(guild.me).send_messages:
-            for ch in guild.text_channels:
-                if ch.permissions_for(guild.me).send_messages:
-                    channel = ch
+        # Find a suitable channel to send the welcome message
+        target_channel = guild.system_channel
+        # If no system channel, try the first available text channel the bot can write to
+        if target_channel is None or not target_channel.permissions_for(guild.me).send_messages:
+            for channel in guild.text_channels:
+                if channel.permissions_for(guild.me).send_messages:
+                    target_channel = channel
                     break
-            else:
-                logger.info(f"No sendable channel in {guild.name} ({guild.id})")
-                return
 
-        try:
-            await channel.send(embed=embed)
-        except Exception as e:
-            logger.error(f"Failed to send welcome message to {guild.name} ({guild.id}): {e}")
+        if target_channel:
+            try:
+                await target_channel.send(embed=embed)
+                logger.info(f"Sent welcome message to {guild.name} in channel {target_channel.name}")
+            except discord.Forbidden:
+                logger.warning(f"Missing permissions to send welcome message in {guild.name} ({target_channel.name})")
+            except discord.HTTPException as e:
+                logger.error(f"Failed to send welcome message to {guild.name}: {e}")
+        else:
+            logger.warning(f"No suitable channel found to send welcome message in {guild.name}")
 
 
 def create_bot():
@@ -153,5 +240,15 @@ def create_bot():
 
 async def run_bot():
     """Run the bot."""
+    if not TOKEN:
+        logger.critical("BOT TOKEN IS NOT SET. Please configure the TOKEN environment variable.")
+        return # Exit if no token
+
     bot = create_bot()
-    await bot.start(TOKEN)
+    try:
+        await bot.start(TOKEN)
+    except discord.LoginFailure:
+        logger.critical("Failed to log in: Improper token provided.")
+    except Exception as e:
+        logger.critical(f"Fatal error during bot execution: {e}", exc_info=True)
+
