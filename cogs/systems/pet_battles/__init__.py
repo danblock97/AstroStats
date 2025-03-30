@@ -718,9 +718,12 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                 minutes, _ = divmod(remainder, 60)
                 time_str = f"{hours}h {minutes}m" if hours > 0 or minutes > 0 else "soon"
 
+                bonus_message = ('Bonus already claimed.' if bonus_claimed
+                 else f'Daily completion bonus of **{DAILY_COMPLETION_BONUS["xp"]} XP** and **{format_currency(DAILY_COMPLETION_BONUS["cash"])}** awarded!')
+
                 embed.description = (
                     f"🎉 **All daily quests completed!** 🎉\n"
-                    f"{'Bonus already claimed.' if bonus_claimed else f'Daily completion bonus of **{DAILY_COMPLETION_BONUS['xp']} XP** and **{format_currency(DAILY_COMPLETION_BONUS['cash'])}** awarded!'}\n\n"
+                    f"{bonus_message}\n\n"  # Include the pre-formatted bonus message
                     f"New quests available in **{time_str}**."
                 )
                 embed.color = discord.Color.green()
