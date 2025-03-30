@@ -14,7 +14,7 @@ from discord.ext import commands, tasks
 from discord import app_commands, Interaction # Added Interaction
 from pymongo import MongoClient
 from bson import ObjectId # Import ObjectId
-import topgg
+import topgg # Ensure topgg is imported
 
 from core.utils import get_conditional_embed, create_progress_bar # Import create_progress_bar
 from config.settings import MONGODB_URI, TOPGG_TOKEN
@@ -86,19 +86,24 @@ class PetBattles(commands.GroupCog, name="petbattles"):
         self.bot = bot
         self.reset_daily_quests.start()
         self.topgg_client = None
-        if TOPGG_TOKEN:
+        # --- FIX: Store the token directly on the instance ---
+        self.topgg_token = TOPGG_TOKEN # Store the imported token
+        # --- End FIX ---
+        if self.topgg_token: # Use the stored token for the check
             self.bot.loop.create_task(self.initialize_topgg_client())
         else:
             logger.warning("Top.gg token not found. Voting features disabled.")
 
     async def initialize_topgg_client(self):
         """Initializes the Top.gg client."""
-        if not TOPGG_TOKEN:
+        # Use the stored token
+        if not self.topgg_token:
             logger.error("Top.gg token is not configured. Voting functionality will not work.")
             return
         try:
             # Pass autopost=True if you want the library to handle posting server count
-            self.topgg_client = topgg.DBLClient(self.bot, TOPGG_TOKEN, autopost=True)
+            # Use the stored token here as well
+            self.topgg_client = topgg.DBLClient(self.bot, self.topgg_token, autopost=True)
             logger.info("Top.gg client initialized successfully.")
         except Exception as e:
             logger.error(f"Failed to initialise Top.gg client: {e}", exc_info=True)
@@ -116,7 +121,13 @@ class PetBattles(commands.GroupCog, name="petbattles"):
         """
         if not self.topgg_client:
             logger.debug(f"Top.gg client not available. Skipping vote check for user {user_id}.")
-            return False
+            # --- FIX: Check stored token before attempting fallback ---
+            # Even if the client isn't initialized, we might still attempt the fallback if the token exists.
+            # However, the original logic only enters the fallback on TypeError, so this part remains the same.
+            # If the client is None because the token was missing initially, the fallback won't run anyway.
+            # If the client init failed for other reasons but the token exists, the fallback *should* run.
+            # --- End FIX ---
+            return False # Return False if client isn't ready
 
         try:
             # Attempt to get the vote status using the library
@@ -143,13 +154,15 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             logger.warning(f"TypeError encountered using topggpy for user {user_id}: {e}. Attempting fallback API call.")
 
             # --- Fallback: Direct API Call using aiohttp ---
+            # --- FIX: Use the stored self.topgg_token ---
             if not self.topgg_token:
-                 logger.error("Cannot perform fallback API call: Top.gg token is missing.")
-                 return False
+                logger.error("Cannot perform fallback API call: Top.gg token is missing.")
+                return False
 
             try:
                 base_url = "https://top.gg/api"
-                headers = {"Authorization": self.topgg_token}
+                headers = {"Authorization": self.topgg_token} # Use the stored token
+                # --- End FIX ---
                 url = f"{base_url}/bots/{self.bot.user.id}/check?userId={user_id}" # Use bot ID and user ID
 
                 logger.debug(f"Fallback: Making direct API call to {url}")
@@ -182,10 +195,10 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                              # Depending on policy, might want to return False or raise an exception
                              return False
                         else:
-                            # Handle other unexpected HTTP errors
-                            raw_response = await resp.text()
-                            logger.error(f"Fallback: Top.gg API returned unexpected status {resp.status} for user {user_id}. Response: {raw_response[:200]}")
-                            return False
+                             # Handle other unexpected HTTP errors
+                             raw_response = await resp.text()
+                             logger.error(f"Fallback: Top.gg API returned unexpected status {resp.status} for user {user_id}. Response: {raw_response[:200]}")
+                             return False
             except aiohttp.ClientError as http_err:
                 logger.error(f"Fallback: Network error during API call for user {user_id}: {http_err}", exc_info=True)
                 return False
@@ -225,15 +238,15 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                 new_quests = []
                 random_daily_quests = random.sample(DAILY_QUESTS, 3)
                 for quest in random_daily_quests:
-                     new_quests.append({
-                         "id": quest["id"],
-                         "description": quest["description"],
-                         "progress_required": quest["progress_required"],
-                         "progress": 0,
-                         "completed": False,
-                         "xp_reward": quest["xp_reward"],
-                         "cash_reward": quest["cash_reward"]
-                     })
+                       new_quests.append({
+                           "id": quest["id"],
+                           "description": quest["description"],
+                           "progress_required": quest["progress_required"],
+                           "progress": 0,
+                           "completed": False,
+                           "xp_reward": quest["xp_reward"],
+                           "cash_reward": quest["cash_reward"]
+                       })
 
                 update_result = pets_collection.update_one(
                     {"_id": pet_id},
@@ -262,7 +275,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             app_commands.Choice(name="Tiger 🐯", value="tiger"),
             app_commands.Choice(name="Rhino 🦏", value="rhino"),
             app_commands.Choice(name="Panda 🐼", value="panda"),
-            app_commands.Choice(name="Red Panda <:red_panda:>", value="red panda"), # Example custom emoji if available
+            app_commands.Choice(name="Red Panda <:red_panda:123>", value="red panda"), # Example custom emoji if available - MAKE SURE ID IS CORRECT
             app_commands.Choice(name="Fox 🦊", value="fox"),
         ]
     )
@@ -312,9 +325,19 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             new_pet_data['_id'] = result.inserted_id # Store the ObjectId
 
             # Assign initial quests and achievements using the data with _id
-            new_pet_data = assign_daily_quests(new_pet_data)
-            new_pet_data = assign_achievements(new_pet_data)
-            # No need to call update_pet_document here as assign functions handle it
+            # These functions now need to handle the update internally or return the modified dict
+            # Assuming they modify and save internally based on the original code's comment
+            assign_daily_quests(new_pet_data) # Pass the dict, assume it modifies and saves
+            assign_achievements(new_pet_data) # Pass the dict, assume it modifies and saves
+            # Fetch the latest data after assignment functions might have updated it
+            new_pet_data = get_pet_document(user_id, guild_id)
+            if not new_pet_data: # Check if fetch failed
+                 logger.error(f"Failed to fetch pet data after assignment for user {user_id}")
+                 # Handle error appropriately, maybe send an error message
+                 embed = create_error_embed("Summon Error", "Failed to initialize pet data. Please try again.")
+                 await interaction.response.send_message(embed=embed, ephemeral=True)
+                 return
+
 
             # --- Create Success Embed ---
             embed = discord.Embed(
@@ -380,7 +403,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                 return
 
             # Ensure pet has all necessary fields (for backward compatibility)
-            pet = ensure_quests_and_achievements(pet)
+            pet = ensure_quests_and_achievements(pet) # Assume this returns the updated pet dict
 
             xp_needed = calculate_xp_needed(pet['level'])
             xp_bar = create_xp_bar(pet['xp'], xp_needed) # Use the function from petstats
@@ -422,16 +445,16 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                 items_text_lines = []
                 for item in active_items:
                      # Ensure battles_remaining is an int
-                    try:
-                        battles_remaining = int(item.get('battles_remaining', 0))
-                    except (ValueError, TypeError):
-                        battles_remaining = 0
+                     try:
+                         battles_remaining = int(item.get('battles_remaining', 0))
+                     except (ValueError, TypeError):
+                         battles_remaining = 0
 
-                    items_text_lines.append(
-                        f"- {item.get('name', 'Unknown Item')}: "
-                        f"+{item.get('value', 0)} {item.get('stat', '?').capitalize()} "
-                        f"({battles_remaining} battles left)"
-                    )
+                     items_text_lines.append(
+                         f"- {item.get('name', 'Unknown Item')}: "
+                         f"+{item.get('value', 0)} {item.get('stat', '?').capitalize()} "
+                         f"({battles_remaining} battles left)"
+                     )
                 items_text = "\n".join(items_text_lines)
                 embed.add_field(name="✨ Active Buffs", value=items_text, inline=False)
             else:
@@ -568,6 +591,8 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             battle_log_text = ""
             winner = None
             loser = None
+            winner_owner = None # Added initialization
+            loser_owner = None # Added initialization
 
             while user_current_health > 0 and opponent_current_health > 0:
                 round_log_entry = f"\n\n**--- Round {round_number} ---**\n"
@@ -631,9 +656,9 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                 await asyncio.sleep(2.5) # Pause between rounds
 
             # --- Battle Conclusion ---
-            if not winner or not loser:
+            if not winner or not loser or not winner_owner or not loser_owner: # Check owner variables too
                  # Should not happen in normal flow, but handle defensively
-                 logger.error(f"Battle concluded without a clear winner/loser between {user_id} and {opponent_id}")
+                 logger.error(f"Battle concluded without a clear winner/loser/owner between {user_id} and {opponent_id}")
                  await battle_message.edit(embed=create_error_embed("Battle Error", "An unexpected error occurred determining the winner."))
                  return
 
@@ -665,15 +690,16 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             winner['active_items'] = [item for item in winner.get('active_items', []) if item.get('battles_remaining', 0) > 0]
             loser['active_items'] = [item for item in loser.get('active_items', []) if item.get('battles_remaining', 0) > 0]
 
-            # Update quests and achievements
+            # Update quests and achievements - Assume these functions handle DB updates or return updated dicts
             completed_quests_winner, completed_achievements_winner, daily_bonus_winner = update_quests_and_achievements(winner, winner_battle_stats)
             completed_quests_loser, completed_achievements_loser, daily_bonus_loser = update_quests_and_achievements(loser, loser_battle_stats)
 
-            # Check for level ups
+            # Check for level ups - Assume these functions handle DB updates or return updated dicts
             winner, winner_leveled_up = check_level_up(winner)
             loser, loser_leveled_up = check_level_up(loser)
 
-            # Save updated pet data to DB
+            # Save updated pet data to DB (if not handled by above functions)
+            # If check_level_up and update_quests return the modified dicts, update here:
             update_pet_document(winner)
             update_pet_document(loser)
 
@@ -768,28 +794,28 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             if not pet.get('daily_quests'):
                  embed.description = "You currently have no daily quests assigned. They reset daily at midnight UTC."
             elif all_complete:
-                now = datetime.now(timezone.utc)
-                # Calculate time until next reset (midnight UTC)
-                today_midnight = datetime.combine(now.date(), dtime(0, 0, tzinfo=timezone.utc))
-                next_reset = today_midnight if now < today_midnight else today_midnight + timedelta(days=1)
-                # Ensure next_reset is always in the future if exactly midnight
-                if next_reset <= now:
-                    next_reset += timedelta(days=1)
+                 now = datetime.now(timezone.utc)
+                 # Calculate time until next reset (midnight UTC)
+                 today_midnight = datetime.combine(now.date(), dtime(0, 0, tzinfo=timezone.utc))
+                 next_reset = today_midnight if now < today_midnight else today_midnight + timedelta(days=1)
+                 # Ensure next_reset is always in the future if exactly midnight
+                 if next_reset <= now:
+                     next_reset += timedelta(days=1)
 
-                time_until_reset = next_reset - now
-                hours, remainder = divmod(int(time_until_reset.total_seconds()), 3600)
-                minutes, _ = divmod(remainder, 60)
-                time_str = f"{hours}h {minutes}m" if hours > 0 or minutes > 0 else "soon"
+                 time_until_reset = next_reset - now
+                 hours, remainder = divmod(int(time_until_reset.total_seconds()), 3600)
+                 minutes, _ = divmod(remainder, 60)
+                 time_str = f"{hours}h {minutes}m" if hours > 0 or minutes > 0 else "soon"
 
-                bonus_message = ('Bonus already claimed.' if bonus_claimed
-                 else f'Daily completion bonus of **{DAILY_COMPLETION_BONUS["xp"]} XP** and **{format_currency(DAILY_COMPLETION_BONUS["cash"])}** awarded!')
+                 bonus_message = ('Bonus already claimed.' if bonus_claimed
+                  else f'Daily completion bonus of **{DAILY_COMPLETION_BONUS["xp"]} XP** and **{format_currency(DAILY_COMPLETION_BONUS["cash"])}** awarded!')
 
-                embed.description = (
-                    f"🎉 **All daily quests completed!** 🎉\n"
-                    f"{bonus_message}\n\n"  # Include the pre-formatted bonus message
-                    f"New quests available in **{time_str}**."
-                )
-                embed.color = discord.Color.green()
+                 embed.description = (
+                     f"🎉 **All daily quests completed!** 🎉\n"
+                     f"{bonus_message}\n\n"  # Include the pre-formatted bonus message
+                     f"New quests available in **{time_str}**."
+                 )
+                 embed.color = discord.Color.green()
             else:
                 embed.description = "Complete these quests for rewards!"
                 for quest in pet['daily_quests']:
@@ -887,7 +913,8 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                 embed.description = "No pets found in this server yet. Be the first!"
             else:
                 leaderboard_entries = []
-                rank_emojis = ["🥇", "🥈", "🥉"] + ["<:blank:>" for _ in range(7)] # Placeholder for blank space or use custom number emojis
+                # Using standard emojis for top 3, numbers for rest
+                rank_emojis = ["🥇", "🥈", "🥉"]
 
                 for index, pet in enumerate(top_pets_list):
                     try:
@@ -901,9 +928,9 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                          user_display_name = "Error Fetching Name"
 
 
-                    rank_emoji = rank_emojis[index] if index < len(rank_emojis) else f"{index+1}." # Use number if no emoji
+                    rank_display = rank_emojis[index] if index < len(rank_emojis) else f"{index+1}." # Use number if no emoji
                     entry = (
-                        f"{rank_emoji} **{user_display_name}** (Pet: {pet.get('name', 'N/A')})\n"
+                        f"{rank_display} **{user_display_name}** (Pet: {pet.get('name', 'N/A')})\n"
                         f"> Level: `{pet['level']}` | XP: `{pet['xp']:,}` | Bal: `{format_currency(pet.get('balance', 0))}`"
                     )
                     leaderboard_entries.append(entry)
@@ -948,13 +975,16 @@ class PetBattles(commands.GroupCog, name="petbattles"):
 
             pet = ensure_quests_and_achievements(pet) # Ensure fields exist
 
-            if not self.topgg_client:
-                embed = create_error_embed("Voting Unavailable", "The Top.gg connection is not active. Please try again later.")
+            # --- FIX: Check the stored token attribute ---
+            if not self.topgg_token: # Check if token exists before proceeding
+                embed = create_error_embed("Voting Unavailable", "The Top.gg connection is not configured correctly by the bot owner.")
                 await interaction.response.send_message(embed=embed, ephemeral=True)
                 return
+            # --- End FIX ---
 
             # Check if user has voted
             await interaction.response.defer(ephemeral=True) # Defer as API call can take time
+            # Pass the integer user ID to check_user_vote
             has_voted = await self.check_user_vote(int(user_id))
 
             if not has_voted:
@@ -975,7 +1005,13 @@ class PetBattles(commands.GroupCog, name="petbattles"):
 
                 if last_reward_time_str:
                     try:
+                        # Ensure the stored string is timezone-aware if needed, or make 'now' naive
+                        # Assuming stored time is UTC from isoformat()
                         last_reward_time = datetime.fromisoformat(last_reward_time_str)
+                        # Ensure comparison is between offset-aware datetimes if needed
+                        if last_reward_time.tzinfo is None:
+                             last_reward_time = last_reward_time.replace(tzinfo=timezone.utc) # Assume UTC if naive
+
                         time_since_last = now - last_reward_time
                         if time_since_last < timedelta(hours=VOTE_COOLDOWN_HOURS):
                             can_claim = False
@@ -999,7 +1035,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                     pet['balance'] = pet.get('balance', 0) + VOTE_REWARD_CASH
                     pet['last_vote_reward_time'] = now.isoformat() # Store timestamp
 
-                    pet, leveled_up = check_level_up(pet)
+                    pet, leveled_up = check_level_up(pet) # Assume returns updated dict
                     update_pet_document(pet) # Save changes
 
                     embed = create_success_embed(
