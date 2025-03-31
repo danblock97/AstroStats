@@ -111,7 +111,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
 
     async def check_user_vote(self, user_id: int) -> bool:
         """
-        Checks if a user has voted on Top.gg. Includes fallback for library errors.
+        Checks if a user has voted on Top.gg using a direct API call.
 
         Args:
             user_id: The Discord user ID.
@@ -119,104 +119,64 @@ class PetBattles(commands.GroupCog, name="petbattles"):
         Returns:
             True if the user has voted, False otherwise.
         """
-        if not self.topgg_client:
-            logger.debug(f"Top.gg client not available. Skipping vote check for user {user_id}.")
-            # --- FIX: Check stored token before attempting fallback ---
-            # Even if the client isn't initialized, we might still attempt the fallback if the token exists.
-            # However, the original logic only enters the fallback on TypeError, so this part remains the same.
-            # If the client is None because the token was missing initially, the fallback won't run anyway.
-            # If the client init failed for other reasons but the token exists, the fallback *should* run.
-            # --- End FIX ---
-            return False # Return False if client isn't ready
+        # --- Pre-checks ---
+        if not self.topgg_token:
+            logger.error("Cannot perform Top.gg API call: Top.gg token is missing.")
+            return False
 
+        if not self.bot or not self.bot.user or not self.bot.user.id:
+             logger.error("Cannot perform Top.gg API call: Bot information is missing.")
+             return False
+
+        # --- Direct API Call using aiohttp ---
         try:
-            # Attempt to get the vote status using the library
-            logger.debug(f"Checking vote status for user {user_id} using topggpy library...")
-            # The library function `get_user_vote` should ideally return a boolean
-            has_voted = await self.topgg_client.get_user_vote(user_id) # Pass user_id directly
-            logger.debug(f"topggpy library returned: {has_voted} (type: {type(has_voted)}) for user {user_id}")
+            base_url = "https://top.gg/api"
+            headers = {"Authorization": self.topgg_token} # Use the stored token
+            url = f"{base_url}/bots/{self.bot.user.id}/check?userId={user_id}" # Use bot ID and user ID
 
-            # Handle potential non-boolean returns explicitly if necessary,
-            # but the main goal is catching the TypeError from internal library issues.
-            if isinstance(has_voted, bool):
-                return has_voted
-            elif isinstance(has_voted, int):
-                 return bool(has_voted) # Handle 0 or 1 integer response
-            else:
-                 # If the library returns something unexpected but not a TypeError,
-                 # log it and potentially treat as False or try converting.
-                 logger.warning(f"topggpy returned unexpected type {type(has_voted)} for user {user_id}. Value: {has_voted}. Treating as False.")
-                 return False
+            logger.debug(f"Making direct API call to {url} for user {user_id}")
+            # Consider using a shared session if this function is called often
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, headers=headers) as resp:
+                    logger.debug(f"Received status {resp.status} for user {user_id}")
 
-        except TypeError as e:
-            # This is the specific error indicating the library failed internally
-            # (e.g., "string indices must be integers")
-            logger.warning(f"TypeError encountered using topggpy for user {user_id}: {e}. Attempting fallback API call.")
-
-            # --- Fallback: Direct API Call using aiohttp ---
-            # --- FIX: Use the stored self.topgg_token ---
-            if not self.topgg_token:
-                logger.error("Cannot perform fallback API call: Top.gg token is missing.")
-                return False
-
-            try:
-                base_url = "https://top.gg/api"
-                headers = {"Authorization": self.topgg_token} # Use the stored token
-                # --- End FIX ---
-                url = f"{base_url}/bots/{self.bot.user.id}/check?userId={user_id}" # Use bot ID and user ID
-
-                logger.debug(f"Fallback: Making direct API call to {url}")
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(url, headers=headers) as resp:
-                        logger.debug(f"Fallback: Received status {resp.status} for user {user_id}")
-                        if resp.status == 200:
-                            try:
-                                data = await resp.json()
-                                logger.debug(f"Fallback: Received data: {data} for user {user_id}")
-                                # The API returns {"voted": 0 or 1}
-                                voted_status = data.get("voted", 0) # Default to 0 if key missing
-                                return bool(voted_status)
-                            except aiohttp.ContentTypeError:
-                                # Handle cases where response is not valid JSON
-                                raw_response = await resp.text()
-                                logger.error(f"Fallback: Top.gg API returned non-JSON response for user {user_id}. Status: {resp.status}. Response: {raw_response[:200]}")
-                                return False
-                            except Exception as json_err:
-                                logger.error(f"Fallback: Error parsing JSON response for user {user_id}. Status: {resp.status}. Error: {json_err}", exc_info=True)
-                                return False
-                        elif resp.status == 401:
-                             logger.error(f"Fallback: Top.gg API returned 401 Unauthorized. Check your TOPGG_TOKEN.")
-                             return False
-                        elif resp.status == 404:
-                             logger.warning(f"Fallback: Top.gg API returned 404 Not Found for user {user_id}. Assuming not voted.")
-                             return False
-                        elif resp.status == 429:
-                             logger.warning(f"Fallback: Top.gg API rate limit hit while checking user {user_id}.")
-                             # Depending on policy, might want to return False or raise an exception
-                             return False
-                        else:
-                             # Handle other unexpected HTTP errors
-                             raw_response = await resp.text()
-                             logger.error(f"Fallback: Top.gg API returned unexpected status {resp.status} for user {user_id}. Response: {raw_response[:200]}")
-                             return False
-            except aiohttp.ClientError as http_err:
-                logger.error(f"Fallback: Network error during API call for user {user_id}: {http_err}", exc_info=True)
-                return False
-            except Exception as fallback_err:
-                # Catch any other unexpected errors during the fallback
-                logger.exception(f"Fallback: Unexpected error during manual vote check for user {user_id}: {fallback_err}")
-                return False
-            # --- End Fallback ---
-
-        except topgg.errors.TopGGException as e:
-            # Handle specific Top.gg library errors (like rate limits, invalid token, etc.)
-            logger.error(f"Top.gg library error checking vote for user {user_id}: {e}")
+                    if resp.status == 200:
+                        try:
+                            data = await resp.json()
+                            logger.debug(f"Received data: {data} for user {user_id}")
+                            # The API returns {"voted": 0 or 1}
+                            voted_status = data.get("voted", 0) # Default to 0 if key missing
+                            return bool(voted_status)
+                        except aiohttp.ContentTypeError:
+                            # Handle cases where response is not valid JSON
+                            raw_response = await resp.text()
+                            logger.error(f"Top.gg API returned non-JSON response for user {user_id}. Status: {resp.status}. Response: {raw_response[:200]}")
+                            return False
+                        except Exception as json_err:
+                            logger.error(f"Error parsing JSON response for user {user_id}. Status: {resp.status}. Error: {json_err}", exc_info=True)
+                            return False
+                    elif resp.status == 401:
+                         logger.error(f"Top.gg API returned 401 Unauthorized. Check your TOPGG_TOKEN.")
+                         return False
+                    elif resp.status == 404:
+                         logger.warning(f"Top.gg API returned 404 Not Found for user {user_id}. Assuming not voted.")
+                         return False
+                    elif resp.status == 429:
+                         logger.warning(f"Top.gg API rate limit hit while checking user {user_id}.")
+                         # Depending on policy, might want to return False or raise an exception
+                         return False
+                    else:
+                        # Handle other unexpected HTTP errors
+                        raw_response = await resp.text()
+                        logger.error(f"Top.gg API returned unexpected status {resp.status} for user {user_id}. Response: {raw_response[:200]}")
+                        return False
+        except aiohttp.ClientError as http_err:
+            logger.error(f"Network error during API call for user {user_id}: {http_err}", exc_info=True)
             return False
-        except Exception as e:
-            # Catch any other unexpected errors during the initial library check
-            logger.exception(f"Unexpected error checking vote status for user {user_id}: {e}")
+        except Exception as err:
+            # Catch any other unexpected errors during the API call
+            logger.exception(f"Unexpected error during vote check for user {user_id}: {err}")
             return False
-
 
     @tasks.loop(time=dtime(hour=0, minute=0, tzinfo=timezone.utc))
     async def reset_daily_quests(self):
