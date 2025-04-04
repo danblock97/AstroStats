@@ -163,8 +163,6 @@ class AstroStatsBot(commands.Bot):
         logger.info(f"{self.user} connected to Discord (ID: {self.user.id}). Ready!")
 
     async def on_guild_join(self, guild: discord.Guild):
-        """Called when the bot joins a new guild."""
-        logger.info(f"Joined guild: {guild.name} (ID: {guild.id})")
         # Check if the guild is blacklisted
         if guild.id in BLACKLISTED_GUILDS:
             logger.warning(f"Leaving blacklisted guild: {guild.name} ({guild.id})")
@@ -224,7 +222,6 @@ class AstroStatsBot(commands.Bot):
         if target_channel:
             try:
                 await target_channel.send(embed=embed)
-                logger.info(f"Sent welcome message to {guild.name} in channel {target_channel.name}")
             except discord.Forbidden:
                 logger.warning(f"Missing permissions to send welcome message in {guild.name} ({target_channel.name})")
             except discord.HTTPException as e:
