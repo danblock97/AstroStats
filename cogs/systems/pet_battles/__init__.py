@@ -703,8 +703,21 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             result_embed.timestamp = datetime.now(timezone.utc)
             result_embed.set_footer(text="Battle concluded.")
 
-            # Edit the original message with the final results
-            await battle_message.edit(embed=result_embed)
+            # Create feedback form embed
+            feedback_embed = discord.Embed(
+                title="📝 Help us improve   AstroStats!",
+                description="We'd love to hear your feedback on AstroStats.",
+                color=discord.Color.blue()
+            )
+            feedback_embed.add_field(
+                name="Submit Feedback",
+                value="[Click here to fill out our feedback form](https://forms.office.com/r/0Ne2kAc8xx)",
+                inline=False
+            )
+            feedback_embed.set_footer(text="Your feedback helps make AstroStats better!")
+
+            # Edit the original message with both embeds
+            await battle_message.edit(embeds=[result_embed, feedback_embed])
 
         except Exception as e:
             logger.error(f"Error in battle command between {user_id} and {opponent_id}: {e}", exc_info=True)
