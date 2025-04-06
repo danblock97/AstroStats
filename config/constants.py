@@ -51,7 +51,7 @@ SPECIAL_EMOJI_NAMES = {
 
 # Latest bot updates
 LATEST_UPDATES = (
-    "**Version 2.1.1 (Squib Games UI Changes)**:\n\n"
-    "**🦑 Squib Games is Looking Better than Ever!**\n"
-    "- **UI Changes** Squib Games now looks cleaner and with a fresh look bringing more engaging games for you and your friends!\n"
+    "**Version 2.1.2 (Pet Battles Global Rank)**:\n\n"
+    "**🐾 New Pet Battles Command!**\n"
+    "- **Global Rank** Check out `/petbattles globalrank` to see how you matchup with all pets across all servers!\n"
 )
