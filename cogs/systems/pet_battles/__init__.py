@@ -1168,6 +1168,111 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
+    @app_commands.command(name="globalrank", description="See how your pet ranks globally")
+    async def globalrank(self, interaction: Interaction):
+        """Shows the user's pet rank in the global leaderboard."""
+        user_id = str(interaction.user.id)
+        try:
+            pet = get_pet_document(user_id, str(interaction.guild.id))
+            
+            if not pet:
+                embed = create_error_embed(
+                    "No Pet Found",
+                    f"{interaction.user.mention}, you need a pet! Use `/petbattles summon`."
+                )
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+                return
+            
+            # Defer response as global ranking might take time
+            await interaction.response.defer()
+            
+            # Get all pets sorted by level descending, then XP descending
+            all_pets_cursor = pets_collection.find({}).sort(
+                [("level", -1), ("xp", -1)]
+            )
+            
+            all_pets_list = list(all_pets_cursor) # Convert cursor to list
+            total_pets = len(all_pets_list)
+            
+            # Find user's pet rank
+            user_pet_rank = None
+            top_pets = []
+            for index, ranked_pet in enumerate(all_pets_list):
+                if index < 3:  # Get top 3 for display
+                    top_pets.append(ranked_pet)
+                    
+                if ranked_pet.get('_id') == pet.get('_id'):
+                    user_pet_rank = index + 1  # +1 because index is 0-based but ranks start at 1
+                    if index >= 3:  # If user isn't in top 3, add their pet to the display list
+                        ranked_pet['rank'] = user_pet_rank  # Add rank for later display
+                        top_pets.append(ranked_pet)
+            
+            # Create embed
+            embed = discord.Embed(
+                title="🌍 Global Pet Rankings 🌍",
+                description=f"Your pet **{pet['name']}** is ranked **#{user_pet_rank}** out of **{total_pets}** pets globally!",
+                color=discord.Color.gold()
+            )
+            
+            # Set thumbnail to user's pet icon
+            embed.set_thumbnail(url=pet['icon'])
+            
+            # Top pets section (always shows top 3 and the user if not in top 3)
+            rank_emojis = ["🥇", "🥈", "🥉"]
+            
+            embed.add_field(
+                name="🏆 Top Pets",
+                value="The best pets across all servers:",
+                inline=False
+            )
+            
+            for index, top_pet in enumerate(top_pets):
+                try:
+                    # Fetch user object
+                    pet_user = await self.bot.fetch_user(int(top_pet['user_id']))
+                    user_name = pet_user.display_name
+                except (discord.NotFound, ValueError):
+                    user_name = f"Unknown User ({top_pet['user_id'][-4:]})"
+                except Exception:
+                    user_name = "Error Fetching Name"
+                
+                # Determine if this is the user's pet
+                is_user_pet = top_pet.get('_id') == pet.get('_id')
+                
+                # Use emojis for top 3, numbers for others
+                if index < 3:
+                    rank_display = rank_emojis[index]
+                    rank_num = index + 1
+                else:
+                    # This should be the user's pet outside top 3
+                    rank_display = f"#{top_pet.get('rank')}"
+                    rank_num = top_pet.get('rank')
+                
+                # Highlight the user's pet
+                pet_name_display = f"**{top_pet['name']}**" if is_user_pet else top_pet['name']
+                user_name_display = f"**{user_name}**" if is_user_pet else user_name
+                
+                embed.add_field(
+                    name=f"{rank_display} {pet_name_display}",
+                    value=f"Level: {top_pet['level']} | XP: {top_pet['xp']:,}",
+                    inline=True
+                )
+            
+            embed.timestamp = datetime.now(timezone.utc)
+            embed.set_footer(text="Battle to climb the global rankings!")
+            
+            await interaction.followup.send(embed=embed)
+            
+        except Exception as e:
+            logger.error(f"Error in globalrank command for user {user_id}: {e}", exc_info=True)
+            embed = create_error_embed("Global Ranking Error", "An error occurred while fetching the global rankings.")
+            
+            if interaction.response.is_done():
+                await interaction.followup.send(embed=embed, ephemeral=True)
+            else:
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
 # --- Setup Function ---
 async def setup(bot: commands.Bot):
     """Adds the PetBattles cog to the bot."""
