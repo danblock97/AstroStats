@@ -51,7 +51,11 @@ SPECIAL_EMOJI_NAMES = {
 
 # Latest bot updates
 LATEST_UPDATES = (
-    "**Version 2.1.2 (Pet Battles Global Rank)**:\n\n"
-    "**🐾 New Pet Battles Command!**\n"
-    "- **Global Rank** Check out `/petbattles globalrank` to see how you matchup with all pets across all servers!\n"
+    "**Version 2.1.3 (Feedback & Bug Reporting)**:\n\n"
+    "**🛠️ New Support Commands!**\n"
+    "- **Feedback** Use `/feedback` to submit feature requests directly to the developer\n"
+    "- **Bug Reports** Use `/bug` to report any issues you encounter\n"
+    "- All error messages now link to our support website for faster assistance\n\n"
+    "**Previous Update (2.1.2):**\n"
+    "- **Pet Battles Global Rank** Check out `/petbattles globalrank` to see how you matchup with all pets across all servers!\n"
 )

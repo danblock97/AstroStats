@@ -100,6 +100,7 @@ class AstroStatsBot(commands.Bot):
         from cogs.general.horoscope import setup as setup_horoscope
         from cogs.general.review import setup as setup_review
         from cogs.general.show_update import setup as setup_show_update
+        from cogs.general.support import setup as setup_support
         from cogs.systems.pet_battles import setup as setup_pet_battles
         from cogs.systems.squib_game import setup as setup_squib_game
         from cogs.admin.kick import setup as setup_kick
@@ -114,6 +115,7 @@ class AstroStatsBot(commands.Bot):
         await setup_horoscope(self)
         await setup_review(self)
         await setup_show_update(self)
+        await setup_support(self)
         await setup_pet_battles(self)
         await setup_kick(self)
         await setup_servers(self)
