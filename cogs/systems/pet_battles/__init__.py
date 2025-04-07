@@ -703,7 +703,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             result_embed.timestamp = datetime.now(timezone.utc)
             result_embed.set_footer(text="Battle concluded.")
 
-            await battle_message.edit(embeds=result_embed)
+            await battle_message.edit(embed=result_embed)
 
         except Exception as e:
             logger.error(f"Error in battle command between {user_id} and {opponent_id}: {e}", exc_info=True)
