@@ -85,6 +85,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.reset_daily_quests.start()
+        self.reset_daily_training.start()  # Start daily training reset task
         self.topgg_client = None
         # --- FIX: Store the token directly on the instance ---
         self.topgg_token = TOPGG_TOKEN # Store the imported token
@@ -102,7 +103,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             return
         try:
             # Pass autopost=True if you want the library to handle posting server count
-            # Use the stored token here as well
+            # Use the stored token here
             self.topgg_client = topgg.DBLClient(self.bot, self.topgg_token, autopost=True)
             logger.info("Top.gg client initialized successfully.")
         except Exception as e:
@@ -224,6 +225,25 @@ class PetBattles(commands.GroupCog, name="petbattles"):
         await self.bot.wait_until_ready() # Ensure bot is ready before starting the loop
         logger.info("Daily quest reset task ready.")
 
+    @tasks.loop(time=dtime(hour=0, minute=0, tzinfo=timezone.utc))
+    async def reset_daily_training(self):
+        """Resets daily training count for all pets at midnight UTC."""
+        logger.info("Starting daily training reset...")
+        try:
+            # Use update_many to efficiently reset all pets' training count
+            result = pets_collection.update_many(
+                {"trainingCount": {"$exists": True}},  # Only update pets with the training field
+                {"$set": {"trainingCount": 0, "lastTrainingReset": datetime.now(timezone.utc).isoformat()}}
+            )
+            logger.info(f"Daily training reset completed. Reset {result.modified_count} pets.")
+        except Exception as e:
+            logger.error(f"Error during daily training reset task: {e}", exc_info=True)
+
+    @reset_daily_training.before_loop
+    async def before_reset_daily_training(self):
+        await self.bot.wait_until_ready()  # Ensure bot is ready before starting the loop
+        logger.info("Daily training reset task ready.")
+
 
     @app_commands.command(name="summon", description="Summon a new pet to join your adventures!")
     @app_commands.describe(name="Give your new companion a name", pet="Choose the type of your pet")
@@ -235,7 +255,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             app_commands.Choice(name="Tiger 🐯", value="tiger"),
             app_commands.Choice(name="Rhino 🦏", value="rhino"),
             app_commands.Choice(name="Panda 🐼", value="panda"),
-            app_commands.Choice(name="Red Panda <:red_panda:123>", value="red panda"), # Example custom emoji if available - MAKE SURE ID IS CORRECT
+            app_commands.Choice(name="Red Panda 🦊", value="red panda"),  # Using fox emoji as placeholder
             app_commands.Choice(name="Fox 🦊", value="fox"),
         ]
     )
@@ -627,6 +647,19 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             loser_battle_stats = opponent_battle_stats if loser == opponent_pet else user_battle_stats
             winner_battle_stats['battles_won'] += 1
             loser_battle_stats['battles_lost'] += 1
+
+            # Update battle record for profile display
+            winner_battle_record = winner.get('battleRecord', {"wins": 0, "losses": 0})
+            loser_battle_record = loser.get('battleRecord', {"wins": 0, "losses": 0})
+            
+            # Increment wins and losses without overwriting the entire record
+            if 'battleRecord' not in winner:
+                winner['battleRecord'] = {"wins": 0, "losses": 0}
+            if 'battleRecord' not in loser:
+                loser['battleRecord'] = {"wins": 0, "losses": 0}
+                
+            winner['battleRecord']['wins'] = winner_battle_record.get('wins', 0) + 1
+            loser['battleRecord']['losses'] = loser_battle_record.get('losses', 0) + 1
 
             winner['killstreak'] = winner.get('killstreak', 0) + 1
             winner['loss_streak'] = 0
@@ -1258,6 +1291,587 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             else:
                 await interaction.response.send_message(embed=embed, ephemeral=True)
 
+    @app_commands.command(name="train", description="Train your pet to gain XP for a cost")
+    async def train(self, interaction: Interaction):
+        """Train your pet to gain XP in exchange for currency."""
+        user_id = str(interaction.user.id)
+        guild_id = str(interaction.guild.id)
+        TRAINING_COST = 75  # Cost in currency
+        TRAINING_XP_MIN = 50  # Minimum XP gained
+        TRAINING_XP_MAX = 100  # Maximum XP gained
+        DAILY_TRAINING_LIMIT = 5  # Maximum trainings per day
+        
+        try:
+            pet = get_pet_document(user_id, guild_id)
+            if not pet:
+                embed = create_error_embed(
+                    "No Pet Found",
+                    f"{interaction.user.mention}, you need a pet to train! Use `/petbattles summon`."
+                )
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+                return
+            
+            # Ensure pet has necessary fields
+            pet = ensure_quests_and_achievements(pet)
+            
+            # Check if pet has reached daily training limit
+            training_count = pet.get('trainingCount', 0)
+            if training_count >= DAILY_TRAINING_LIMIT:
+                # Calculate time until reset
+                now = datetime.now(timezone.utc)
+                midnight = datetime.combine(now.date() + timedelta(days=1), 
+                                          dtime(0, 0, tzinfo=timezone.utc))
+                time_until_reset = midnight - now
+                hours, remainder = divmod(int(time_until_reset.total_seconds()), 3600)
+                minutes, _ = divmod(remainder, 60)
+                time_str = f"{hours}h {minutes}m"
+                
+                embed = create_error_embed(
+                    "Training Limit Reached",
+                    f"Your pet has reached the daily training limit of {DAILY_TRAINING_LIMIT} sessions. Training will reset in **{time_str}**."
+                )
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+                return
+            
+            # Check if pet has enough currency
+            if pet.get('balance', 0) < TRAINING_COST:
+                embed = create_error_embed(
+                    "Insufficient Funds",
+                    f"You need **{format_currency(TRAINING_COST)}** to train your pet, but you only have **{format_currency(pet.get('balance', 0))}**."
+                )
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+                return
+            
+            # Process training
+            xp_gained = random.randint(TRAINING_XP_MIN, TRAINING_XP_MAX)
+            pet['balance'] -= TRAINING_COST
+            pet['xp'] += xp_gained
+            pet['trainingCount'] = training_count + 1
+            
+            # Check for level up
+            pet, leveled_up = check_level_up(pet)
+            
+            # Save changes
+            update_pet_document(pet)
+            
+            # Create success embed
+            embed = create_success_embed(
+                "🏋️ Training Complete!",
+                f"You spent **{format_currency(TRAINING_COST)}** to train {pet['name']}.\n"
+                f"Your pet gained **{xp_gained} XP**!\n"
+                f"Training sessions used today: **{pet['trainingCount']}/{DAILY_TRAINING_LIMIT}**\n"
+                f"New balance: **{format_currency(pet['balance'])}**"
+            )
+            
+            if leveled_up:
+                embed.add_field(
+                    name="🌟 Level Up!",
+                    value=f"Your pet reached **Level {pet['level']}**!",
+                    inline=False
+                )
+            
+            await interaction.response.send_message(embed=embed)
+            
+        except Exception as e:
+            logger.error(f"Error in train command for user {user_id}: {e}", exc_info=True)
+            embed = create_error_embed("Training Error", "An unexpected error occurred during training.")
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @app_commands.command(name="rename", description="Change your pet's name for a fee")
+    @app_commands.describe(new_name="The new name for your pet")
+    async def rename(self, interaction: Interaction, new_name: str):
+        """Allows a user to rename their pet for a fee."""
+        user_id = str(interaction.user.id)
+        guild_id = str(interaction.guild.id)
+        RENAME_COST = 200  # Cost in currency
+        
+        try:
+            pet = get_pet_document(user_id, guild_id)
+            if not pet:
+                embed = create_error_embed(
+                    "No Pet Found",
+                    f"{interaction.user.mention}, you need a pet first! Use `/petbattles summon`."
+                )
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+                return
+            
+            # Ensure pet has necessary fields
+            pet = ensure_quests_and_achievements(pet)
+            
+            # Validate name length
+            if len(new_name) > 32:
+                embed = create_error_embed(
+                    "Name Too Long",
+                    "Pet name cannot be longer than 32 characters."
+                )
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+                return
+            
+            # Check for inappropriate names - could be expanded
+            if any(word in new_name.lower() for word in ["discord.gg/", "http://", "https://", "@everyone", "@here"]):
+                embed = create_error_embed(
+                    "Invalid Name",
+                    "The name contains disallowed content."
+                )
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+                return
+            
+            # Check if pet has enough currency
+            if pet.get('balance', 0) < RENAME_COST:
+                embed = create_error_embed(
+                    "Insufficient Funds",
+                    f"You need **{format_currency(RENAME_COST)}** to rename your pet, but you only have **{format_currency(pet.get('balance', 0))}**."
+                )
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+                return
+            
+            # Store old name for confirmation message
+            old_name = pet['name']
+            
+            # Process renaming
+            pet['balance'] -= RENAME_COST
+            pet['name'] = new_name
+            pet['lastRenameTime'] = datetime.now(timezone.utc).isoformat()
+            
+            # Save changes
+            if update_pet_document(pet):
+                embed = create_success_embed(
+                    "✏️ Pet Renamed!",
+                    f"You spent **{format_currency(RENAME_COST)}** to rename your pet.\n"
+                    f"**{old_name}** is now known as **{new_name}**!\n"
+                    f"New balance: **{format_currency(pet['balance'])}**"
+                )
+                embed.set_thumbnail(url=pet['icon'])
+                await interaction.response.send_message(embed=embed)
+            else:
+                embed = create_error_embed(
+                    "Rename Error",
+                    "Failed to save the new name. Please try again."
+                )
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+            
+        except Exception as e:
+            logger.error(f"Error in rename command for user {user_id}: {e}", exc_info=True)
+            embed = create_error_embed("Rename Error", "An unexpected error occurred while renaming your pet.")
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @app_commands.command(name="profile", description="View detailed profile of your pet")
+    async def profile(self, interaction: Interaction):
+        """Shows detailed profile information about a pet, including battle records and achievements."""
+        user_id = str(interaction.user.id)
+        guild_id = str(interaction.guild.id)
+        
+        try:
+            pet = get_pet_document(user_id, guild_id)
+            if not pet:
+                embed = create_error_embed(
+                    "No Pet Found",
+                    f"{interaction.user.mention}, you need a pet first! Use `/petbattles summon`."
+                )
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+                return
+            
+            # Ensure pet has necessary fields
+            pet = ensure_quests_and_achievements(pet)
+            
+            # Get battle record
+            battle_record = pet.get('battleRecord', {"wins": 0, "losses": 0})
+            total_battles = battle_record.get('wins', 0) + battle_record.get('losses', 0)
+            win_rate = 0
+            if total_battles > 0:
+                win_rate = round((battle_record.get('wins', 0) / total_battles) * 100, 1)
+            
+            # Create the profile embed
+            embed = discord.Embed(
+                title=f"{pet['name']}'s Profile",
+                description=f"Level {pet['level']} {pet.get('pet_type', 'Pet')}",
+                color=pet.get('color', discord.Color.blue())
+            )
+            
+            # Set the pet image as the thumbnail
+            embed.set_thumbnail(url=pet['icon'])
+            
+            # Add owner field
+            try:
+                owner = await self.bot.fetch_user(int(pet['user_id']))
+                owner_name = owner.display_name
+                owner_avatar = owner.display_avatar.url
+                embed.set_author(name=f"{owner_name}'s Pet", icon_url=owner_avatar)
+            except:
+                embed.set_author(name="Pet Profile")
+            
+            # Add XP progress bar
+            xp_needed = calculate_xp_needed(pet['level'])
+            xp_bar = create_progress_bar(pet['xp'], xp_needed)
+            
+            # Add the general stats section
+            general_stats = (
+                f"**Level:** {pet['level']}\n"
+                f"**XP:** {pet['xp']}/{xp_needed}\n"
+                f"{xp_bar}\n"
+                f"**Balance:** {format_currency(pet.get('balance', 0))}"
+            )
+            embed.add_field(name="📊 General Stats", value=general_stats, inline=False)
+            
+            # Add battle stats section
+            battle_stats = (
+                f"**Wins:** {battle_record.get('wins', 0)}\n"
+                f"**Losses:** {battle_record.get('losses', 0)}\n"
+                f"**Total Battles:** {total_battles}\n"
+                f"**Win Rate:** {win_rate}%\n"
+                f"**Current Streak:** {pet.get('killstreak', 0)} wins"
+            )
+            embed.add_field(name="⚔️ Battle Record", value=battle_stats, inline=False)
+            
+            # Add combat stats section
+            combat_stats = (
+                f"**Strength:** {pet['strength']}\n"
+                f"**Defense:** {pet['defense']}\n"
+                f"**Health:** {pet['health']} HP"
+            )
+            embed.add_field(name="💪 Combat Stats", value=combat_stats, inline=True)
+            
+            # Show active buffs if any
+            active_items = pet.get('active_items', [])
+            if active_items:
+                buffs_text = "\n".join([f"• {item.get('name', 'Unknown')}: +{item.get('value', 0)} {item.get('stat', '?').capitalize()} ({item.get('battles_remaining', 0)} battles left)" for item in active_items])
+                embed.add_field(name="✨ Active Buffs", value=buffs_text, inline=True)
+            
+            # Add achievement progress section - show 3 in-progress achievements
+            achievements = pet.get('achievements', [])
+            incomplete_achievements = [a for a in achievements if not a.get('completed', False)]
+            if incomplete_achievements:
+                # Sort by progress percentage
+                incomplete_achievements.sort(key=lambda a: a.get('progress', 0) / a['progress_required'], reverse=True)
+                # Take top 3
+                top_achievements = incomplete_achievements[:3]
+                
+                achievements_text = ""
+                for achievement in top_achievements:
+                    progress = achievement.get('progress', 0)
+                    required = achievement['progress_required']
+                    percent = int((progress / required) * 100)
+                    achievements_text += f"• {achievement['description']}: {progress}/{required} ({percent}%)\n"
+                
+                embed.add_field(name="🏆 Achievement Progress", value=achievements_text, inline=False)
+            
+            # Add completed achievement count
+            completed_count = len([a for a in achievements if a.get('completed', False)])
+            if completed_count > 0:
+                embed.add_field(
+                    name="🏅 Completed Achievements", 
+                    value=f"{completed_count}/{len(achievements)} achievements completed",
+                    inline=True
+                )
+                
+            embed.set_footer(text="Use /petbattles help for more commands")
+            embed.timestamp = datetime.now(timezone.utc)
+            
+            await interaction.response.send_message(embed=embed)
+            
+        except Exception as e:
+            logger.error(f"Error in profile command for user {user_id}: {e}", exc_info=True)
+            embed = create_error_embed("Profile Error", "An unexpected error occurred while fetching the pet profile.")
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @app_commands.command(name="daily", description="Claim your daily pet rewards")
+    async def daily(self, interaction: Interaction):
+        """Claim daily XP and currency rewards once per day."""
+        user_id = str(interaction.user.id)
+        guild_id = str(interaction.guild.id)
+        DAILY_REWARD_XP = 100  # Base XP reward
+        DAILY_REWARD_CASH = 50  # Base cash reward
+        STREAK_BONUS_MULTIPLIER = 0.1  # 10% bonus per day in streak
+        MAX_STREAK_BONUS = 1.0  # Maximum 100% bonus (double rewards)
+        MAX_STREAK_DAYS = 10   # For display purposes, cap visible streak at 10 days
+        
+        try:
+            pet = get_pet_document(user_id, guild_id)
+            if not pet:
+                embed = create_error_embed(
+                    "No Pet Found",
+                    f"{interaction.user.mention}, you need a pet first! Use `/petbattles summon`."
+                )
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+                return
+            
+            # Ensure pet has necessary fields
+            pet = ensure_quests_and_achievements(pet)
+            
+            # Check if they've already claimed today
+            now = datetime.now(timezone.utc)
+            today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            
+            last_claim_str = pet.get('lastDailyClaim')
+            if last_claim_str:
+                try:
+                    last_claim = datetime.fromisoformat(last_claim_str)
+                    if last_claim.tzinfo is None:
+                        last_claim = last_claim.replace(tzinfo=timezone.utc)
+                    
+                    # Check if last claim was today
+                    if last_claim >= today_start:
+                        # Calculate time until next reset
+                        tomorrow = today_start + timedelta(days=1)
+                        time_until_reset = tomorrow - now
+                        hours, remainder = divmod(int(time_until_reset.total_seconds()), 3600)
+                        minutes, _ = divmod(remainder, 60)
+                        time_str = f"{hours}h {minutes}m"
+                        
+                        embed = create_error_embed(
+                            "Already Claimed Today",
+                            f"You've already claimed your daily rewards today. Come back in **{time_str}**."
+                        )
+                        await interaction.response.send_message(embed=embed, ephemeral=True)
+                        return
+                except (ValueError, TypeError):
+                    # Continue if last claim date is invalid - they get to claim
+                    pass
+            
+            # Calculate streak
+            streak = 0
+            streak_broken = True
+            
+            if last_claim_str:
+                try:
+                    last_claim = datetime.fromisoformat(last_claim_str)
+                    if last_claim.tzinfo is None:
+                        last_claim = last_claim.replace(tzinfo=timezone.utc)
+                    
+                    # Check if last claim was yesterday
+                    yesterday = today_start - timedelta(days=1)
+                    if last_claim >= yesterday and last_claim < today_start:
+                        # Continued streak - add to existing streak count or start at 1
+                        streak = pet.get('dailyStreak', 0) + 1
+                        streak_broken = False
+                    else:
+                        # Streak broken - reset to 1
+                        streak = 1
+                except (ValueError, TypeError):
+                    # Invalid date format, treat as new streak
+                    streak = 1
+            else:
+                # First time claiming - start streak at 1
+                streak = 1
+            
+            # Apply streak bonus
+            streak_bonus = min(streak * STREAK_BONUS_MULTIPLIER, MAX_STREAK_BONUS)
+            xp_reward = int(DAILY_REWARD_XP * (1 + streak_bonus))
+            cash_reward = int(DAILY_REWARD_CASH * (1 + streak_bonus))
+            
+            # Apply rewards
+            pet['xp'] += xp_reward
+            pet['balance'] = pet.get('balance', 0) + cash_reward
+            pet['lastDailyClaim'] = now.isoformat()
+            pet['dailyStreak'] = streak
+            
+            # Check for level up
+            pet, leveled_up = check_level_up(pet)
+            
+            # Save changes
+            update_pet_document(pet)
+            
+            # Create success embed
+            if streak_broken:
+                streak_text = f"New streak started! (Day 1)"
+            else:
+                display_streak = min(streak, MAX_STREAK_DAYS)
+                display_streak_text = f"{display_streak}" if streak <= MAX_STREAK_DAYS else f"{display_streak}+" 
+                streak_emoji = "🔥" * min(5, max(1, (streak + 1) // 2))  # 1-2→🔥, 3-4→🔥🔥, 5-6→🔥🔥🔥, etc. up to 5 emojis
+                streak_text = f"{streak_emoji} Streak: Day {display_streak_text} (+{int(streak_bonus * 100)}% bonus)"
+            
+            embed = create_success_embed(
+                "📅 Daily Rewards Claimed!",
+                f"You received **{xp_reward} XP** and **{format_currency(cash_reward)}**!\n\n"
+                f"{streak_text}\n\n"
+                f"New balance: **{format_currency(pet['balance'])}**\n"
+                f"Come back tomorrow for more rewards!"
+            )
+            
+            if leveled_up:
+                embed.add_field(
+                    name="🌟 Level Up!",
+                    value=f"Your pet reached **Level {pet['level']}**!",
+                    inline=False
+                )
+            
+            await interaction.response.send_message(embed=embed)
+            
+        except Exception as e:
+            logger.error(f"Error in daily command for user {user_id}: {e}", exc_info=True)
+            embed = create_error_embed("Daily Claim Error", "An unexpected error occurred while claiming daily rewards.")
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @app_commands.command(name="hunt", description="Send your pet hunting for rewards")
+    async def hunt(self, interaction: Interaction):
+        """Allows your pet to go hunting for currency and items with a cooldown."""
+        user_id = str(interaction.user.id)
+        guild_id = str(interaction.guild.id)
+        HUNT_COOLDOWN_HOURS = 2  # Cooldown between hunts
+        MIN_HUNT_CASH = 30  # Minimum currency reward
+        MAX_HUNT_CASH = 150  # Maximum currency reward
+        
+        try:
+            pet = get_pet_document(user_id, guild_id)
+            if not pet:
+                embed = create_error_embed(
+                    "No Pet Found",
+                    f"{interaction.user.mention}, you need a pet to go hunting! Use `/petbattles summon`."
+                )
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+                return
+            
+            # Ensure pet has necessary fields
+            pet = ensure_quests_and_achievements(pet)
+            
+            # Check if pet is on cooldown
+            now = datetime.now(timezone.utc)
+            last_hunt_str = pet.get('lastHuntTime')
+            
+            if last_hunt_str:
+                try:
+                    last_hunt = datetime.fromisoformat(last_hunt_str)
+                    if last_hunt.tzinfo is None:
+                        last_hunt = last_hunt.replace(tzinfo=timezone.utc)
+                    
+                    # Calculate time since last hunt
+                    time_since_hunt = now - last_hunt
+                    cooldown_seconds = HUNT_COOLDOWN_HOURS * 3600
+                    
+                    if time_since_hunt.total_seconds() < cooldown_seconds:
+                        # Still on cooldown
+                        time_left = timedelta(seconds=cooldown_seconds) - time_since_hunt
+                        minutes, seconds = divmod(int(time_left.total_seconds()), 60)
+                        hours, minutes = divmod(minutes, 60)
+                        
+                        time_str = ""
+                        if hours > 0:
+                            time_str += f"{hours}h "
+                        if minutes > 0 or hours > 0:
+                            time_str += f"{minutes}m "
+                        time_str += f"{seconds}s"
+                        
+                        embed = create_error_embed(
+                            "Hunt Cooldown",
+                            f"Your pet is still tired from the last hunt. Try again in **{time_str}**."
+                        )
+                        await interaction.response.send_message(embed=embed, ephemeral=True)
+                        return
+                except (ValueError, TypeError):
+                    # Invalid date format, allow hunt
+                    pass
+            
+            # Calculate hunt success chance based on pet level
+            # Higher level pets have better chances
+            base_success_chance = 70  # 70% base success rate
+            level_bonus = min(20, pet['level'] * 2)  # +2% per level, max +20%
+            success_chance = base_success_chance + level_bonus
+            
+            # Calculate hunt reward modifier based on pet level
+            reward_modifier = 1.0 + (pet['level'] * 0.05)  # +5% per level
+            
+            # Determine if hunt was successful
+            hunt_roll = random.randint(1, 100)
+            hunt_success = hunt_roll <= success_chance
+            
+            # Update last hunt time
+            pet['lastHuntTime'] = now.isoformat()
+            
+            if hunt_success:
+                # Calculate cash reward
+                cash_base = random.randint(MIN_HUNT_CASH, MAX_HUNT_CASH)
+                cash_reward = int(cash_base * reward_modifier)
+                pet['balance'] = pet.get('balance', 0) + cash_reward
+                
+                # Determine if pet found a special item (20% chance)
+                found_item = random.random() < 0.2
+                item_description = ""
+                
+                if found_item:
+                    # Select a random item from the shop or create a hunt-exclusive item
+                    shop_items = list(SHOP_ITEMS.values())
+                    if shop_items:
+                        # 20% chance to find a shop item
+                        if random.random() < 0.2 and shop_items:
+                            found_item_data = random.choice(shop_items)
+                            
+                            new_item_data = {
+                                "item_id": "hunt_" + str(random.randint(1000, 9999)),  # Generate a random ID
+                                "name": found_item_data['name'],
+                                "stat": found_item_data['stat'],
+                                "value": found_item_data['value'],
+                                "battles_remaining": found_item_data['duration']
+                            }
+                            
+                            # Add item to pet's inventory
+                            if not isinstance(pet.get('active_items'), list):
+                                pet['active_items'] = []
+                            
+                            pet['active_items'].append(new_item_data)
+                            item_description = f"Found **{new_item_data['name']}** (+{new_item_data['value']} {new_item_data['stat'].capitalize()} for {new_item_data['battles_remaining']} battles)"
+                        else:
+                            # Otherwise, just add extra cash
+                            bonus_cash = random.randint(20, 50)
+                            pet['balance'] += bonus_cash
+                            item_description = f"Found a **small treasure** worth {format_currency(bonus_cash)}!"
+                
+                # Save pet data
+                update_pet_document(pet)
+                
+                # Create success embed
+                embed = create_success_embed(
+                    "🏹 Successful Hunt!",
+                    f"Your pet ventured into the wilderness and returned with rewards!\n\n"
+                    f"Rewards:\n"
+                    f"• {format_currency(cash_reward)}"
+                )
+                
+                if item_description:
+                    embed.add_field(name="Special Find!", value=item_description, inline=False)
+                
+                # Add some flavor text based on what the pet found
+                hunt_outcomes = [
+                    f"{pet['name']} tracked down elusive prey through dense undergrowth.",
+                    f"{pet['name']} discovered abandoned treasure in a forgotten cave.",
+                    f"{pet['name']} skillfully hunted in the moonlight.",
+                    f"{pet['name']} caught several small creatures through stealth and patience.",
+                    f"{pet['name']} found valuable resources in the wilderness."
+                ]
+                
+                embed.add_field(name="Hunt Details", value=random.choice(hunt_outcomes), inline=False)
+                embed.set_footer(text=f"New Balance: {format_currency(pet['balance'])} | Next hunt available in {HUNT_COOLDOWN_HOURS} hours")
+            else:
+                # Failed hunt - no rewards
+                update_pet_document(pet)
+                
+                # Create failure embed
+                embed = discord.Embed(
+                    title="🏹 Hunt Failed",
+                    description=f"Your pet ventured into the wilderness but returned empty-pawed.",
+                    color=discord.Color.orange()
+                )
+                
+                # Add some flavor text for the failure
+                failure_outcomes = [
+                    f"{pet['name']} lost track of prey at the last moment.",
+                    f"{pet['name']} was spotted before getting close enough.",
+                    f"{pet['name']} wandered into unfamiliar territory and got lost for a while.",
+                    f"{pet['name']} was intimidated by a larger creature and retreated.",
+                    f"{pet['name']} spent hours searching but found nothing of value."
+                ]
+                
+                embed.add_field(name="Hunt Details", value=random.choice(failure_outcomes), inline=False)
+                embed.set_footer(text=f"Better luck next time! | Next hunt available in {HUNT_COOLDOWN_HOURS} hours")
+            
+            # Add thumbnail of pet
+            embed.set_thumbnail(url=pet['icon'])
+            
+            await interaction.response.send_message(embed=embed)
+            
+        except Exception as e:
+            logger.error(f"Error in hunt command for user {user_id}: {e}", exc_info=True)
+            embed = create_error_embed("Hunt Error", "An unexpected error occurred during the hunt.")
+            await interaction.response.send_message(embed=embed, ephemeral=True)
 
 # --- Setup Function ---
 async def setup(bot: commands.Bot):

@@ -51,11 +51,14 @@ SPECIAL_EMOJI_NAMES = {
 
 # Latest bot updates
 LATEST_UPDATES = (
-    "**Version 2.1.3 (Feedback & Bug Reporting)**:\n\n"
-    "**🛠️ New Support Commands!**\n"
-    "- **Feedback** Use `/feedback` to submit feature requests directly to the developer\n"
-    "- **Bug Reports** Use `/bug` to report any issues you encounter\n"
-    "- All error messages now link to our support website for faster assistance\n\n"
-    "**Previous Update (2.1.2):**\n"
+    "**Version 2.2.0 (Enhanced Pet Battles)**:\n\n"
+    "**🐾 New Pet Battles Features!**\n"
+    "- **Pet Training** Use `/petbattles train` to gain XP for a small fee (5 times daily)\n"
+    "- **Pet Renaming** Use `/petbattles rename` to change your pet's name\n"
+    "- **Detailed Pet Profile** Check `/petbattles profile` for comprehensive stats and battle records\n"
+    "- **Daily Rewards** Claim `/petbattles daily` rewards with streak bonuses for consecutive days\n"
+    "- **Hunt System** Send your pet on adventures with `/petbattles hunt` for rewards\n\n"
+    "**Previous Update (2.1.3):**\n"
+    "- **Feedback & Bug Reporting** Use `/feedback` and `/bug` to communicate with developers\n"
     "- **Pet Battles Global Rank** Check out `/petbattles globalrank` to see how you matchup with all pets across all servers!\n"
 )

@@ -44,7 +44,15 @@ INITIAL_STATS = {
     "defense": 10,
     "health": 100,
     "balance": 0, # Start with 0 balance
-    "active_items": [] # Start with no active items
+    "active_items": [], # Start with no active items
+    # New fields for enhanced pet system
+    "trainingCount": 0,
+    "lastTrainingReset": None,
+    "battleRecord": {"wins": 0, "losses": 0}, # Initialize battle record
+    "lastDailyClaim": None,
+    "lastHuntTime": None,
+    "lastRenameTime": None,
+    "dailyStreak": 0
 }
 
 # How much stats increase when a pet levels up

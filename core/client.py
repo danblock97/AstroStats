@@ -26,32 +26,36 @@ async def run_database_migration():
         fields_to_add = {
             "balance": 0,
             "active_items": [],
-            "claimed_daily_completion_bonus": False
+            "claimed_daily_completion_bonus": False,
+            # New fields for enhanced pet system
+            "trainingCount": 0,
+            "lastTrainingReset": None,
+            "battleRecord": {"wins": 0, "losses": 0},
+            "lastDailyClaim": None,
+            "lastHuntTime": None,
+            "lastRenameTime": None
         }
 
         updates = []
         # Find pets missing any of the new fields
-        pets_to_update = pets_collection.find({
-            "$or": [
-                {"balance": {"$exists": False}},
-                {"active_items": {"$exists": False}},
-                {"claimed_daily_completion_bonus": {"$exists": False}}
-            ]
-        })
+        query_conditions = [
+            {field: {"$exists": False}} for field in fields_to_add.keys()
+        ]
+        pets_to_update = pets_collection.find({"$or": query_conditions})
 
         count = 0
         for pet in pets_to_update:
-             # Ensure _id is ObjectId
+            # Ensure _id is ObjectId
             pet_id = pet.get('_id')
             if pet_id is None:
                 continue # Skip if no ID somehow
 
             if not isinstance(pet_id, ObjectId):
-                 try:
-                     pet_id = ObjectId(pet_id)
-                 except Exception:
-                     logger.warning(f"Skipping migration for invalid pet ID: {pet_id}")
-                     continue
+                try:
+                    pet_id = ObjectId(pet_id)
+                except Exception:
+                    logger.warning(f"Skipping migration for invalid pet ID: {pet_id}")
+                    continue
 
             update_doc = {"$set": {}}
             for field, default_value in fields_to_add.items():
