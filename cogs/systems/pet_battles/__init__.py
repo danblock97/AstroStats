@@ -211,7 +211,11 @@ class PetBattles(commands.GroupCog, name="petbattles"):
 
                 update_result = pets_collection.update_one(
                     {"_id": pet_id},
-                    {"$set": {"daily_quests": new_quests, "claimed_daily_completion_bonus": False}}
+                    {"$set": {
+                        "daily_quests": new_quests,
+                        "claimed_daily_completion_bonus": False,
+                        "voted_battle_bonus_active": False # Reset vote bonus flag
+                    }}
                 )
                 if update_result.modified_count > 0:
                     updated_count += 1
@@ -510,7 +514,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                 await interaction.response.send_message(embed=embed, ephemeral=True)
                 return
 
-            # Battle cooldown check (5 battles per opponent per day)
+            # Battle cooldown check
             now = datetime.now(timezone.utc)
             start_of_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
             recent_battles_count = battle_logs_collection.count_documents({
@@ -522,12 +526,34 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                 "timestamp": {"$gte": start_of_day}
             })
 
-            BATTLE_LIMIT = 5
-            if recent_battles_count >= BATTLE_LIMIT:
+            # Determine battle limit based on vote bonus for BOTH users
+            BASE_BATTLE_LIMIT = 5
+            VOTE_BATTLE_BONUS = 10
+            battle_limit = BASE_BATTLE_LIMIT
+            user_bonus_active = user_pet.get("voted_battle_bonus_active", False)
+            opponent_bonus_active = opponent_pet.get("voted_battle_bonus_active", False)
+            bonus_contributors = []
+
+            if user_bonus_active:
+                battle_limit += VOTE_BATTLE_BONUS
+                bonus_contributors.append(interaction.user.display_name)
+            if opponent_bonus_active:
+                battle_limit += VOTE_BATTLE_BONUS
+                bonus_contributors.append(opponent.display_name)
+
+            if recent_battles_count >= battle_limit:
+                limit_message = (f"You and {opponent.display_name} have already battled "
+                                 f"{recent_battles_count} times today (Daily Limit: {battle_limit}).")
+
+                if bonus_contributors:
+                    limit_message += f" (Vote bonus active for: {', '.join(bonus_contributors)})"
+                else:
+                    limit_message += " Vote with `/petbattles vote` for more battles!"
+                limit_message += " Please try again tomorrow."
+
                 embed = create_error_embed(
                     "Battle Limit Reached",
-                    (f"You and {opponent.display_name} have already battled {BATTLE_LIMIT} times today "
-                     f"in this server. Please try again tomorrow.")
+                    limit_message
                 )
                 await interaction.response.send_message(embed=embed, ephemeral=True)
                 return
@@ -1026,6 +1052,8 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                     pet['xp'] += VOTE_REWARD_XP
                     pet['balance'] = pet.get('balance', 0) + VOTE_REWARD_CASH
                     pet['last_vote_reward_time'] = now.isoformat() # Store timestamp
+                    pet['voted_battle_bonus_active'] = True # Activate the battle bonus flag
+                    pet['bonus_battle_allowance'] = 10 # Set the allowance amount
 
                     pet, leveled_up = check_level_up(pet) # Assume returns updated dict
                     update_pet_document(pet) # Save changes
@@ -1033,6 +1061,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                     embed = create_success_embed(
                         "🎉 Thank You for Voting! 🎉",
                         (f"You received **{VOTE_REWARD_XP} XP** and **{format_currency(VOTE_REWARD_CASH)}**!\n"
+                         f"You can now battle the same opponent **10 extra times** today!\n"
                          f"Your new balance is {format_currency(pet['balance'])}.")
                     )
                     if leveled_up:

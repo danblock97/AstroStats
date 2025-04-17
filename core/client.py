@@ -30,6 +30,8 @@ async def run_database_migration():
             # New fields for enhanced pet system
             "trainingCount": 0,
             "lastTrainingReset": None,
+            "voted_battle_bonus_active": False, # Add the new vote bonus flag
+            "bonus_battle_allowance": 0, # Bonus battles allowed from voting
             "battleRecord": {"wins": 0, "losses": 0},
             "lastDailyClaim": None,
             "lastHuntTime": None,
