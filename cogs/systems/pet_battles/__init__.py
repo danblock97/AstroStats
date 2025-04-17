@@ -1010,7 +1010,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                     title="🗳️ Vote for AstroStats!",
                     description=(f"You haven't voted recently!\n"
                                  f"Click [here]({vote_url}) to vote on Top.gg and then use this command again "
-                                 f"to claim **{VOTE_REWARD_XP} XP** and **{format_currency(VOTE_REWARD_CASH)}**!"),
+                                 f"to claim **{VOTE_REWARD_XP} XP**, **10 more battles with the same person** and **{format_currency(VOTE_REWARD_CASH)}**!"),
                     color=discord.Color.blue()
                 )
                 await interaction.followup.send(embed=embed, ephemeral=True)
