@@ -48,6 +48,8 @@ INITIAL_STATS = {
     # New fields for enhanced pet system
     "trainingCount": 0,
     "lastTrainingReset": None,
+    "voted_battle_bonus_active": False, # Flag for vote battle bonus
+    "bonus_battle_allowance": 0, # Bonus battles allowed from voting
     "battleRecord": {"wins": 0, "losses": 0}, # Initialize battle record
     "lastDailyClaim": None,
     "lastHuntTime": None,
