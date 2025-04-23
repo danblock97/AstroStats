@@ -101,13 +101,37 @@ class PetBattles(commands.GroupCog, name="petbattles"):
         if not self.topgg_token:
             logger.error("Top.gg token is not configured. Voting functionality will not work.")
             return
+            
         try:
-            # Pass autopost=True if you want the library to handle posting server count
-            # Use the stored token here
-            self.topgg_client = topgg.DBLClient(self.bot, self.topgg_token, autopost=True)
-            logger.info("Top.gg client initialized successfully.")
+            from core.utils import handle_api_error
+            
+            # Use autopost=True to handle posting server count
+            self.topgg_client = topgg.DBLClient(
+                self.bot, 
+                self.topgg_token, 
+                autopost=True,
+                # Add an error handler for the autopost
+                post_shard_count=False
+            )
+            
+            # Patch the client's _auto_post method to handle errors better
+            original_auto_post = self.topgg_client._auto_post
+            
+            async def patched_auto_post():
+                try:
+                    await original_auto_post()
+                except topgg.errors.ServerError as e:
+                    handle_api_error(e, "Top.gg autoposting error")
+                except Exception as e:
+                    handle_api_error(e, "Unexpected Top.gg autoposting error")
+            
+            # Replace the method with our patched version
+            self.topgg_client._auto_post = patched_auto_post
+            
+            logger.info("Top.gg client initialized successfully with improved error handling.")
         except Exception as e:
-            logger.error(f"Failed to initialise Top.gg client: {e}", exc_info=True)
+            from core.utils import handle_api_error
+            handle_api_error(e, "Failed to initialize Top.gg client")
             self.topgg_client = None # Ensure client is None if init fails
 
     async def check_user_vote(self, user_id: int) -> bool:
