@@ -4,6 +4,7 @@ from discord.ext import commands
 
 from config.constants import LATEST_UPDATES
 from core.utils import get_conditional_embed
+from ui.embeds import create_base_embed
 
 class ShowUpdateCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -11,8 +12,8 @@ class ShowUpdateCog(commands.Cog):
 
     @app_commands.command(name="show_update", description="Show the latest update to AstroStats")
     async def show_update(self, interaction: discord.Interaction):
-        # Primary Embed
-        embed = discord.Embed(
+        # Use create_base_embed
+        embed = create_base_embed(
             title="Latest Bot Updates",
             description=LATEST_UPDATES,
             color=discord.Color.blue()
@@ -23,10 +24,6 @@ class ShowUpdateCog(commands.Cog):
                 "[If you enjoy using this bot, consider supporting us!]"
                 "(https://buymeacoffee.com/danblock97)"
             )
-        )
-        embed.set_footer(
-            text=f"Requested by {interaction.user.display_name}",
-            icon_url=interaction.user.display_avatar.url if interaction.user.display_avatar else None
         )
 
         # Fetch Conditional Embed
