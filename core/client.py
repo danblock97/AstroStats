@@ -111,6 +111,7 @@ class AstroStatsBot(commands.Bot):
         from cogs.systems.squib_game import setup as setup_squib_game
         from cogs.admin.kick import setup as setup_kick
         from cogs.admin.servers import setup as setup_servers
+        from cogs.games.truthordare import setup as setup_truth_or_dare # Add this import
 
         # Setup all cogs
         await setup_apex(self)
@@ -126,6 +127,7 @@ class AstroStatsBot(commands.Bot):
         await setup_kick(self)
         await setup_servers(self)
         await setup_squib_game(self)
+        await setup_truth_or_dare(self) # Add this line to load the cog
 
         # Setup error handlers
         setup_error_handlers(self)
