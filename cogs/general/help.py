@@ -5,6 +5,7 @@ from discord import app_commands
 from discord.ext import commands
 
 from core.utils import get_conditional_embed
+from ui.embeds import create_base_embed # Import create_base_embed
 
 
 class HelpCog(commands.Cog):
@@ -13,10 +14,10 @@ class HelpCog(commands.Cog):
 
     def build_help_embed(self) -> discord.Embed:
         guild_count = len(self.bot.guilds)
-        embed = discord.Embed(
+        # Use create_base_embed for consistency
+        embed = create_base_embed(
             title=f"AstroStats Help & Support - Trusted by {guild_count} servers",
-            color=0xdd4f7a,
-            timestamp=datetime.datetime.now(datetime.timezone.utc)
+            color=0xdd4f7a
         )
         embed.add_field(
             name="Commands & Usage",
@@ -60,7 +61,6 @@ class HelpCog(commands.Cog):
             value="[If you enjoy using this bot, consider supporting us!](https://buymeacoffee.com/danblock97)",
             inline=False
         )
-        embed.set_footer(text="Built By Goldiez ❤️")
         return embed
 
     @app_commands.command(name="help", description="Lists all available commands")
