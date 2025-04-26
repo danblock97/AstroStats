@@ -8,7 +8,7 @@ from discord import app_commands
 from discord.ext import commands
 
 from config.constants import APEX_PLATFORM_MAPPING
-from core.errors import send_error_embed
+from core.errors import send_error_embed, ResourceNotFoundError
 from services.api.apex import fetch_apex_stats, format_stat_value
 from core.utils import get_conditional_embed
 
@@ -39,6 +39,15 @@ class ApexCog(commands.Cog):
 
             try:
                 data = await asyncio.to_thread(fetch_apex_stats, platform, name)
+            except ResourceNotFoundError as e:
+                logger.warning(f"Resource Not Found: {e}", exc_info=True)
+                await send_error_embed(
+                    interaction,
+                    "Account Not Found",
+                    f"No stats found for the username: **{name}** on **{platform}**. "
+                    "Please ensure the username and platform are correct and the profile exists on [Apex Tracker](https://apex.tracker.gg)."
+                )
+                return
             except Exception as e:
                 logger.error(f"API Error: {e}", exc_info=True)
                 await send_error_embed(
