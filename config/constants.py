@@ -53,11 +53,7 @@ SPECIAL_EMOJI_NAMES = {
 LATEST_UPDATES = (
     "**Version 2.3.0 (Truth or Dare!)**:\n\n"
     "**🎲 New Game Added!**\n"
-    "- Play `/truth_or_dare`! Choose SFW or NSFW, Truth or Dare, and face forfeits if you chicken out!\n",
-    # --- Existing updates below ---
-    "**Version 2.2.1 (Enhanced Pet Battles)**:\n\n"
-    "**🐾 New Pet Battles Features!**\n"
-    "- **Voting** Use `/petbattles vote` to gain XP, Gold and more battles with the same person!\n"
+    "- Play `/truthordare`! Choose SFW or NSFW, Truth or Dare, and face forfeits if you chicken out!"
 )
 
 SFW_TRUTHS = [
