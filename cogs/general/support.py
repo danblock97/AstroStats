@@ -1,7 +1,7 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-
+import os
 from core.utils import get_conditional_embed
 from ui.embeds import create_base_embed # Import create_base_embed
 
@@ -9,6 +9,8 @@ from ui.embeds import create_base_embed # Import create_base_embed
 class SupportCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        self.base_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        self.astrostats_img = os.path.join(self.base_path, 'images', 'astrostats.png')
 
     @app_commands.command(name="feedback", description="Submit feedback or feature requests for AstroStats")
     async def feedback_command(self, interaction: discord.Interaction):
@@ -24,6 +26,8 @@ class SupportCog(commands.Cog):
             ),
             color=discord.Color.blue()
         )
+
+        embed.set_footer(text="AstroStats | astrostats.vercel.app", icon_url="attachment://astrostats.png")
         conditional_embed = await get_conditional_embed(
             interaction, 'FEEDBACK_EMBED', discord.Color.orange()
         )

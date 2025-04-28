@@ -1,6 +1,7 @@
 ﻿import datetime
 import logging
 import urllib.parse
+import os
 from typing import Literal, Optional, Dict
 
 import discord
@@ -19,6 +20,9 @@ logger = logging.getLogger(__name__)
 class FortniteCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        # Get the absolute path to the images
+        self.base_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        self.astrostats_img = os.path.join(self.base_path, 'images', 'astrostats.png')
 
     async def fetch_fortnite_stats(self, name: str, time_window: str) -> Optional[Dict]:
         if not FORTNITE_API_KEY:
@@ -108,7 +112,10 @@ class FortniteCog(commands.Cog):
             if conditional_embed:
                 embeds.append(conditional_embed)
 
-            await interaction.followup.send(embeds=embeds)
+            await interaction.followup.send(
+                embeds=embeds,
+                files=[discord.File(self.astrostats_img, "astrostats.png")]
+            )
 
         except ValueError as e:
             logger.error(f"Validation Error: {e}", exc_info=True)
@@ -185,7 +192,7 @@ class FortniteCog(commands.Cog):
             value="[If you enjoy using this bot, consider supporting us!](https://buymeacoffee.com/danblock97)"
         )
         embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
-        embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
+        embed.set_footer(text="AstroStats | astrostats.vercel.app", icon_url="attachment://astrostats.png")
         return embed
 
 

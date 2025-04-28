@@ -31,6 +31,8 @@ class LeagueCog(commands.GroupCog, group_name="league"):
         self.bot = bot
         self.emojis = {}  # Local emoji cache for the cog
         self.bot.loop.create_task(self.initialize_emojis())
+        self.base_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        self.astrostats_img = os.path.join(self.base_path, 'images', 'astrostats.png')
 
     async def initialize_emojis(self):
         """Initialize emoji data when the cog is loaded."""
@@ -167,7 +169,7 @@ class LeagueCog(commands.GroupCog, group_name="league"):
                     inline=False
                 )
                 embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
-                embed.set_footer(text="Built By Goldiez ❤️ Visit clutchgg.lol for more!")
+                embed.set_footer(text="AstroStats | astrostats.vercel.app", icon_url="attachment://astrostats.png")
 
                 conditional_embed = await get_conditional_embed(interaction, 'LEAGUE_EMBED', discord.Color.orange())
                 embeds = [embed]

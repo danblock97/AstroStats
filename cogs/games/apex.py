@@ -1,6 +1,7 @@
 ﻿import datetime
 import logging
 import asyncio
+import os
 from typing import Literal, Dict
 
 import discord
@@ -18,6 +19,9 @@ logger = logging.getLogger(__name__)
 class ApexCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        # Get the absolute path to the images
+        self.base_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        self.astrostats_img = os.path.join(self.base_path, 'images', 'astrostats.png')
 
     @app_commands.command(name="apex", description="Check your Apex Legends Player Stats")
     async def apex(
@@ -92,7 +96,10 @@ class ApexCog(commands.Cog):
             if conditional_embed:
                 embeds.append(conditional_embed)
 
-            await interaction.followup.send(embeds=embeds)
+            await interaction.followup.send(
+                embeds=embeds, 
+                files=[discord.File(self.astrostats_img, "astrostats.png")]
+            )
 
         except ValueError as e:
             logger.error(f"Validation Error: {e}", exc_info=True)
@@ -156,7 +163,7 @@ class ApexCog(commands.Cog):
             value="[If you enjoy using this bot, consider supporting us!](https://buymeacoffee.com/danblock97)",
             inline=False
         )
-        embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
+        embed.set_footer(text="AstroStats | astrostats.vercel.app", icon_url="attachment://astrostats.png")
         return embed
 
     def format_lifetime_stats(self, lifetime: Dict) -> str:
