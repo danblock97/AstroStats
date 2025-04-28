@@ -1,7 +1,7 @@
 ﻿import discord
 from discord import app_commands
 from discord.ext import commands
-
+import os
 from config.constants import LATEST_UPDATES
 from core.utils import get_conditional_embed
 from ui.embeds import create_base_embed
@@ -9,6 +9,8 @@ from ui.embeds import create_base_embed
 class ShowUpdateCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        self.base_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        self.astrostats_img = os.path.join(self.base_path, 'images', 'astrostats.png')
 
     @app_commands.command(name="show_update", description="Show the latest update to AstroStats")
     async def show_update(self, interaction: discord.Interaction):
@@ -25,6 +27,8 @@ class ShowUpdateCog(commands.Cog):
                 "(https://buymeacoffee.com/danblock97)"
             )
         )
+
+        embed.set_footer(text="AstroStats | astrostats.vercel.app", icon_url="attachment://astrostats.png")
 
         # Fetch Conditional Embed
         conditional_embed = await get_conditional_embed(

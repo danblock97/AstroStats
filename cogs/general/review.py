@@ -1,12 +1,14 @@
 ﻿import discord
 from discord import app_commands
 from discord.ext import commands
-
+import os
 from core.utils import get_conditional_embed
 
 class ReviewCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        self.base_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        self.astrostats_img = os.path.join(self.base_path, 'images', 'astrostats.png')
 
     @app_commands.command(name="review", description="Leave a review on Top.gg")
     async def review(self, interaction: discord.Interaction):
@@ -33,6 +35,7 @@ class ReviewCog(commands.Cog):
                 "(https://buymeacoffee.com/danblock97)"
             )
         )
+        embed.set_footer(text="AstroStats | astrostats.vercel.app", icon_url="attachment://astrostats.png")
 
         # Fetch Conditional Embed
         conditional_embed = await get_conditional_embed(

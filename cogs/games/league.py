@@ -31,6 +31,8 @@ class LeagueCog(commands.GroupCog, group_name="league"):
         self.bot = bot
         self.emojis = {}  # Local emoji cache for the cog
         self.bot.loop.create_task(self.initialize_emojis())
+        self.base_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        self.astrostats_img = os.path.join(self.base_path, 'images', 'astrostats.png')
 
     async def initialize_emojis(self):
         """Initialize emoji data when the cog is loaded."""
@@ -167,7 +169,7 @@ class LeagueCog(commands.GroupCog, group_name="league"):
                     inline=False
                 )
                 embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
-                embed.set_footer(text="Built By Goldiez ❤️ Visit clutchgg.lol for more!")
+                embed.set_footer(text="AstroStats | astrostats.vercel.app", icon_url="attachment://astrostats.png")
 
                 conditional_embed = await get_conditional_embed(interaction, 'LEAGUE_EMBED', discord.Color.orange())
                 embeds = [embed]
@@ -388,7 +390,7 @@ class LeagueCog(commands.GroupCog, group_name="league"):
                 for i in range(0, len(arena_players), 2):
                     team = arena_players[i:i + 2]
                     team_details = "\n".join([
-                        f"{await self.get_emoji_for_champion(p['champion_name'])} {p['champion_name']} - {p['summoner_name']} ({p['rank']})"
+                        f"{await self.get_emoji_for_champion(p['champion_name'])} {p['champion_name']} - {p['riotId']} ({p['rank']})"
                         for p in team
                     ])
                     embed.add_field(name=f"Team {i // 2 + 1}", value=team_details, inline=True)
@@ -421,13 +423,13 @@ class LeagueCog(commands.GroupCog, group_name="league"):
                 blue_team_champions = '\n'.join([
                     f"{await self.get_emoji_for_champion(p['champion_name'])} {p['champion_name']}" for p in blue_team
                 ]) or "No data"
-                blue_team_names = '\n'.join([p['summoner_name'] for p in blue_team]) or "No data"
+                blue_team_names = '\n'.join([p['riotId'] for p in blue_team]) or "No data"
                 blue_team_ranks = '\n'.join([p['rank'] for p in blue_team]) or "No data"
 
                 red_team_champions = '\n'.join([
                     f"{await self.get_emoji_for_champion(p['champion_name'])} {p['champion_name']}" for p in red_team
                 ]) or "No data"
-                red_team_names = '\n'.join([p['summoner_name'] for p in red_team]) or "No data"
+                red_team_names = '\n'.join([p['riotId'] for p in red_team]) or "No data"
                 red_team_ranks = '\n'.join([p['rank'] for p in red_team]) or "No data"
 
                 embed.add_field(name="Blue Team", value=blue_team_champions, inline=True)
@@ -464,18 +466,19 @@ class LeagueCog(commands.GroupCog, group_name="league"):
             if account_data:
                 game_name = account_data.get('gameName', 'Unknown')
                 tag_line = account_data.get('tagLine', '')
-                summoner_name = f"{game_name}#{tag_line}" if tag_line else game_name
+                riotId = f"{game_name}#{tag_line}" if tag_line else game_name
             else:
-                summoner_name = player.get('summonerName', 'Unknown')
+                # Try riotId first, then summonerName, finally default to 'Unknown'
+                riotId = player.get('riotId') or player.get('summonerName', 'Unknown')
 
             rank = await self.get_player_rank(session, summoner_id, region, headers)
             champion_id = player['championId']
             champion_name = await self.fetch_champion_name(session, champion_id)
 
-            return {'summoner_name': summoner_name, 'champion_name': champion_name, 'rank': rank}, team_id
+            return {'riotId': riotId, 'champion_name': champion_name, 'rank': rank}, team_id
         except Exception as e:
             logger.error(f"Error fetching participant data: {e}")
-            return {'summoner_name': 'Unknown', 'champion_name': 'Unknown', 'rank': 'Unranked'}, player.get('teamId', 0)
+            return {'riotId': 'Unknown', 'champion_name': 'Unknown', 'rank': 'Unranked'}, player.get('teamId', 0)
 
     async def get_player_rank(self, session: aiohttp.ClientSession, summoner_id: str, region: str,
                               headers: dict) -> str:

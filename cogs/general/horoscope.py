@@ -1,7 +1,7 @@
 ﻿import datetime
 import logging
-from typing import Literal, Optional
-
+from typing import Optional
+import os
 import aiohttp
 import discord
 from discord import app_commands
@@ -31,6 +31,8 @@ SIGNS = {
 class HoroscopeCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        self.base_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        self.astrostats_img = os.path.join(self.base_path, 'images', 'astrostats.png')
 
     async def fetch_horoscope_text(self, sign: str) -> Optional[str]:
         url = (
@@ -129,7 +131,7 @@ class HoroscopeCog(commands.Cog):
             inline=False
         )
         embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
-        embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
+        embed.set_footer(text="AstroStats | astrostats.vercel.app", icon_url="attachment://astrostats.png")
         return embed
 
     @app_commands.command(name="horoscope", description="Check your Daily Horoscope")
