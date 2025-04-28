@@ -1,4 +1,5 @@
-﻿import datetime
+﻿import os
+import datetime
 import logging
 from typing import Literal, Optional
 
@@ -18,6 +19,8 @@ logger = logging.getLogger(__name__)
 class TFTCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        self.base_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        self.astrostats_img = os.path.join(self.base_path, 'images', 'astrostats.png')
 
     @app_commands.command(name="tft", description="Check your TFT Player Stats!")
     async def tft(self, interaction: discord.Interaction, region: Literal[
@@ -137,7 +140,7 @@ class TFTCog(commands.Cog):
                 )
             )
             embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
-            embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
+            embed.set_footer(text="AstroStats | astrostats.vercel.app", icon_url="attachment://astrostats.png")
 
             # Add Conditional Embed
             conditional_embed = await get_conditional_embed(
