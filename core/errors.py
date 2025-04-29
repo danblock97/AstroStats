@@ -32,7 +32,7 @@ async def send_error_embed(interaction: discord.Interaction, title: str, descrip
         title=title,
         description=(
             f"{description}\n\nFor more assistance, visit "
-            "[AstroStats Support](https:/astrostats.info)"
+            "[AstroStats Support](https://astrostats.info)"
         ),
         color=discord.Color.red(),
         timestamp=datetime.datetime.now(datetime.timezone.utc)
