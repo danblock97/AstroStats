@@ -207,7 +207,7 @@ class AstroStatsBot(commands.Bot):
         embed.add_field(
             name="🔗 Important Links",
             value=(
-                "[Documentation](https://astrostats.vercel.app) | "
+                "[Documentation](https://astrostats.info) | "
                 "[Support Server](https://discord.com/invite/BeszQxTn9D) | "
                 "[Support Us ❤️](https://buymeacoffee.com/danblock97)"
             ),

@@ -28,7 +28,7 @@ class ShowUpdateCog(commands.Cog):
             )
         )
 
-        embed.set_footer(text="AstroStats | astrostats.vercel.app", icon_url="attachment://astrostats.png")
+        embed.set_footer(text="AstroStats | astrostats.info", icon_url="attachment://astrostats.png")
 
         # Fetch Conditional Embed
         conditional_embed = await get_conditional_embed(

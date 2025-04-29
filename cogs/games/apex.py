@@ -163,7 +163,7 @@ class ApexCog(commands.Cog):
             value="[If you enjoy using this bot, consider supporting us!](https://buymeacoffee.com/danblock97)",
             inline=False
         )
-        embed.set_footer(text="AstroStats | astrostats.vercel.app", icon_url="attachment://astrostats.png")
+        embed.set_footer(text="AstroStats | astrostats.info", icon_url="attachment://astrostats.png")
         return embed
 
     def format_lifetime_stats(self, lifetime: Dict) -> str:

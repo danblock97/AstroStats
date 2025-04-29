@@ -140,7 +140,7 @@ class TFTCog(commands.Cog):
                 )
             )
             embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
-            embed.set_footer(text="AstroStats | astrostats.vercel.app", icon_url="attachment://astrostats.png")
+            embed.set_footer(text="AstroStats | astrostats.info", icon_url="attachment://astrostats.png")
 
             # Add Conditional Embed
             conditional_embed = await get_conditional_embed(

@@ -54,7 +54,7 @@ class HelpCog(commands.Cog):
         )
         embed.add_field(
             name="Support",
-            value="For support please visit [AstroStats](https://astrostats.vercel.app)",
+            value="For support please visit [AstroStats](https://astrostats.info)",
             inline=False
         )
         embed.add_field(
@@ -62,7 +62,7 @@ class HelpCog(commands.Cog):
             value="[If you enjoy using this bot, consider supporting us!](https://buymeacoffee.com/danblock97)",
             inline=False
         )
-        embed.set_footer(text="AstroStats | astrostats.vercel.app", icon_url="attachment://astrostats.png")
+        embed.set_footer(text="AstroStats | astrostats.info", icon_url="attachment://astrostats.png")
         return embed
 
     @app_commands.command(name="help", description="Lists all available commands")

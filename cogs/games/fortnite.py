@@ -192,7 +192,7 @@ class FortniteCog(commands.Cog):
             value="[If you enjoy using this bot, consider supporting us!](https://buymeacoffee.com/danblock97)"
         )
         embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
-        embed.set_footer(text="AstroStats | astrostats.vercel.app", icon_url="attachment://astrostats.png")
+        embed.set_footer(text="AstroStats | astrostats.info", icon_url="attachment://astrostats.png")
         return embed
 
 
