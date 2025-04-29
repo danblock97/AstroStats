@@ -19,7 +19,7 @@ class SupportCog(commands.Cog):
             title="Submit Feedback or Feature Requests",
             description=(
                 "We value your feedback! To submit a feature request or share your thoughts:\\n\\n"
-                "**1.** Visit [AstroStats Website](https://astrostats.vercel.app/)\\n"
+                "**1.** Visit [AstroStats Website](https://astrostats.info/)\\n"
                 "**2.** Click on the 'Request a Feature' button\\n"
                 "**3.** Fill out the form with your suggestion\\n\\n"
                 "Your feedback helps make AstroStats better for everyone!"
@@ -27,7 +27,7 @@ class SupportCog(commands.Cog):
             color=discord.Color.blue()
         )
 
-        embed.set_footer(text="AstroStats | astrostats.vercel.app", icon_url="attachment://astrostats.png")
+        embed.set_footer(text="AstroStats | astrostats.info", icon_url="attachment://astrostats.png")
         conditional_embed = await get_conditional_embed(
             interaction, 'FEEDBACK_EMBED', discord.Color.orange()
         )
@@ -45,7 +45,7 @@ class SupportCog(commands.Cog):
             title="Report a Bug",
             description=(
                 "Found a bug? Help us fix it by reporting it directly to the developer:\\n\\n"
-                "**1.** Visit [AstroStats Website](https://astrostats.vercel.app/)\\n"
+                "**1.** Visit [AstroStats Website](https://astrostats.info/)\\n"
                 "**2.** Click on the 'Report a Bug' button\\n"
                 "**3.** Describe the issue in detail (including steps to reproduce)\\n\\n"
                 "Your reports help us improve the bot's reliability!"

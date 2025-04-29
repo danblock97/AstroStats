@@ -64,7 +64,7 @@ class TruthOrDare(commands.Cog):
             embed.set_thumbnail(url=f"attachment://truthordare.png")
             
             # Set footer with AstroStats branding
-            embed.set_footer(text="AstroStats | astrostats.vercel.app", icon_url=f"attachment://astrostats.png")
+            embed.set_footer(text="AstroStats | astrostats.info", icon_url=f"attachment://astrostats.png")
 
             # Send the message with the image files
             await interaction.response.send_message(

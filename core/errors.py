@@ -32,12 +32,12 @@ async def send_error_embed(interaction: discord.Interaction, title: str, descrip
         title=title,
         description=(
             f"{description}\n\nFor more assistance, visit "
-            "[AstroStats Support](https://astrostats.vercel.app)"
+            "[AstroStats Support](https:/astrostats.info)"
         ),
         color=discord.Color.red(),
         timestamp=datetime.datetime.now(datetime.timezone.utc)
     )
-    embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
+    embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.info")
 
     if interaction.response.is_done():
         await interaction.followup.send(embed=embed)
