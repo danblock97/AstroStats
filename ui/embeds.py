@@ -12,7 +12,7 @@ def create_base_embed(title: str, description: Optional[str] = None, color: disc
         url=url,
         timestamp=datetime.datetime.now(datetime.timezone.utc)
     )
-    embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.vercel.app")
+    embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.info")
     return embed
 
 def add_support_field(embed: discord.Embed) -> discord.Embed:

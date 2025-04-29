@@ -131,7 +131,7 @@ class HoroscopeCog(commands.Cog):
             inline=False
         )
         embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
-        embed.set_footer(text="AstroStats | astrostats.vercel.app", icon_url="attachment://astrostats.png")
+        embed.set_footer(text="AstroStats | astrostats.info", icon_url="attachment://astrostats.png")
         return embed
 
     @app_commands.command(name="horoscope", description="Check your Daily Horoscope")
