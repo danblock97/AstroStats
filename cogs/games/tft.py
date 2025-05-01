@@ -2,6 +2,7 @@
 import datetime
 import logging
 from typing import Literal, Optional
+from urllib.parse import urlencode
 
 import discord
 from discord import app_commands
@@ -95,9 +96,18 @@ class TFTCog(commands.Cog):
             )
             league_response = requests.get(league_url, headers=headers)
 
+            # Construct profile URL
+            query_params = urlencode({
+                "gameName": game_name,
+                "tagLine": tag_line,
+                "region": region
+            })
+            profile_url = f"https://www.clutchgg.lol/tft/profile?{query_params}"
+
             embed = discord.Embed(
                 title=f"{game_name}#{tag_line} - Level {summoner_data['summonerLevel']}",
-                color=0x1a78ae
+                color=0x1a78ae,
+                url=profile_url
             )
             embed.set_thumbnail(
                 url=(

@@ -114,7 +114,7 @@ class LeagueCog(commands.GroupCog, group_name="league"):
                     "tagLine": tag_line,
                     "region": region
                 })
-                profile_url = f"https://www.clutchgg.lol/profile?{query_params}"
+                profile_url = f"https://www.clutchgg.lol/league/profile?{query_params}"
 
                 embed = discord.Embed(
                     title=f"{game_name}#{tag_line} - Level {summoner_data['summonerLevel']}",
