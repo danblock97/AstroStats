@@ -165,7 +165,7 @@ class LeagueCog(commands.GroupCog, group_name="league"):
 
                 embed.add_field(
                     name="Support Us ❤️",
-                    value="[If you enjoy using this bot, consider supporting us!](https://buymeacoffee.com/danblock97)",
+                    value="[If you enjoy using this bot, consider supporting us!](https://astrostats.info)",
                     inline=False
                 )
                 embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
@@ -292,7 +292,7 @@ class LeagueCog(commands.GroupCog, group_name="league"):
                 embed.description = "\n".join(description_lines)
                 embed.add_field(
                     name="Support Us ❤️",
-                    value="[If you enjoy using this bot, consider supporting us!](https://buymeacoffee.com/danblock97)",
+                    value="[If you enjoy using this bot, consider supporting us!](https://astrostats.info)",
                     inline=False
                 )
                 embed.set_footer(text="Built By Goldiez ❤️ Visit clutchgg.lol for more!")

@@ -12,14 +12,14 @@ def create_base_embed(title: str, description: Optional[str] = None, color: disc
         url=url,
         timestamp=datetime.datetime.now(datetime.timezone.utc)
     )
-    embed.set_footer(text="Built By Goldiez ❤️ Support: https://astrostats.info")
+    embed.set_footer(text="Built By Goldiez ❤️ Support: astrostats.info")
     return embed
 
 def add_support_field(embed: discord.Embed) -> discord.Embed:
     """Add a support field to an embed."""
     embed.add_field(
         name="Support Us ❤️",
-        value="[If you enjoy using this bot, consider supporting us!](https://buymeacoffee.com/danblock97)",
+        value="[If you enjoy using this bot, consider supporting us!](https://astrostats.info)",
         inline=False
     )
     return embed

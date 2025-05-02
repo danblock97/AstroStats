@@ -208,8 +208,9 @@ class AstroStatsBot(commands.Bot):
             name="🔗 Important Links",
             value=(
                 "[Documentation](https://astrostats.info) | "
-                "[Support Server](https://discord.com/invite/BeszQxTn9D) | "
-                "[Support Us ❤️](https://buymeacoffee.com/danblock97)"
+                "[Support](https://astrostats.info) | "
+                "[Issue Tracker](https://astrostats.info) | "
+                "[Support Us ❤️](https://astrostats.info)"
             ),
             inline=False
         )
@@ -258,4 +259,3 @@ async def run_bot():
         logger.critical("Failed to log in: Improper token provided.")
     except Exception as e:
         logger.critical(f"Fatal error during bot execution: {e}", exc_info=True)
-

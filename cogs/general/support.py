@@ -19,9 +19,10 @@ class SupportCog(commands.Cog):
             title="Submit Feedback or Feature Requests",
             description=(
                 "We value your feedback! To submit a feature request or share your thoughts:\\n\\n"
-                "**1.** Visit [AstroStats Website](https://astrostats.info/)\\n"
+                "**1.** Visit [AstroStats Website](https://astrostats.info)\\n"
                 "**2.** Click on the 'Request a Feature' button\\n"
                 "**3.** Fill out the form with your suggestion\\n\\n"
+                "Alternatively, you can submit feature requests through our [Issue Tracker](https://astrostats.info)\\n\\n"
                 "Your feedback helps make AstroStats better for everyone!"
             ),
             color=discord.Color.blue()
@@ -45,9 +46,10 @@ class SupportCog(commands.Cog):
             title="Report a Bug",
             description=(
                 "Found a bug? Help us fix it by reporting it directly to the developer:\\n\\n"
-                "**1.** Visit [AstroStats Website](https://astrostats.info/)\\n"
+                "**1.** Visit [AstroStats Website](https://astrostats.info)\\n"
                 "**2.** Click on the 'Report a Bug' button\\n"
                 "**3.** Describe the issue in detail (including steps to reproduce)\\n\\n"
+                "Alternatively, you can report bugs directly through our [Issue Tracker](https://astrostats.info)\\n\\n"
                 "Your reports help us improve the bot's reliability!"
             ),
             color=discord.Color.red()
