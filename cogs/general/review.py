@@ -32,7 +32,7 @@ class ReviewCog(commands.Cog):
             name="Support Us ❤️",
             value=(
                 "[If you enjoy using this bot, consider supporting us!]"
-                "(https://buymeacoffee.com/danblock97)"
+                "(https://astrostats.info)"
             )
         )
         embed.set_footer(text="AstroStats | astrostats.info", icon_url="attachment://astrostats.png")

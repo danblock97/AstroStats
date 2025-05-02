@@ -127,7 +127,7 @@ class HoroscopeCog(commands.Cog):
         )
         embed.add_field(
             name="Support Us ❤️",
-            value="[If you enjoy using this bot, consider supporting us!](https://buymeacoffee.com/danblock97)",
+            value="[If you enjoy using this bot, consider supporting us!](https://astrostats.info)",
             inline=False
         )
         embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
