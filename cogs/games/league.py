@@ -44,9 +44,11 @@ class LeagueCog(commands.GroupCog, group_name="league"):
                         self.emojis[e['name'].lower()] = f"<:{e['name']}:{e['id']}>"
                     else:
                         logger.warning(f"Invalid emoji format: {e}")
-                logger.info(f"Loaded {len(self.emojis)} emojis")
+                logger.info(f"Loaded {len(self.emojis)} emojis into cache.") # Added log
+                if not self.emojis:
+                    logger.warning("Emoji data was fetched, but the cache is still empty. Check data format.") # Added log
             else:
-                logger.warning("No emojis found or emoji fetching failed")
+                logger.warning("No emojis found or emoji fetching failed. Emoji cache is empty.") # Modified log
         except Exception as e:
             logger.error(f"Error initializing emojis: {e}")
             # Continue without emojis - don't raise exception
@@ -522,7 +524,10 @@ class LeagueCog(commands.GroupCog, group_name="league"):
         """Get the emoji for a champion name."""
         try:
             normalized_champion_name = SPECIAL_EMOJI_NAMES.get(champion_name, champion_name)
-            return self.emojis.get(normalized_champion_name.lower(), "")
+            emoji = self.emojis.get(normalized_champion_name.lower(), "")
+            if not emoji:
+                logger.debug(f"Emoji not found for champion: {champion_name} (Normalized: {normalized_champion_name.lower()})") # Added log
+            return emoji
         except Exception as e:
             logger.error(f"Error getting emoji for champion {champion_name}: {e}")
             return ""  # Return empty string on any error
