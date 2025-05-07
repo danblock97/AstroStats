@@ -21,7 +21,6 @@ class SupportCog(commands.Cog):
                 "**1.** Visit the [AstroStats Website](https://astrostats.info)\n"
                 "**2.** Click on the 'Need Help' button\n"
                 "**3.** Fill out the form with your suggestion\n\n"
-                "Alternatively, check our issue tracker for tasks we are working on [Issue Tracker](https://solodev-initiatives.youtrack.cloud/agiles/183-3/current)\n\n"
                 "Your feedback helps make AstroStats better for everyone!"
             ),
             color=discord.Color.blue()
@@ -47,7 +46,6 @@ class SupportCog(commands.Cog):
                 "**1.** Visit the [AstroStats Website](https://astrostats.info)\n"
                 "**2.** Click on 'Need Help' button\n"
                 "**3.** Describe the issue in detail (including steps to reproduce)\n\n"
-                "Alternatively, check our issue tracker for tasks we are working on [Issue Tracker](https://solodev-initiatives.youtrack.cloud/agiles/183-3/current)\n\n"
                 "Your reports help us improve the bot's reliability!"
             ),
             color=discord.Color.red()
