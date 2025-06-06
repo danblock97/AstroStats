@@ -15,6 +15,7 @@ logging.basicConfig(
 # Suppress noisy loggers
 logging.getLogger("discord.gateway").setLevel(logging.ERROR)
 logging.getLogger("discord.client").setLevel(logging.ERROR)
+logging.getLogger("topgg").setLevel(logging.CRITICAL)
 
 def main():
     """Main entry point for the bot."""
