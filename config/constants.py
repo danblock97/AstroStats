@@ -51,9 +51,9 @@ SPECIAL_EMOJI_NAMES = {
 
 # Latest bot updates
 LATEST_UPDATES = (
-    "**Version 2.3.0 (Truth or Dare!)**:\n\n"
-    "**🎲 New Game Added!**\n"
-    "- Play `/truthordare`! Choose SFW or NSFW, Truth or Dare, and face forfeits if you chicken out!"
+    "**Version 2.3.1 (League of Legends & TFT)**:\n\n"
+    "**Backend Updates**\n"
+    "- League of Legends and TFT now use the new PUUID-based API endpoints. You won't notice any changes, but the bot should be more stable when Riot changes their API.\n"
 )
 
 SFW_TRUTHS = [
