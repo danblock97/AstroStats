@@ -91,8 +91,7 @@ class TFTCog(commands.Cog):
 
             summoner_data = summoner_response.json()
             league_url = (
-                f"https://{region.lower()}.api.riotgames.com/tft/league/v1/entries/"
-                f"by-summoner/{summoner_data['id']}"
+                f"https://{region.lower()}.api.riotgames.com/tft/league/v1/by-puuid/{puuid}"
             )
             league_response = requests.get(league_url, headers=headers)
 

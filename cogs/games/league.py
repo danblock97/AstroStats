@@ -110,7 +110,7 @@ class LeagueCog(commands.GroupCog, group_name="league"):
                     )
                     return
 
-                league_data = await self.fetch_league_data(session, summoner_data['id'], region, headers)
+                league_data = await self.fetch_league_data(session, puuid, region, headers)
                 query_params = urlencode({
                     "gameName": game_name,
                     "tagLine": tag_line,
@@ -345,10 +345,10 @@ class LeagueCog(commands.GroupCog, group_name="league"):
             logger.error(f"Failed to fetch summoner data: {e}")
             return None
 
-    async def fetch_league_data(self, session: aiohttp.ClientSession, summoner_id: str, region: str,
+    async def fetch_league_data(self, session: aiohttp.ClientSession, puuid: str, region: str,
                                 headers: dict) -> dict:
         try:
-            league_url = f"https://{region.lower()}.api.riotgames.com/lol/league/v4/entries/by-summoner/{summoner_id}"
+            league_url = f"https://{region.lower()}.api.riotgames.com/lol/league/v4/entries/by-puuid/{puuid}"
             data = await self.fetch_data(session, league_url, headers)
             if not data:
                 return None
@@ -446,22 +446,22 @@ class LeagueCog(commands.GroupCog, group_name="league"):
 
     async def fetch_participant_data(self, player, region, headers, session):
         try:
-            summoner_id = player['summonerId']
+            puuid = player['puuid']
             team_id = player['teamId']
             current_time = time.time()
-            cached_account_data = account_data_cache.get(summoner_id)
+            cached_account_data = account_data_cache.get(puuid)
 
             if cached_account_data and current_time - cached_account_data['timestamp'] < CACHE_EXPIRY_SECONDS:
                 account_data = cached_account_data['data']
             else:
-                account_url = f"https://{region.lower()}.api.riotgames.com/lol/summoner/v4/summoner/{summoner_id}"
+                account_url = f"https://{region.lower()}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/{puuid}"
                 summoner_data = await self.fetch_data(session, account_url, headers)
 
                 if summoner_data and 'puuid' in summoner_data:
                     riot_id_url = f"https://europe.api.riotgames.com/riot/account/v1/accounts/by-puuid/{summoner_data['puuid']}"
                     account_data = await self.fetch_data(session, riot_id_url, headers)
                     if account_data:
-                        account_data_cache[summoner_id] = {'data': account_data, 'timestamp': current_time}
+                        account_data_cache[puuid] = {'data': account_data, 'timestamp': current_time}
                 else:
                     account_data = None
 
@@ -473,7 +473,7 @@ class LeagueCog(commands.GroupCog, group_name="league"):
                 # Try riotId first, then summonerName, finally default to 'Unknown'
                 riotId = player.get('riotId') or player.get('summonerName', 'Unknown')
 
-            rank = await self.get_player_rank(session, summoner_id, region, headers)
+            rank = await self.get_player_rank(session, puuid, region, headers)
             champion_id = player['championId']
             champion_name = await self.fetch_champion_name(session, champion_id)
 
@@ -482,10 +482,10 @@ class LeagueCog(commands.GroupCog, group_name="league"):
             logger.error(f"Error fetching participant data: {e}")
             return {'riotId': 'Unknown', 'champion_name': 'Unknown', 'rank': 'Unranked'}, player.get('teamId', 0)
 
-    async def get_player_rank(self, session: aiohttp.ClientSession, summoner_id: str, region: str,
+    async def get_player_rank(self, session: aiohttp.ClientSession, puuid: str, region: str,
                               headers: dict) -> str:
         try:
-            league_data = await self.fetch_league_data(session, summoner_id, region, headers)
+            league_data = await self.fetch_league_data(session, puuid, region, headers)
             if not isinstance(league_data, list):
                 return "Unranked"
 
