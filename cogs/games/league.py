@@ -3,6 +3,7 @@ import time
 import asyncio
 import logging
 import datetime
+import re
 from typing import Literal, Dict, Any, List, Optional
 from collections import defaultdict
 from urllib.parse import urlencode
@@ -523,10 +524,25 @@ class LeagueCog(commands.GroupCog, group_name="league"):
     async def get_emoji_for_champion(self, champion_name: str) -> str:
         """Get the emoji for a champion name."""
         try:
-            normalized_champion_name = SPECIAL_EMOJI_NAMES.get(champion_name, champion_name)
-            emoji = self.emojis.get(normalized_champion_name.lower(), "")
+            # First, handle special cases like "Wukong" -> "MonkeyKing"
+            if champion_name in SPECIAL_EMOJI_NAMES:
+                base_name = SPECIAL_EMOJI_NAMES[champion_name]
+            else:
+                # For all others, remove apostrophes, spaces, and other non-alphanumeric characters
+                base_name = re.sub(r'[^a-zA-Z0-9]', '', champion_name)
+            
+            # Construct the emoji name in the format 'championname_0'
+            emoji_key = f"{base_name}_0".lower()
+            
+            # Look up the emoji in the cache
+            emoji = self.emojis.get(emoji_key)
+
             if not emoji:
-                logger.debug(f"Emoji not found for champion: {champion_name} (Normalized: {normalized_champion_name.lower()})") # Added log
+                # Fallback for champions who might not have the '_0' suffix for some reason
+                fallback_key = base_name.lower()
+                emoji = self.emojis.get(fallback_key, "") # Default to empty string if not found
+                if not emoji:
+                    logger.debug(f"Emoji not found for champion '{champion_name}'. Looked for keys: '{emoji_key}', '{fallback_key}'")
             return emoji
         except Exception as e:
             logger.error(f"Error getting emoji for champion {champion_name}: {e}")
