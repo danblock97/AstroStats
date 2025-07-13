@@ -15,6 +15,8 @@ from discord import app_commands, Interaction # Added Interaction
 from pymongo import MongoClient
 from bson import ObjectId # Import ObjectId
 import topgg # Ensure topgg is imported
+import asyncio # For retry delays
+import aiohttp # For network error handling
 
 from core.utils import get_conditional_embed, create_progress_bar # Import create_progress_bar
 from config.settings import MONGODB_URI, TOPGG_TOKEN
@@ -118,12 +120,27 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             original_auto_post = self.topgg_client._auto_post
             
             async def patched_auto_post():
-                try:
-                    await original_auto_post()
-                except topgg.errors.ServerError as e:
-                    handle_api_error(e, "Top.gg autoposting error")
-                except Exception as e:
-                    handle_api_error(e, "Unexpected Top.gg autoposting error")
+                max_retries = 3
+                base_delay = 1  # Base delay in seconds
+                
+                for attempt in range(max_retries + 1):
+                    try:
+                        await original_auto_post()
+                        return  # Success, exit the retry loop
+                    except (topgg.errors.ServerError, aiohttp.ClientConnectorDNSError, aiohttp.ClientError) as e:
+                        if attempt == max_retries:
+                            # Final attempt failed, suppress the error to prevent bot crash
+                            handle_api_error(e, f"Top.gg autoposting failed after {max_retries + 1} attempts")
+                            return
+                        
+                        # Calculate exponential backoff delay
+                        delay = base_delay * (2 ** attempt)
+                        logger.warning(f"Top.gg autopost attempt {attempt + 1} failed: {type(e).__name__}. Retrying in {delay}s...")
+                        await asyncio.sleep(delay)
+                    except Exception as e:
+                        # Unexpected error, log it but don't crash the bot
+                        handle_api_error(e, "Unexpected Top.gg autoposting error")
+                        return
             
             # Replace the method with our patched version
             self.topgg_client._auto_post = patched_auto_post
@@ -1758,6 +1775,9 @@ class PetBattles(commands.GroupCog, name="petbattles"):
     @app_commands.command(name="hunt", description="Send your pet hunting for rewards")
     async def hunt(self, interaction: Interaction):
         """Allows your pet to go hunting for currency and items with a cooldown."""
+        # Defer the response immediately to prevent timeout
+        await interaction.response.defer()
+        
         user_id = str(interaction.user.id)
         guild_id = str(interaction.guild.id)
         HUNT_COOLDOWN_HOURS = 2  # Cooldown between hunts
@@ -1771,7 +1791,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                     "No Pet Found",
                     f"{interaction.user.mention}, you need a pet to go hunting! Use `/petbattles summon`."
                 )
-                await interaction.response.send_message(embed=embed, ephemeral=True)
+                await interaction.followup.send(embed=embed, ephemeral=True)
                 return
             
             # Ensure pet has necessary fields
@@ -1808,7 +1828,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                             "Hunt Cooldown",
                             f"Your pet is still tired from the last hunt. Try again in **{time_str}**."
                         )
-                        await interaction.response.send_message(embed=embed, ephemeral=True)
+                        await interaction.followup.send(embed=embed, ephemeral=True)
                         return
                 except (ValueError, TypeError):
                     # Invalid date format, allow hunt
@@ -1919,12 +1939,16 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             # Add thumbnail of pet
             embed.set_thumbnail(url=pet['icon'])
             
-            await interaction.response.send_message(embed=embed)
+            await interaction.followup.send(embed=embed)
             
         except Exception as e:
             logger.error(f"Error in hunt command for user {user_id}: {e}", exc_info=True)
             embed = create_error_embed("Hunt Error", "An unexpected error occurred during the hunt.")
-            await interaction.response.send_message(embed=embed, ephemeral=True)
+            # Check if the interaction has already been responded to
+            if interaction.response.is_done():
+                await interaction.followup.send(embed=embed, ephemeral=True)
+            else:
+                await interaction.response.send_message(embed=embed, ephemeral=True)
 
 # --- Setup Function ---
 async def setup(bot: commands.Bot):
