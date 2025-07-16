@@ -91,6 +91,11 @@ class PetBattles(commands.GroupCog, name="petbattles"):
         self.topgg_client = None
         # --- FIX: Store the token directly on the instance ---
         self.topgg_token = TOPGG_TOKEN # Store the imported token
+        # Circuit breaker for TopGG failures
+        self.topgg_failure_count = 0
+        self.topgg_circuit_open = False
+        self.topgg_last_failure_time = None
+        self.topgg_circuit_timeout = 3600  # 1 hour in seconds
         # --- End FIX ---
         if self.topgg_token: # Use the stored token for the check
             self.bot.loop.create_task(self.initialize_topgg_client())
@@ -120,26 +125,58 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             original_auto_post = self.topgg_client._auto_post
             
             async def patched_auto_post():
+                # Check circuit breaker state
+                if self.topgg_circuit_open:
+                    if self.topgg_last_failure_time:
+                        time_since_failure = (datetime.now(timezone.utc) - self.topgg_last_failure_time).total_seconds()
+                        if time_since_failure < self.topgg_circuit_timeout:
+                            # Circuit still open, skip silently
+                            return
+                        else:
+                            # Try to reset circuit breaker
+                            logger.info("Attempting to reset TopGG circuit breaker after timeout")
+                            self.topgg_circuit_open = False
+                            self.topgg_failure_count = 0
+                
                 max_retries = 3
-                base_delay = 1  # Base delay in seconds
+                base_delay = 5  # Increased base delay for network issues
                 
                 for attempt in range(max_retries + 1):
                     try:
                         await original_auto_post()
-                        return  # Success, exit the retry loop
-                    except (topgg.errors.ServerError, aiohttp.ClientConnectorDNSError, aiohttp.ClientError) as e:
+                        # Success - reset failure count
+                        if self.topgg_failure_count > 0:
+                            logger.info("TopGG autoposting recovered successfully")
+                            self.topgg_failure_count = 0
+                            self.topgg_circuit_open = False
+                        return
+                    except (aiohttp.ClientConnectorDNSError, aiohttp.ClientError) as e:
+                        # Network/DNS specific errors - longer delays
+                        self.topgg_failure_count += 1
+                        self.topgg_last_failure_time = datetime.now(timezone.utc)
+                        
                         if attempt == max_retries:
-                            # Final attempt failed, suppress the error to prevent bot crash
-                            handle_api_error(e, f"Top.gg autoposting failed after {max_retries + 1} attempts")
+                            # Open circuit breaker after repeated DNS failures
+                            if self.topgg_failure_count >= 5:
+                                self.topgg_circuit_open = True
+                                logger.warning(f"TopGG circuit breaker opened after {self.topgg_failure_count} failures. Disabling for {self.topgg_circuit_timeout/60:.0f} minutes.")
+                            else:
+                                logger.warning(f"TopGG autoposting failed due to network issues (attempt {self.topgg_failure_count}). Will retry later.")
                             return
                         
-                        # Calculate exponential backoff delay
+                        # Longer delay for network issues
                         delay = base_delay * (2 ** attempt)
-                        logger.warning(f"Top.gg autopost attempt {attempt + 1} failed: {type(e).__name__}. Retrying in {delay}s...")
+                        await asyncio.sleep(delay)
+                    except topgg.errors.ServerError as e:
+                        # TopGG server errors - normal retry logic
+                        if attempt == max_retries:
+                            handle_api_error(e, f"TopGG server error after {max_retries + 1} attempts")
+                            return
+                        delay = base_delay * (2 ** attempt)
                         await asyncio.sleep(delay)
                     except Exception as e:
                         # Unexpected error, log it but don't crash the bot
-                        handle_api_error(e, "Unexpected Top.gg autoposting error")
+                        handle_api_error(e, "Unexpected TopGG autoposting error")
                         return
             
             # Replace the method with our patched version
@@ -212,13 +249,27 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                         raw_response = await resp.text()
                         logger.error(f"Top.gg API returned unexpected status {resp.status} for user {user_id}. Response: {raw_response[:200]}")
                         return False
-        except aiohttp.ClientError as http_err:
-            logger.error(f"Network error during API call for user {user_id}: {http_err}", exc_info=True)
+        except (aiohttp.ClientConnectorDNSError, aiohttp.ClientError) as http_err:
+            # Update circuit breaker for network errors
+            self.topgg_failure_count += 1
+            self.topgg_last_failure_time = datetime.now(timezone.utc)
+            if self.topgg_failure_count >= 5:
+                self.topgg_circuit_open = True
+                logger.warning(f"TopGG circuit breaker opened due to vote check failures. Count: {self.topgg_failure_count}")
+            else:
+                logger.warning(f"Network error during vote check for user {user_id}: {type(http_err).__name__}. Failure count: {self.topgg_failure_count}")
             return False
         except Exception as err:
             # Catch any other unexpected errors during the API call
             logger.exception(f"Unexpected error during vote check for user {user_id}: {err}")
             return False
+
+    def reset_topgg_circuit_breaker(self):
+        """Manually reset the TopGG circuit breaker (for admin use)."""
+        self.topgg_circuit_open = False
+        self.topgg_failure_count = 0
+        self.topgg_last_failure_time = None
+        logger.info("TopGG circuit breaker manually reset")
 
     @tasks.loop(time=dtime(hour=0, minute=0, tzinfo=timezone.utc))
     async def reset_daily_quests(self):
@@ -1037,6 +1088,15 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             # --- FIX: Check the stored token attribute ---
             if not self.topgg_token: # Check if token exists before proceeding
                 embed = create_error_embed("Voting Unavailable", "The Top.gg connection is not configured correctly by the bot owner.")
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+                return
+            
+            # Check circuit breaker state
+            if self.topgg_circuit_open:
+                embed = create_error_embed(
+                    "Voting Temporarily Unavailable", 
+                    "Top.gg connection is experiencing issues. Please try again later."
+                )
                 await interaction.response.send_message(embed=embed, ephemeral=True)
                 return
             # --- End FIX ---
