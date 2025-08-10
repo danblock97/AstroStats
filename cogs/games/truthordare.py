@@ -4,6 +4,7 @@ from discord import app_commands
 import random
 import os
 from config import constants # Make sure constants.py is accessible
+from ui.embeds import send_premium_promotion
 
 class TruthOrDare(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -74,6 +75,9 @@ class TruthOrDare(commands.Cog):
                     discord.File(self.astrostats_img, "astrostats.png")
                 ]
             )
+            
+            # Add premium promotion
+            await send_premium_promotion(interaction, str(interaction.user.id))
 
         except Exception as e:
             # Log error for debugging - consider using a proper logger

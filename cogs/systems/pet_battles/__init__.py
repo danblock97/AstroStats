@@ -21,7 +21,8 @@ import aiohttp # For network error handling
 from core.utils import get_conditional_embed, create_progress_bar # Import create_progress_bar
 from services.premium import get_user_entitlements, invalidate_user_entitlements
 from config.settings import MONGODB_URI, TOPGG_TOKEN
-from ui.embeds import create_error_embed, create_success_embed # Use standardized embeds
+from ui.embeds import create_error_embed, create_success_embed, add_support_field, send_premium_promotion # Use standardized embeds
+
 
 from .petconstants import (
     INITIAL_STATS,
@@ -581,6 +582,9 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             embed.set_footer(text="Let the Pet Battles begin!")
 
             await interaction.response.send_message(embed=embed)
+            
+            # Add premium promotion
+            await send_premium_promotion(interaction, user_id)
 
         except Exception as e:
             logger.error(f"Error in summon command for user {user_id}: {e}", exc_info=True)
@@ -643,6 +647,9 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                 "Use `/petbattles stats name:<PetName>` to view a specific pet."
             ), inline=False)
             await interaction.response.send_message(embed=embed, ephemeral=True)
+            
+            # Add premium promotion
+            await send_premium_promotion(interaction, user_id)
         except Exception as e:
             logger.error(f"Error listing pets for {user_id}: {e}", exc_info=True)
             await interaction.response.send_message(embed=create_error_embed("Error", "Failed to list your pets."), ephemeral=True)
@@ -683,6 +690,9 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                 except Exception:
                     pass
                 await interaction.response.send_message(embed=create_success_embed("Active Pet Set", f"'{name}' is now your active pet."), ephemeral=True)
+                
+                # Add premium promotion
+                await send_premium_promotion(interaction, user_id)
             else:
                 await interaction.response.send_message(embed=create_error_embed("Error", "Failed to set active pet."), ephemeral=True)
         except Exception as e:
@@ -713,6 +723,9 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                         except Exception:
                             pass
                 await interaction.response.send_message(embed=create_success_embed("Pet Released", f"You released '{name}'."), ephemeral=True)
+                
+                # Add premium promotion
+                await send_premium_promotion(interaction, user_id)
             else:
                 await interaction.response.send_message(embed=create_error_embed("Error", "Failed to release pet."), ephemeral=True)
         except Exception as e:
@@ -836,6 +849,9 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             embed.set_footer(text="Use /petbattles help for more commands.")
 
             await interaction.response.send_message(embed=embed)
+            
+            # Add premium promotion
+            await send_premium_promotion(interaction, user_id)
 
         except Exception as e:
             logger.error(f"Error in stats command for user {user_id}: {e}", exc_info=True)
@@ -857,15 +873,18 @@ class PetBattles(commands.GroupCog, name="petbattles"):
         battle_message: Optional[discord.WebhookMessage] = None # To store the message for editing
 
         try:
+            # Defer response immediately to prevent interaction expiry
+            await interaction.response.defer()
+            
             # --- Initial Checks ---
             if user_id == opponent_id:
                 embed = create_error_embed("Battle Error", "You cannot battle yourself!")
-                await interaction.response.send_message(embed=embed, ephemeral=True)
+                await interaction.followup.send(embed=embed, ephemeral=True)
                 return
 
             if opponent.bot:
                 embed = create_error_embed("Battle Error", "You cannot battle bots.")
-                await interaction.response.send_message(embed=embed, ephemeral=True)
+                await interaction.followup.send(embed=embed, ephemeral=True)
                 return
 
             user_pet = get_pet_document(user_id, guild_id)
@@ -876,7 +895,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                     "No Pet Found",
                     f"{interaction.user.mention}, you need a pet! Use `/petbattles summon`."
                 )
-                await interaction.response.send_message(embed=embed, ephemeral=True)
+                await interaction.followup.send(embed=embed, ephemeral=True)
                 return
 
             if not opponent_pet:
@@ -884,7 +903,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                     "Opponent Has No Pet",
                     f"{opponent.mention} doesn't have a pet in this server."
                 )
-                await interaction.response.send_message(embed=embed, ephemeral=True)
+                await interaction.followup.send(embed=embed, ephemeral=True)
                 return
 
             # Prevent using a locked pet
@@ -893,7 +912,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                     "Pet Locked",
                     "Your active pet is locked due to your current tier capacity. Upgrade to unlock it or set another active pet."
                 )
-                await interaction.response.send_message(embed=embed, ephemeral=True)
+                await interaction.followup.send(embed=embed, ephemeral=True)
                 return
 
             # Ensure pets have necessary fields
@@ -915,7 +934,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                     "Battle Error",
                     "You can only battle pets within 5 levels of your own."
                 )
-                await interaction.response.send_message(embed=embed, ephemeral=True)
+                await interaction.followup.send(embed=embed, ephemeral=True)
                 return
 
             # Battle cooldown check
@@ -959,7 +978,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                     "Battle Limit Reached",
                     limit_message
                 )
-                await interaction.response.send_message(embed=embed, ephemeral=True)
+                await interaction.followup.send(embed=embed, ephemeral=True)
                 return
 
             # Log the battle attempt (before the actual fight)
@@ -971,7 +990,6 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             })
 
             # --- Battle Setup ---
-            await interaction.response.defer() # Defer response as battle takes time
 
             # Calculate initial health considering buffs
             user_max_health = user_pet['health'] + get_active_buff(user_pet.get('active_items', []), 'health')
@@ -1167,6 +1185,9 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             result_embed.set_footer(text="Battle concluded.")
 
             await battle_message.edit(embed=result_embed)
+            
+            # Add premium promotion
+            await send_premium_promotion(interaction, user_id)
 
         except Exception as e:
             logger.error(f"Error in battle command between {user_id} and {opponent_id}: {e}", exc_info=True)
@@ -1178,11 +1199,9 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                 # Try to edit the existing message if possible, otherwise send new
                 if battle_message:
                     await battle_message.edit(embed=error_embed, view=None) # Clear view if any
-                elif interaction.response.is_done():
-                    await interaction.followup.send(embed=error_embed, ephemeral=True)
                 else:
-                    # This case should be rare due to defer, but handle it
-                     await interaction.response.send_message(embed=error_embed, ephemeral=True)
+                    # Since we always defer at the start, use followup
+                    await interaction.followup.send(embed=error_embed, ephemeral=True)
             except Exception as followup_e:
                  logger.error(f"Failed to send battle error message: {followup_e}")
 
@@ -1254,6 +1273,9 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             embed.set_footer(text="Quests reset daily at midnight UTC.")
 
             await interaction.response.send_message(embed=embed)
+            
+            # Add premium promotion
+            await send_premium_promotion(interaction, user_id)
 
         except Exception as e:
             logger.error(f"Error in quests command for user {user_id}: {e}", exc_info=True)
@@ -1307,6 +1329,9 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             embed.set_footer(text="Keep battling to unlock more!")
 
             await interaction.response.send_message(embed=embed)
+            
+            # Add premium promotion
+            await send_premium_promotion(interaction, user_id)
 
         except Exception as e:
             logger.error(f"Error in achievements command for user {user_id}: {e}", exc_info=True)
@@ -1367,6 +1392,9 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             embed.set_footer(text="Battle your way to the top!")
 
             await interaction.response.send_message(embed=embed)
+            
+            # Add premium promotion
+            await send_premium_promotion(interaction, user_id)
 
         except Exception as e:
             logger.error(f"Error in leaderboard command for guild {guild_id}: {e}", exc_info=True)
@@ -1497,6 +1525,9 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                         embed.add_field(name="🌟 Level Up! 🌟", value=f"Your pet reached **Level {pet['level']}**!", inline=False)
 
                     await interaction.followup.send(embed=embed, ephemeral=True) # Send reward confirmation privately
+                    
+                    # Add premium promotion
+                    await send_premium_promotion(interaction, user_id)
 
         except Exception as e:
             logger.error(f"Error in vote command for user {user_id}: {e}", exc_info=True)
@@ -1548,6 +1579,9 @@ class PetBattles(commands.GroupCog, name="petbattles"):
 
         embed.set_footer(text="Items provide temporary buffs for battles.")
         await interaction.response.send_message(embed=embed)
+        
+        # Add premium promotion
+        await send_premium_promotion(interaction, user_id)
 
     # --- Buy Command (Separate for clarity) ---
     @app_commands.command(name="buy", description="Purchase an item from the pet shop")
@@ -1630,6 +1664,9 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                      f"The buff will last for **{item_to_buy['duration']}** battles.")
                 )
                 await interaction.response.send_message(embed=embed)
+                
+                # Add premium promotion
+                await send_premium_promotion(interaction, user_id)
             else:
                  # Rollback balance if DB update failed
                  pet['balance'] += cost # Add cost back
@@ -1740,6 +1777,9 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             
             await interaction.followup.send(embed=embed)
             
+            # Add premium promotion
+            await send_premium_promotion(interaction, user_id)
+            
         except Exception as e:
             logger.error(f"Error in globalrank command for user {user_id}: {e}", exc_info=True)
             embed = create_error_embed("Global Ranking Error", "An error occurred while fetching the global rankings.")
@@ -1843,6 +1883,9 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             
             await interaction.response.send_message(embed=embed)
             
+            # Add premium promotion
+            await send_premium_promotion(interaction, user_id)
+            
         except Exception as e:
             logger.error(f"Error in train command for user {user_id}: {e}", exc_info=True)
             embed = create_error_embed("Training Error", "An unexpected error occurred during training.")
@@ -1914,6 +1957,9 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                 )
                 embed.set_thumbnail(url=pet['icon'])
                 await interaction.response.send_message(embed=embed)
+                
+                # Add premium promotion
+                await send_premium_promotion(interaction, user_id)
             else:
                 embed = create_error_embed(
                     "Rename Error",
@@ -2198,6 +2244,9 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             
             await interaction.response.send_message(embed=embed)
             
+            # Add premium promotion
+            await send_premium_promotion(interaction, user_id)
+            
         except Exception as e:
             logger.error(f"Error in daily command for user {user_id}: {e}", exc_info=True)
             embed = create_error_embed("Daily Claim Error", "An unexpected error occurred while claiming daily rewards.")
@@ -2371,6 +2420,9 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             embed.set_thumbnail(url=pet['icon'])
             
             await interaction.followup.send(embed=embed)
+            
+            # Add premium promotion
+            await send_premium_promotion(interaction, user_id)
             
         except Exception as e:
             logger.error(f"Error in hunt command for user {user_id}: {e}", exc_info=True)

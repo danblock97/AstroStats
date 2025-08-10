@@ -39,3 +39,22 @@ def add_fields_from_dict(embed: discord.Embed, fields_dict: Dict[str, str], inli
     for name, value in fields_dict.items():
         embed.add_field(name=name, value=value, inline=inline)
     return embed
+
+async def send_premium_promotion(interaction, user_id: str):
+    """Send premium promotion embed to free tier users."""
+    try:
+        # Import here to avoid circular imports
+        from services.premium import get_user_entitlements
+        
+        user_entitlements = get_user_entitlements(user_id)
+        current_tier = user_entitlements.get("tier", "free")
+        
+        if current_tier == "free":
+            promo_embed = discord.Embed(
+                description="Start massive Squib Game sessions and even more pet battles with `/premium`: [Get Premium](https://astrostats.info/pricing)",
+                color=discord.Color.gold()
+            )
+            promo_embed.set_footer(text="Built By Goldiez ❤️ Support: astrostats.info")
+            await interaction.followup.send(embed=promo_embed, ephemeral=True)
+    except Exception:
+        pass  # Don't break the command if promotion fails

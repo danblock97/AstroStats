@@ -3,6 +3,7 @@ from discord import app_commands
 from discord.ext import commands
 import os
 from core.utils import get_conditional_embed
+from ui.embeds import send_premium_promotion
 
 class ReviewCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -49,6 +50,9 @@ class ReviewCog(commands.Cog):
 
         # Send the Message with Multiple Embeds
         await interaction.response.send_message(embeds=embeds)
+        
+        # Add premium promotion
+        await send_premium_promotion(interaction, str(interaction.user.id))
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(ReviewCog(bot))

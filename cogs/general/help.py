@@ -4,7 +4,7 @@ from discord import app_commands
 from discord.ext import commands
 
 from core.utils import get_conditional_embed
-from ui.embeds import create_base_embed # Import create_base_embed
+from ui.embeds import create_base_embed, send_premium_promotion # Import create_base_embed
 
 
 class HelpCog(commands.Cog):
@@ -75,6 +75,9 @@ class HelpCog(commands.Cog):
             embeds.append(conditional_embed)
 
         await interaction.response.send_message(embeds=embeds)
+        
+        # Add premium promotion
+        await send_premium_promotion(interaction, str(interaction.user.id))
 
 
 async def setup(bot: commands.Bot):

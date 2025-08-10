@@ -13,6 +13,7 @@ from config.settings import FORTNITE_API_KEY
 from config.constants import FORTNITE_TIME_MAPPING
 from core.errors import send_error_embed
 from core.utils import get_conditional_embed
+from ui.embeds import send_premium_promotion
 
 logger = logging.getLogger(__name__)
 
@@ -116,6 +117,9 @@ class FortniteCog(commands.Cog):
                 embeds=embeds,
                 files=[discord.File(self.astrostats_img, "astrostats.png")]
             )
+            
+            # Add premium promotion
+            await send_premium_promotion(interaction, str(interaction.user.id))
 
         except ValueError as e:
             logger.error(f"Validation Error: {e}", exc_info=True)

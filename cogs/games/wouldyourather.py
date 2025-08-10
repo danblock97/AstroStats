@@ -4,6 +4,7 @@ from discord import app_commands
 import random
 import os
 from config import constants
+from ui.embeds import send_premium_promotion
 
 class WouldYouRather(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -70,6 +71,9 @@ class WouldYouRather(commands.Cog):
                     discord.File(self.astrostats_img, "astrostats.png")
                 ]
             )
+            
+            # Add premium promotion
+            await send_premium_promotion(interaction, str(interaction.user.id))
 
         except Exception as e:
             # Log error for debugging
