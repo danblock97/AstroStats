@@ -1200,12 +1200,13 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             result_embed.timestamp = datetime.now(timezone.utc)
             result_embed.set_footer(text="Battle concluded.")
 
-            await battle_message.edit(embed=result_embed)
-            
-            # Add premium promotion as second embed
+            # Check if user needs premium promotion and add as second embed
             promo_embed = get_premium_promotion_embed(user_id)
+            embeds = [result_embed]
             if promo_embed:
-                await interaction.followup.send(embed=promo_embed)
+                embeds.append(promo_embed)
+
+            await battle_message.edit(embeds=embeds)
 
         except Exception as e:
             logger.error(f"Error in battle command between {user_id} and {opponent_id}: {e}", exc_info=True)
