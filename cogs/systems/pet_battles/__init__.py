@@ -1462,8 +1462,24 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                     await interaction.followup.send(embed=embed, ephemeral=True)
                 else:
                     # Grant rewards
-                    pet['xp'] += VOTE_REWARD_XP
-                    pet['balance'] = pet.get('balance', 0) + VOTE_REWARD_CASH
+                    try:
+                        ent = get_user_entitlements(user_id)
+                        tier = ent.get('tier','free')
+                        mult = 1.0
+                        if tier == 'supporter':
+                            mult = 1.2
+                        elif tier == 'sponsor':
+                            mult = 1.5
+                        elif tier == 'vip':
+                            mult = 1.75
+                        vote_xp = int(round(VOTE_REWARD_XP * mult))
+                        vote_cash = int(round(VOTE_REWARD_CASH * mult))
+                    except Exception:
+                        vote_xp = VOTE_REWARD_XP
+                        vote_cash = VOTE_REWARD_CASH
+
+                    pet['xp'] += vote_xp
+                    pet['balance'] = pet.get('balance', 0) + vote_cash
                     pet['last_vote_reward_time'] = now.isoformat() # Store timestamp
                     pet['voted_battle_bonus_active'] = True # Activate the battle bonus flag
                     pet['bonus_battle_allowance'] = 10 # Set the allowance amount
@@ -1473,7 +1489,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
 
                     embed = create_success_embed(
                         "🎉 Thank You for Voting! 🎉",
-                        (f"You received **{VOTE_REWARD_XP} XP** and **{format_currency(VOTE_REWARD_CASH)}**!\n"
+                        (f"You received **{vote_xp} XP** and **{format_currency(vote_cash)}**!\n"
                          f"You can now battle the same opponent **10 extra times** today!\n"
                          f"Your new balance is {format_currency(pet['balance'])}.")
                     )
@@ -1786,6 +1802,19 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             
             # Process training
             xp_gained = random.randint(TRAINING_XP_MIN, TRAINING_XP_MAX)
+            try:
+                ent = get_user_entitlements(user_id)
+                tier = ent.get('tier','free')
+                mult = 1.0
+                if tier == 'supporter':
+                    mult = 1.2
+                elif tier == 'sponsor':
+                    mult = 1.5
+                elif tier == 'vip':
+                    mult = 1.75
+                xp_gained = int(round(xp_gained * mult))
+            except Exception:
+                pass
             pet['balance'] -= TRAINING_COST
             pet['xp'] += xp_gained
             pet['trainingCount'] = training_count + 1
@@ -2100,8 +2129,38 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             streak_bonus = min(streak * STREAK_BONUS_MULTIPLIER, MAX_STREAK_BONUS)
             xp_reward = int(DAILY_REWARD_XP * (1 + streak_bonus))
             cash_reward = int(DAILY_REWARD_CASH * (1 + streak_bonus))
+            try:
+                from services.premium import get_user_entitlements
+                ent = get_user_entitlements(user_id)
+                tier = ent.get('tier','free')
+                mult = 1.0
+                if tier == 'supporter':
+                    mult = 1.2
+                elif tier == 'sponsor':
+                    mult = 1.5
+                elif tier == 'vip':
+                    mult = 1.75
+                cash_reward = int(round(cash_reward * mult))
+            except Exception:
+                pass
+
+            # Apply premium XP multiplier
+            try:
+                from services.premium import get_user_entitlements
+                ent = get_user_entitlements(user_id)
+                tier = ent.get('tier','free')
+                mult = 1.0
+                if tier == 'supporter':
+                    mult = 1.2
+                elif tier == 'sponsor':
+                    mult = 1.5
+                elif tier == 'vip':
+                    mult = 1.75
+                xp_reward = int(round(xp_reward * mult))
+            except Exception:
+                pass
             
-            # Apply rewards
+            # Apply rewards (multiplied)
             pet['xp'] += xp_reward
             pet['balance'] = pet.get('balance', 0) + cash_reward
             pet['lastDailyClaim'] = now.isoformat()

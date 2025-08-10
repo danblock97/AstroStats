@@ -203,15 +203,64 @@ def update_quests_and_achievements(pet: Dict[str, Any], battle_stats: Dict[str, 
         # Check for completion
         if quest['progress'] >= quest['progress_required'] and not quest.get('completed', False):
             quest['completed'] = True
-            pet['xp'] += quest.get('xp_reward', 0)
-            pet['balance'] = pet.get('balance', 0) + quest.get('cash_reward', 0)
+            # Apply XP multiplier by tier
+            try:
+                ent = get_user_entitlements(str(pet.get('user_id','')))
+                tier = ent.get('tier','free')
+                mult = 1.0
+                if tier == 'supporter':
+                    mult = 1.2
+                elif tier == 'sponsor':
+                    mult = 1.5
+                elif tier == 'vip':
+                    mult = 1.75
+                pet['xp'] += int(round(quest.get('xp_reward', 0) * mult))
+            except Exception:
+                pet['xp'] += quest.get('xp_reward', 0)
+            try:
+                ent = get_user_entitlements(str(pet.get('user_id','')))
+                tier = ent.get('tier','free')
+                mult = 1.0
+                if tier == 'supporter':
+                    mult = 1.2
+                elif tier == 'sponsor':
+                    mult = 1.5
+                elif tier == 'vip':
+                    mult = 1.75
+                pet['balance'] = pet.get('balance', 0) + int(round(quest.get('cash_reward', 0) * mult))
+            except Exception:
+                pet['balance'] = pet.get('balance', 0) + quest.get('cash_reward', 0)
             completed_quests_this_update.append(quest)
 
     # --- Check for Daily Completion Bonus ---
     all_daily_quests_completed_now = all(q.get('completed', False) for q in pet.get('daily_quests', []))
     if all_daily_quests_completed_now and not pet.get('claimed_daily_completion_bonus', False):
-        pet['xp'] += DAILY_COMPLETION_BONUS['xp']
-        pet['balance'] = pet.get('balance', 0) + DAILY_COMPLETION_BONUS['cash']
+        try:
+            ent = get_user_entitlements(str(pet.get('user_id','')))
+            tier = ent.get('tier','free')
+            mult = 1.0
+            if tier == 'supporter':
+                mult = 1.2
+            elif tier == 'sponsor':
+                mult = 1.5
+            elif tier == 'vip':
+                mult = 1.75
+            pet['xp'] += int(round(DAILY_COMPLETION_BONUS['xp'] * mult))
+        except Exception:
+            pet['xp'] += DAILY_COMPLETION_BONUS['xp']
+        try:
+            ent = get_user_entitlements(str(pet.get('user_id','')))
+            tier = ent.get('tier','free')
+            mult = 1.0
+            if tier == 'supporter':
+                mult = 1.2
+            elif tier == 'sponsor':
+                mult = 1.5
+            elif tier == 'vip':
+                mult = 1.75
+            pet['balance'] = pet.get('balance', 0) + int(round(DAILY_COMPLETION_BONUS['cash'] * mult))
+        except Exception:
+            pet['balance'] = pet.get('balance', 0) + DAILY_COMPLETION_BONUS['cash']
         pet['claimed_daily_completion_bonus'] = True
         daily_bonus_awarded = True
 
@@ -240,8 +289,32 @@ def update_quests_and_achievements(pet: Dict[str, Any], battle_stats: Dict[str, 
         # Check for completion
         if achievement['progress'] >= achievement['progress_required'] and not achievement.get('completed', False):
             achievement['completed'] = True
-            pet['xp'] += achievement.get('xp_reward', 0)
-            pet['balance'] = pet.get('balance', 0) + achievement.get('cash_reward', 0)
+            try:
+                ent = get_user_entitlements(str(pet.get('user_id','')))
+                tier = ent.get('tier','free')
+                mult = 1.0
+                if tier == 'supporter':
+                    mult = 1.2
+                elif tier == 'sponsor':
+                    mult = 1.5
+                elif tier == 'vip':
+                    mult = 1.75
+                pet['xp'] += int(round(achievement.get('xp_reward', 0) * mult))
+            except Exception:
+                pet['xp'] += achievement.get('xp_reward', 0)
+            try:
+                ent = get_user_entitlements(str(pet.get('user_id','')))
+                tier = ent.get('tier','free')
+                mult = 1.0
+                if tier == 'supporter':
+                    mult = 1.2
+                elif tier == 'sponsor':
+                    mult = 1.5
+                elif tier == 'vip':
+                    mult = 1.75
+                pet['balance'] = pet.get('balance', 0) + int(round(achievement.get('cash_reward', 0) * mult))
+            except Exception:
+                pet['balance'] = pet.get('balance', 0) + achievement.get('cash_reward', 0)
             completed_achievements_this_update.append(achievement)
 
     return completed_quests_this_update, completed_achievements_this_update, daily_bonus_awarded
