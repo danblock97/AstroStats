@@ -51,7 +51,7 @@ SPECIAL_EMOJI_NAMES = {
 
 # Latest bot updates
 
-DATES = (
+LATEST_UPDATES = (
     "**Version 2.5.0 (Premium Launch)**\n\n"
     "Upgrade your AstroStats experience with Premium tiers. Manage or upgrade at https://astrostats.info\n\n"
     "**What’s New**\n"
