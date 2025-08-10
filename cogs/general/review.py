@@ -3,7 +3,7 @@ from discord import app_commands
 from discord.ext import commands
 import os
 from core.utils import get_conditional_embed
-from ui.embeds import send_premium_promotion
+from ui.embeds import create_base_embed, get_premium_promotion_embed
 
 class ReviewCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -14,7 +14,7 @@ class ReviewCog(commands.Cog):
     @app_commands.command(name="review", description="Leave a review on Top.gg")
     async def review(self, interaction: discord.Interaction):
         # Primary Embed
-        embed = discord.Embed(
+        embed = create_base_embed(
             title="Enjoying AstroStats?",
             description=(
                 "If you're enjoying AstroStats, please consider leaving a review on Top.gg!"

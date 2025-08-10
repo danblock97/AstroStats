@@ -3,7 +3,7 @@ from discord import app_commands
 from discord.ext import commands
 import os
 from core.utils import get_conditional_embed
-from ui.embeds import create_base_embed, send_premium_promotion
+from ui.embeds import create_base_embed, get_premium_promotion_embed
 
 
 class SupportCog(commands.Cog):

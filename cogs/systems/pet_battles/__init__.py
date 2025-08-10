@@ -2290,10 +2290,13 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                     inline=False
                 )
             
-            await interaction.response.send_message(embed=embed)
+            # Check if user needs premium promotion
+            promo_embed = get_premium_promotion_embed(user_id)
+            embeds = [embed]
+            if promo_embed:
+                embeds.append(promo_embed)
             
-            # Add premium promotion
-            await send_premium_promotion(interaction, user_id)
+            await interaction.response.send_message(embeds=embeds)
             
         except Exception as e:
             logger.error(f"Error in daily command for user {user_id}: {e}", exc_info=True)
@@ -2467,10 +2470,13 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             # Add thumbnail of pet
             embed.set_thumbnail(url=pet['icon'])
             
-            await interaction.followup.send(embed=embed)
+            # Check if user needs premium promotion
+            promo_embed = get_premium_promotion_embed(user_id)
+            embeds = [embed]
+            if promo_embed:
+                embeds.append(promo_embed)
             
-            # Add premium promotion
-            await send_premium_promotion(interaction, user_id)
+            await interaction.followup.send(embeds=embeds)
             
         except Exception as e:
             logger.error(f"Error in hunt command for user {user_id}: {e}", exc_info=True)
