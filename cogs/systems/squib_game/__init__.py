@@ -1130,6 +1130,75 @@ class SquibGames(commands.GroupCog, name="squibgames"): # Reverted name
         await interaction.followup.send(embed=status_embed, ephemeral=False)
 
 
+    @app_commands.command(name="cancel", description="Cancel the current Squib Game session (host only)")
+    @app_commands.checks.cooldown(1, 10, key=lambda i: i.guild_id)
+    async def cancel(self, interaction: Interaction):
+        """Cancels the active or waiting Squib Game session. Only the host can cancel."""
+        await interaction.response.defer(ephemeral=True)
+
+        if squib_game_sessions is None:
+            await interaction.followup.send(f"{EMOJI_ERROR} Database is not connected. Cannot cancel session.", ephemeral=True)
+            return
+
+        guild_id = str(interaction.guild_id)
+        user_id = str(interaction.user.id)
+
+        try:
+            game = squib_game_sessions.find_one({
+                "guild_id": guild_id,
+                "current_game_state": {"$in": ["waiting_for_players", "in_progress"]}
+            })
+        except Exception as e:
+            logger.error(f"Database error finding active game for cancel in guild {guild_id}: {e}")
+            await interaction.followup.send(f"{EMOJI_ERROR} Database error finding session. Please try again.", ephemeral=True)
+            return
+
+        if not game:
+            await interaction.followup.send(f"{EMOJI_INFO} No active session to cancel.", ephemeral=True)
+            return
+
+        host_id = str(game.get("host_user_id"))
+        if user_id != host_id:
+            await interaction.followup.send(f"{EMOJI_ERROR} Only the host (<@{host_id}>) can cancel this session.", ephemeral=True)
+            return
+
+        session_id = game.get("session_id", "UnknownSession")
+
+        # Cancel run loop if present
+        try:
+            task = self.run_tasks.get(session_id)
+            if task and not task.done():
+                task.cancel()
+        except Exception as e:
+            logger.warning(f"Failed to cancel run task for session {session_id}: {e}")
+
+        # Update DB to cancelled
+        try:
+            squib_game_sessions.update_one(
+                {"_id": game["_id"]},
+                {"$set": {"current_game_state": "cancelled", "ended_at": datetime.datetime.now(timezone.utc)}}
+            )
+        except Exception as e:
+            logger.error(f"Failed to mark session {session_id} as cancelled: {e}")
+
+        # Confirmation embeds
+        confirm_embed = Embed(
+            title=f"{EMOJI_STOP} Session Cancelled",
+            description=(
+                f"The Squib Game session has been cancelled by {interaction.user.mention}.\n"
+                f"Session ID: `{session_id}`"
+            ),
+            color=COLOR_ERROR
+        )
+
+        # Send public confirmation in channel
+        try:
+            await interaction.followup.send(embed=confirm_embed, ephemeral=False)
+        except discord.HTTPException:
+            # Fallback to channel send if followup fails
+            if interaction.channel:
+                await interaction.channel.send(embed=confirm_embed)
+
     # --- Error Handling (Generic for the group, fixed DB check) ---
     async def cog_app_command_error(self, interaction: Interaction, error: app_commands.AppCommandError):
         """Handles errors for the squibgames commands."""
