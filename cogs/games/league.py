@@ -17,7 +17,7 @@ from config.settings import LOL_API, DISCORD_APP_ID, TOKEN
 from config.constants import LEAGUE_REGIONS, LEAGUE_QUEUE_TYPE_NAMES, SPECIAL_EMOJI_NAMES
 from core.errors import send_error_embed
 from core.utils import get_conditional_embed
-from ui.embeds import send_premium_promotion
+from ui.embeds import get_premium_promotion_embed
 
 logger = logging.getLogger(__name__)
 
@@ -179,11 +179,13 @@ class LeagueCog(commands.GroupCog, group_name="league"):
                 embeds = [embed]
                 if conditional_embed:
                     embeds.append(conditional_embed)
+                
+                # Check if user needs premium promotion
+                promo_embed = get_premium_promotion_embed(str(interaction.user.id))
+                if promo_embed:
+                    embeds.append(promo_embed)
 
                 await interaction.followup.send(embeds=embeds)
-                
-                # Add premium promotion
-                await send_premium_promotion(interaction, str(interaction.user.id))
 
         except aiohttp.ClientError as e:
             logger.error(f"Request Error: {e}")
@@ -303,10 +305,14 @@ class LeagueCog(commands.GroupCog, group_name="league"):
                     inline=False
                 )
                 embed.set_footer(text="Built By Goldiez ❤️ Visit clutchgg.lol for more!")
-                await interaction.followup.send(embed=embed)
                 
-                # Add premium promotion
-                await send_premium_promotion(interaction, str(interaction.user.id))
+                # Check if user needs premium promotion
+                promo_embed = get_premium_promotion_embed(str(interaction.user.id))
+                embeds = [embed]
+                if promo_embed:
+                    embeds.append(promo_embed)
+                
+                await interaction.followup.send(embeds=embeds)
 
         except aiohttp.ClientError as e:
             logger.error(f"Request Error: {e}")

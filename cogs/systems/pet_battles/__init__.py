@@ -21,7 +21,7 @@ import aiohttp # For network error handling
 from core.utils import get_conditional_embed, create_progress_bar # Import create_progress_bar
 from services.premium import get_user_entitlements, invalidate_user_entitlements
 from config.settings import MONGODB_URI, TOPGG_TOKEN
-from ui.embeds import create_error_embed, create_success_embed, add_support_field, send_premium_promotion # Use standardized embeds
+from ui.embeds import create_error_embed, create_success_embed, add_support_field, get_premium_promotion_embed # Use standardized embeds
 
 
 from .petconstants import (
@@ -581,10 +581,13 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             embed.timestamp = datetime.now(timezone.utc)
             embed.set_footer(text="Let the Pet Battles begin!")
 
-            await interaction.response.send_message(embed=embed)
+            # Check if user needs premium promotion
+            promo_embed = get_premium_promotion_embed(user_id)
+            embeds = [embed]
+            if promo_embed:
+                embeds.append(promo_embed)
             
-            # Add premium promotion
-            await send_premium_promotion(interaction, user_id)
+            await interaction.response.send_message(embeds=embeds)
 
         except Exception as e:
             logger.error(f"Error in summon command for user {user_id}: {e}", exc_info=True)
@@ -646,10 +649,14 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                 "Use `/petbattles setactive name:<PetName>` to switch active.\n"
                 "Use `/petbattles stats name:<PetName>` to view a specific pet."
             ), inline=False)
-            await interaction.response.send_message(embed=embed, ephemeral=True)
             
-            # Add premium promotion
-            await send_premium_promotion(interaction, user_id)
+            # Check if user needs premium promotion
+            promo_embed = get_premium_promotion_embed(user_id)
+            embeds = [embed]
+            if promo_embed:
+                embeds.append(promo_embed)
+            
+            await interaction.response.send_message(embeds=embeds, ephemeral=True)
         except Exception as e:
             logger.error(f"Error listing pets for {user_id}: {e}", exc_info=True)
             await interaction.response.send_message(embed=create_error_embed("Error", "Failed to list your pets."), ephemeral=True)
@@ -689,10 +696,13 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                     pets_collection.update_one({"_id": pet_id}, {"$set": {"last_used_ts": now_ts}})
                 except Exception:
                     pass
-                await interaction.response.send_message(embed=create_success_embed("Active Pet Set", f"'{name}' is now your active pet."), ephemeral=True)
+                # Check if user needs premium promotion
+                promo_embed = get_premium_promotion_embed(user_id)
+                embeds = [create_success_embed("Active Pet Set", f"'{name}' is now your active pet.")]
+                if promo_embed:
+                    embeds.append(promo_embed)
                 
-                # Add premium promotion
-                await send_premium_promotion(interaction, user_id)
+                await interaction.response.send_message(embeds=embeds, ephemeral=True)
             else:
                 await interaction.response.send_message(embed=create_error_embed("Error", "Failed to set active pet."), ephemeral=True)
         except Exception as e:
@@ -722,10 +732,13 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                                 pets_collection.update_one({"_id": next_id}, {"$set": {"is_active": True}})
                         except Exception:
                             pass
-                await interaction.response.send_message(embed=create_success_embed("Pet Released", f"You released '{name}'."), ephemeral=True)
+                # Check if user needs premium promotion
+                promo_embed = get_premium_promotion_embed(user_id)
+                embeds = [create_success_embed("Pet Released", f"You released '{name}'.")]
+                if promo_embed:
+                    embeds.append(promo_embed)
                 
-                # Add premium promotion
-                await send_premium_promotion(interaction, user_id)
+                await interaction.response.send_message(embeds=embeds, ephemeral=True)
             else:
                 await interaction.response.send_message(embed=create_error_embed("Error", "Failed to release pet."), ephemeral=True)
         except Exception as e:
@@ -848,10 +861,13 @@ class PetBattles(commands.GroupCog, name="petbattles"):
 
             embed.set_footer(text="Use /petbattles help for more commands.")
 
-            await interaction.response.send_message(embed=embed)
+            # Check if user needs premium promotion
+            promo_embed = get_premium_promotion_embed(user_id)
+            embeds = [embed]
+            if promo_embed:
+                embeds.append(promo_embed)
             
-            # Add premium promotion
-            await send_premium_promotion(interaction, user_id)
+            await interaction.response.send_message(embeds=embeds)
 
         except Exception as e:
             logger.error(f"Error in stats command for user {user_id}: {e}", exc_info=True)
@@ -1186,8 +1202,10 @@ class PetBattles(commands.GroupCog, name="petbattles"):
 
             await battle_message.edit(embed=result_embed)
             
-            # Add premium promotion
-            await send_premium_promotion(interaction, user_id)
+            # Add premium promotion as second embed
+            promo_embed = get_premium_promotion_embed(user_id)
+            if promo_embed:
+                await interaction.followup.send(embed=promo_embed)
 
         except Exception as e:
             logger.error(f"Error in battle command between {user_id} and {opponent_id}: {e}", exc_info=True)
@@ -1272,10 +1290,13 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             embed.timestamp = datetime.now(timezone.utc)
             embed.set_footer(text="Quests reset daily at midnight UTC.")
 
-            await interaction.response.send_message(embed=embed)
+            # Check if user needs premium promotion
+            promo_embed = get_premium_promotion_embed(user_id)
+            embeds = [embed]
+            if promo_embed:
+                embeds.append(promo_embed)
             
-            # Add premium promotion
-            await send_premium_promotion(interaction, user_id)
+            await interaction.response.send_message(embeds=embeds)
 
         except Exception as e:
             logger.error(f"Error in quests command for user {user_id}: {e}", exc_info=True)
@@ -1328,10 +1349,13 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             embed.timestamp = datetime.now(timezone.utc)
             embed.set_footer(text="Keep battling to unlock more!")
 
-            await interaction.response.send_message(embed=embed)
+            # Check if user needs premium promotion
+            promo_embed = get_premium_promotion_embed(user_id)
+            embeds = [embed]
+            if promo_embed:
+                embeds.append(promo_embed)
             
-            # Add premium promotion
-            await send_premium_promotion(interaction, user_id)
+            await interaction.response.send_message(embeds=embeds)
 
         except Exception as e:
             logger.error(f"Error in achievements command for user {user_id}: {e}", exc_info=True)
@@ -1391,10 +1415,13 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             embed.timestamp = datetime.now(timezone.utc)
             embed.set_footer(text="Battle your way to the top!")
 
-            await interaction.response.send_message(embed=embed)
+            # Check if user needs premium promotion
+            promo_embed = get_premium_promotion_embed(user_id)
+            embeds = [embed]
+            if promo_embed:
+                embeds.append(promo_embed)
             
-            # Add premium promotion
-            await send_premium_promotion(interaction, user_id)
+            await interaction.response.send_message(embeds=embeds)
 
         except Exception as e:
             logger.error(f"Error in leaderboard command for guild {guild_id}: {e}", exc_info=True)
@@ -1524,10 +1551,13 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                     if leveled_up:
                         embed.add_field(name="🌟 Level Up! 🌟", value=f"Your pet reached **Level {pet['level']}**!", inline=False)
 
-                    await interaction.followup.send(embed=embed, ephemeral=True) # Send reward confirmation privately
+                    # Check if user needs premium promotion
+                    promo_embed = get_premium_promotion_embed(user_id)
+                    embeds = [embed]
+                    if promo_embed:
+                        embeds.append(promo_embed)
                     
-                    # Add premium promotion
-                    await send_premium_promotion(interaction, user_id)
+                    await interaction.followup.send(embeds=embeds, ephemeral=True) # Send reward confirmation privately
 
         except Exception as e:
             logger.error(f"Error in vote command for user {user_id}: {e}", exc_info=True)
@@ -1578,10 +1608,14 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                 )
 
         embed.set_footer(text="Items provide temporary buffs for battles.")
-        await interaction.response.send_message(embed=embed)
         
-        # Add premium promotion
-        await send_premium_promotion(interaction, user_id)
+        # Check if user needs premium promotion
+        promo_embed = get_premium_promotion_embed(user_id)
+        embeds = [embed]
+        if promo_embed:
+            embeds.append(promo_embed)
+        
+        await interaction.response.send_message(embeds=embeds)
 
     # --- Buy Command (Separate for clarity) ---
     @app_commands.command(name="buy", description="Purchase an item from the pet shop")
@@ -1663,10 +1697,14 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                      f"Your new balance is **{format_currency(pet['balance'])}**.\n"
                      f"The buff will last for **{item_to_buy['duration']}** battles.")
                 )
-                await interaction.response.send_message(embed=embed)
                 
-                # Add premium promotion
-                await send_premium_promotion(interaction, user_id)
+                # Check if user needs premium promotion
+                promo_embed = get_premium_promotion_embed(user_id)
+                embeds = [embed]
+                if promo_embed:
+                    embeds.append(promo_embed)
+                
+                await interaction.response.send_message(embeds=embeds)
             else:
                  # Rollback balance if DB update failed
                  pet['balance'] += cost # Add cost back
@@ -1775,10 +1813,13 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             embed.timestamp = datetime.now(timezone.utc)
             embed.set_footer(text="Battle to climb the global rankings!")
             
-            await interaction.followup.send(embed=embed)
+            # Check if user needs premium promotion
+            promo_embed = get_premium_promotion_embed(user_id)
+            embeds = [embed]
+            if promo_embed:
+                embeds.append(promo_embed)
             
-            # Add premium promotion
-            await send_premium_promotion(interaction, user_id)
+            await interaction.followup.send(embeds=embeds)
             
         except Exception as e:
             logger.error(f"Error in globalrank command for user {user_id}: {e}", exc_info=True)
@@ -1881,10 +1922,13 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                     inline=False
                 )
             
-            await interaction.response.send_message(embed=embed)
+            # Check if user needs premium promotion
+            promo_embed = get_premium_promotion_embed(user_id)
+            embeds = [embed]
+            if promo_embed:
+                embeds.append(promo_embed)
             
-            # Add premium promotion
-            await send_premium_promotion(interaction, user_id)
+            await interaction.response.send_message(embeds=embeds)
             
         except Exception as e:
             logger.error(f"Error in train command for user {user_id}: {e}", exc_info=True)
@@ -1956,10 +2000,14 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                     f"New balance: **{format_currency(pet['balance'])}**"
                 )
                 embed.set_thumbnail(url=pet['icon'])
-                await interaction.response.send_message(embed=embed)
                 
-                # Add premium promotion
-                await send_premium_promotion(interaction, user_id)
+                # Check if user needs premium promotion
+                promo_embed = get_premium_promotion_embed(user_id)
+                embeds = [embed]
+                if promo_embed:
+                    embeds.append(promo_embed)
+                
+                await interaction.response.send_message(embeds=embeds)
             else:
                 embed = create_error_embed(
                     "Rename Error",

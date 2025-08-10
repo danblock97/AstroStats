@@ -4,7 +4,7 @@ from discord.ext import commands
 import os
 from config.constants import LATEST_UPDATES
 from core.utils import get_conditional_embed
-from ui.embeds import create_base_embed, send_premium_promotion
+from ui.embeds import create_base_embed, get_premium_promotion_embed
 
 class ShowUpdateCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -39,12 +39,14 @@ class ShowUpdateCog(commands.Cog):
         embeds = [embed]
         if conditional_embed:
             embeds.append(conditional_embed)
+        
+        # Check if user needs premium promotion
+        promo_embed = get_premium_promotion_embed(str(interaction.user.id))
+        if promo_embed:
+            embeds.append(promo_embed)
 
         # Send the Message with Multiple Embeds
         await interaction.response.send_message(embeds=embeds)
-        
-        # Add premium promotion
-        await send_premium_promotion(interaction, str(interaction.user.id))
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(ShowUpdateCog(bot))

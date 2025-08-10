@@ -10,7 +10,7 @@ from bs4 import BeautifulSoup
 
 from core.utils import get_conditional_embed
 from core.errors import send_error_embed
-from ui.embeds import send_premium_promotion
+from ui.embeds import get_premium_promotion_embed
 
 logger = logging.getLogger(__name__)
 
@@ -183,12 +183,14 @@ class HoroscopeCog(commands.Cog):
             embeds = [embed]
             if conditional_embed:
                 embeds.append(conditional_embed)
+            
+            # Check if user needs premium promotion
+            promo_embed = get_premium_promotion_embed(str(interaction.user.id))
+            if promo_embed:
+                embeds.append(promo_embed)
 
             # Send final embed(s)
             await interaction.followup.send(embeds=embeds)
-            
-            # Add premium promotion
-            await send_premium_promotion(interaction, str(interaction.user.id))
         except Exception as e:
             logger.error(f"An error occurred in /horoscope command: {e}", exc_info=True)
             await send_error_embed(

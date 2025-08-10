@@ -12,7 +12,7 @@ from config.constants import APEX_PLATFORM_MAPPING
 from core.errors import send_error_embed, ResourceNotFoundError
 from services.api.apex import fetch_apex_stats, format_stat_value
 from core.utils import get_conditional_embed
-from ui.embeds import send_premium_promotion
+from ui.embeds import get_premium_promotion_embed
 
 logger = logging.getLogger(__name__)
 
@@ -96,14 +96,16 @@ class ApexCog(commands.Cog):
             embeds = [embed]
             if conditional_embed:
                 embeds.append(conditional_embed)
+            
+            # Check if user needs premium promotion
+            promo_embed = get_premium_promotion_embed(str(interaction.user.id))
+            if promo_embed:
+                embeds.append(promo_embed)
 
             await interaction.followup.send(
                 embeds=embeds, 
                 files=[discord.File(self.astrostats_img, "astrostats.png")]
             )
-            
-            # Add premium promotion
-            await send_premium_promotion(interaction, str(interaction.user.id))
 
         except ValueError as e:
             logger.error(f"Validation Error: {e}", exc_info=True)

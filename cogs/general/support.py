@@ -34,11 +34,13 @@ class SupportCog(commands.Cog):
         embeds = [embed]
         if conditional_embed:
             embeds.append(conditional_embed)
+        
+        # Check if user needs premium promotion
+        promo_embed = get_premium_promotion_embed(str(interaction.user.id))
+        if promo_embed:
+            embeds.append(promo_embed)
 
         await interaction.response.send_message(embeds=embeds)
-        
-        # Add premium promotion
-        await send_premium_promotion(interaction, str(interaction.user.id))
 
     @app_commands.command(name="bug", description="Report a bug in AstroStats")
     async def bug_command(self, interaction: discord.Interaction):
@@ -61,11 +63,13 @@ class SupportCog(commands.Cog):
         embeds = [embed]
         if conditional_embed:
             embeds.append(conditional_embed)
+        
+        # Check if user needs premium promotion
+        promo_embed = get_premium_promotion_embed(str(interaction.user.id))
+        if promo_embed:
+            embeds.append(promo_embed)
 
         await interaction.response.send_message(embeds=embeds)
-        
-        # Add premium promotion
-        await send_premium_promotion(interaction, str(interaction.user.id))
 
 
 async def setup(bot: commands.Bot):

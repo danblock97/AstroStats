@@ -47,12 +47,14 @@ class ReviewCog(commands.Cog):
         embeds = [embed]
         if conditional_embed:
             embeds.append(conditional_embed)
+        
+        # Check if user needs premium promotion
+        promo_embed = get_premium_promotion_embed(str(interaction.user.id))
+        if promo_embed:
+            embeds.append(promo_embed)
 
         # Send the Message with Multiple Embeds
         await interaction.response.send_message(embeds=embeds)
-        
-        # Add premium promotion
-        await send_premium_promotion(interaction, str(interaction.user.id))
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(ReviewCog(bot))
