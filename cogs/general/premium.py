@@ -7,7 +7,7 @@ from services.premium import get_user_entitlements
 
 PRICING = {
     "free": {
-        "price": "$0",
+        "price": "£0",
         "benefits": [
             "3 daily quests",
             "1 pet capacity",
@@ -15,7 +15,7 @@ PRICING = {
         ],
     },
     "supporter": {
-        "price": "$3/mo",
+        "price": "£3/mo",
         "benefits": [
             "+2 daily quests (total 5)",
             "+0 extra pets (1 total)",
@@ -26,7 +26,7 @@ PRICING = {
         ],
     },
     "sponsor": {
-        "price": "$7/mo",
+        "price": "£5/mo",
         "benefits": [
             "+5 daily quests (total 8)",
             "+1 extra pets (2 total)",
@@ -37,7 +37,7 @@ PRICING = {
         ],
     },
     "vip": {
-        "price": "$15/mo",
+        "price": "£10/mo",
         "benefits": [
             "+8 daily quests (total 11)",
             "+3 extra pets (4 total)",
