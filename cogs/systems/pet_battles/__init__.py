@@ -19,6 +19,7 @@ import asyncio # For retry delays
 import aiohttp # For network error handling
 
 from core.utils import get_conditional_embed, create_progress_bar # Import create_progress_bar
+from services.premium import get_user_entitlements, invalidate_user_entitlements
 from config.settings import MONGODB_URI, TOPGG_TOKEN
 from ui.embeds import create_error_embed, create_success_embed # Use standardized embeds
 
@@ -56,8 +57,25 @@ def format_currency(amount: int) -> str:
     return f"🪙 {amount:,}"
 
 def get_pet_document(user_id: str, guild_id: str) -> Optional[Dict[str, Any]]:
-    """Fetches the pet document from the database."""
-    return pets_collection.find_one({"user_id": user_id, "guild_id": guild_id})
+    """Fetches the ACTIVE, unlocked pet document for the user in this guild.
+    Falls back to any unlocked pet if none active. Enforces capacity first."""
+    try:
+        enforce_user_pet_capacity(user_id, guild_id)
+    except Exception:
+        pass
+    active = pets_collection.find_one({
+        "user_id": user_id,
+        "guild_id": guild_id,
+        "is_active": True,
+        "is_locked": {"$ne": True}
+    })
+    if active:
+        return active
+    return pets_collection.find_one({
+        "user_id": user_id,
+        "guild_id": guild_id,
+        "is_locked": {"$ne": True}
+    })
 
 def update_pet_document(pet: Dict[str, Any]):
     """Updates the pet document in the database."""
@@ -80,6 +98,92 @@ def update_pet_document(pet: Dict[str, Any]):
 
     result = pets_collection.update_one({"_id": pet_id}, {"$set": update_data})
     return result.modified_count > 0
+
+# --- Multi-pet Helpers ---
+def get_user_pets(user_id: str, guild_id: str) -> List[Dict[str, Any]]:
+    """Return all pets for a user within a guild, newest first."""
+    return list(pets_collection.find({"user_id": user_id, "guild_id": guild_id}).sort([("_id", -1)]))
+
+def get_unlocked_user_pets(user_id: str, guild_id: str) -> List[Dict[str, Any]]:
+    return list(pets_collection.find({
+        "user_id": user_id,
+        "guild_id": guild_id,
+        "is_locked": {"$ne": True}
+    }).sort([("_id", -1)]))
+
+def count_user_pets(user_id: str, guild_id: str) -> int:
+    return pets_collection.count_documents({"user_id": user_id, "guild_id": guild_id})
+
+def count_unlocked_user_pets(user_id: str, guild_id: str) -> int:
+    return pets_collection.count_documents({
+        "user_id": user_id,
+        "guild_id": guild_id,
+        "is_locked": {"$ne": True}
+    })
+
+def get_active_pet_document(user_id: str, guild_id: str) -> Optional[Dict[str, Any]]:
+    return pets_collection.find_one({"user_id": user_id, "guild_id": guild_id, "is_active": True})
+
+def set_active_pet(user_id: str, guild_id: str, pet_id: ObjectId) -> bool:
+    try:
+        # Unset others
+        pets_collection.update_many({"user_id": user_id, "guild_id": guild_id}, {"$set": {"is_active": False}})
+        # Set selected
+        result = pets_collection.update_one({"_id": pet_id, "user_id": user_id, "guild_id": guild_id}, {"$set": {"is_active": True}})
+        return result.modified_count > 0
+    except Exception:
+        return False
+
+def enforce_user_pet_capacity(user_id: str, guild_id: str) -> None:
+    """Ensure the user does not exceed pet capacity.
+    Soft-block extras by marking them as locked, keeping earliest pets unlocked.
+    Keeps the first unlocked pet active.
+    """
+    from services.premium import get_user_entitlements
+    try:
+        ent = get_user_entitlements(user_id)
+        extra = int(ent.get("extraPets", 0) or 0)
+        capacity = max(1, 1 + extra)
+    except Exception:
+        capacity = 1
+
+    # Priority order for kept pets: active first (if present), then most recently used, then earliest created
+    pets_all = list(pets_collection.find({"user_id": user_id, "guild_id": guild_id}))
+    # Add a stable key for creation time from _id
+    def oid_time(p):
+        try:
+            return int(str(p.get("_id"))[:8], 16)
+        except Exception:
+            return 0
+    # Default last_used to 0 to push to the end
+    def last_used_ts(p):
+        try:
+            return int(p.get("last_used_ts", 0))
+        except Exception:
+            return 0
+    pets_all_sorted = sorted(
+        pets_all,
+        key=lambda p: (
+            0 if p.get("is_active") else 1,      # active first
+            -last_used_ts(p),                      # most recently used next
+            oid_time(p),                           # earliest created next
+        )
+    )
+    total = len(pets_all_sorted)
+    # Determine keep vs lock sets regardless of total
+    to_keep = pets_all_sorted[:capacity]
+    to_lock = pets_all_sorted[capacity:]
+    keep_ids = [p.get("_id") for p in to_keep if p.get("_id")]
+    lock_ids = [p.get("_id") for p in to_lock if p.get("_id")]
+
+    if keep_ids:
+        pets_collection.update_many({"user_id": user_id, "guild_id": guild_id}, {"$set": {"is_locked": True, "is_active": False}})
+        pets_collection.update_many({"_id": {"$in": keep_ids}}, {"$set": {"is_locked": False}})
+        # Ensure exactly one active among kept (earliest)
+        pets_collection.update_one({"_id": keep_ids[0]}, {"$set": {"is_active": True}})
+    elif lock_ids:
+        # No keep ids (capacity somehow 0, though we force >=1) -> lock all
+        pets_collection.update_many({"_id": {"$in": lock_ids}}, {"$set": {"is_locked": True, "is_active": False}})
 
 # --- Cog Definition ---
 class PetBattles(commands.GroupCog, name="petbattles"):
@@ -289,7 +393,14 @@ class PetBattles(commands.GroupCog, name="petbattles"):
 
                 # Assign new quests and reset bonus flag
                 new_quests = []
-                random_daily_quests = random.sample(DAILY_QUESTS, 3)
+                # Determine number of daily quests by entitlements
+                try:
+                    ent = get_user_entitlements(str(pet.get('user_id', '')))
+                    num_quests = 3 + int(ent.get('dailyPetQuestsBonus', 0))
+                except Exception:
+                    num_quests = 3
+                num_quests = max(1, min(len(DAILY_QUESTS), num_quests))
+                random_daily_quests = random.sample(DAILY_QUESTS, num_quests)
                 for quest in random_daily_quests:
                        new_quests.append({
                            "id": quest["id"],
@@ -302,7 +413,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                        })
 
                 update_result = pets_collection.update_one(
-                    {"_id": pet_id},
+                    {"_id": pet_id, "is_locked": {"$ne": True}},
                     {"$set": {
                         "daily_quests": new_quests,
                         "claimed_daily_completion_bonus": False,
@@ -361,10 +472,20 @@ class PetBattles(commands.GroupCog, name="petbattles"):
         guild_id = str(interaction.guild.id)
 
         try:
-            if get_pet_document(user_id, guild_id):
+            # Enforce capacity by entitlements
+            from services.premium import get_user_entitlements
+            ent = get_user_entitlements(user_id)
+            extra = int(ent.get("extraPets", 0) or 0)
+            capacity = 1 + extra
+            existing_count = count_unlocked_user_pets(user_id, guild_id)
+            if existing_count >= capacity:
                 embed = create_error_embed(
                     title="Summon Failed",
-                    description=f"{interaction.user.mention}, you already have a pet in this server!"
+                    description=(
+                        f"{interaction.user.mention}, you've reached your pet capacity for your tier.\n"
+                        f"Capacity: **{capacity}** (Tier: {ent.get('tier', 'free').title()}).\n"
+                        f"Release a pet or upgrade your tier to summon more."
+                    )
                 )
                 await interaction.response.send_message(embed=embed, ephemeral=True)
                 return
@@ -393,12 +514,25 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                 "daily_quests": [],
                 "achievements": [],
                 "last_vote_reward_time": None,
-                "claimed_daily_completion_bonus": False
+                "claimed_daily_completion_bonus": False,
+                "is_locked": False,
+                "is_active": False
             }
 
             # Insert into DB first to get the _id
             result = pets_collection.insert_one(new_pet_data)
             new_pet_data['_id'] = result.inserted_id # Store the ObjectId
+            # If this is the user's first pet, mark active. If not, keep active status on existing one
+            if existing_count == 0:
+                try:
+                    pets_collection.update_one({"_id": result.inserted_id}, {"$set": {"is_active": True}})
+                except Exception:
+                    pass
+            # Invalidate entitlement cache for safety (no-op if unchanged)
+            try:
+                invalidate_user_entitlements(user_id)
+            except Exception:
+                pass
 
             # Assign initial quests and achievements using the data with _id
             # These functions now need to handle the update internally or return the modified dict
@@ -461,13 +595,147 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                 await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
+    @app_commands.command(name="pets", description="List your pets and active status")
+    async def pets(self, interaction: Interaction):
+        user_id = str(interaction.user.id)
+        guild_id = str(interaction.guild.id)
+        try:
+            # Enforce capacity on list to reflect any downgrades
+            try:
+                enforce_user_pet_capacity(user_id, guild_id)
+            except Exception:
+                pass
+            pets = get_user_pets(user_id, guild_id)
+            if not pets:
+                embed = create_error_embed("No Pets", "You have no pets. Use `/petbattles summon` to create one.")
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+                return
+
+            # Build a nicer embed with emoji markers and active thumbnail
+            active_pet = get_active_pet_document(user_id, guild_id)
+            lines = []
+            for p in pets:
+                if p.get("is_locked"):
+                    status_emoji = "🔒"
+                elif p.get("is_active"):
+                    status_emoji = "🟢"
+                else:
+                    status_emoji = "⚪"
+                pet_name = p.get('name', 'Unnamed')
+                pet_level = p.get('level', 1)
+                lines.append(f"{status_emoji} **{pet_name}** — L{pet_level}")
+
+            from services.premium import get_user_entitlements
+            ent = get_user_entitlements(user_id)
+            capacity = 1 + int(ent.get("extraPets", 0) or 0)
+
+            embed = discord.Embed(
+                title="🐾 Your Pets",
+                description="\n".join(lines),
+                color=discord.Color.blue()
+            )
+            if active_pet and active_pet.get('icon'):
+                embed.set_thumbnail(url=active_pet['icon'])
+            from_here_unlocked = count_unlocked_user_pets(user_id, guild_id)
+            embed.add_field(name="Capacity (Unlocked)", value=f"{from_here_unlocked}/{capacity}", inline=True)
+            embed.add_field(name="Tips", value=(
+                "Use `/petbattles setactive name:<PetName>` to switch active.\n"
+                "Use `/petbattles stats name:<PetName>` to view a specific pet."
+            ), inline=False)
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+        except Exception as e:
+            logger.error(f"Error listing pets for {user_id}: {e}", exc_info=True)
+            await interaction.response.send_message(embed=create_error_embed("Error", "Failed to list your pets."), ephemeral=True)
+
+
+    @app_commands.command(name="setactive", description="Set one of your pets active by name")
+    async def setactive(self, interaction: Interaction, name: str):
+        user_id = str(interaction.user.id)
+        guild_id = str(interaction.guild.id)
+        try:
+            pet_doc = pets_collection.find_one({"user_id": user_id, "guild_id": guild_id, "name": name})
+            if not pet_doc:
+                await interaction.response.send_message(embed=create_error_embed("Not Found", f"No pet named '{name}' found."), ephemeral=True)
+                return
+            pet_id = pet_doc.get("_id")
+            if not isinstance(pet_id, ObjectId):
+                try:
+                    pet_id = ObjectId(pet_id)
+                except Exception:
+                    await interaction.response.send_message(embed=create_error_embed("Error", "Invalid pet ID."), ephemeral=True)
+                    return
+            # If the target pet is locked, do not allow setting active (prevents bypassing locks)
+            if pet_doc.get("is_locked"):
+                await interaction.response.send_message(
+                    embed=create_error_embed(
+                        "Pet Locked",
+                        "This pet is locked due to your current tier capacity. Upgrade or release other pets to unlock it."
+                    ),
+                    ephemeral=True
+                )
+                return
+
+            # Otherwise, set active normally and bump last_used_ts
+            if set_active_pet(user_id, guild_id, pet_id):
+                try:
+                    now_ts = int(datetime.now(timezone.utc).timestamp())
+                    pets_collection.update_one({"_id": pet_id}, {"$set": {"last_used_ts": now_ts}})
+                except Exception:
+                    pass
+                await interaction.response.send_message(embed=create_success_embed("Active Pet Set", f"'{name}' is now your active pet."), ephemeral=True)
+            else:
+                await interaction.response.send_message(embed=create_error_embed("Error", "Failed to set active pet."), ephemeral=True)
+        except Exception as e:
+            logger.error(f"Error setting active pet for {user_id}: {e}", exc_info=True)
+            await interaction.response.send_message(embed=create_error_embed("Error", "An error occurred."), ephemeral=True)
+
+
+    @app_commands.command(name="release", description="Release a pet you own by name")
+    async def release(self, interaction: Interaction, name: str):
+        user_id = str(interaction.user.id)
+        guild_id = str(interaction.guild.id)
+        try:
+            pet_doc = pets_collection.find_one({"user_id": user_id, "guild_id": guild_id, "name": name})
+            if not pet_doc:
+                await interaction.response.send_message(embed=create_error_embed("Not Found", f"No pet named '{name}' found."), ephemeral=True)
+                return
+            was_active = bool(pet_doc.get("is_active"))
+            result = pets_collection.delete_one({"_id": pet_doc["_id"]})
+            if result.deleted_count == 1:
+                # If active pet was released, set another pet active if any remain
+                if was_active:
+                    remaining = get_user_pets(user_id, guild_id)
+                    if remaining:
+                        try:
+                            next_id = remaining[0].get("_id")
+                            if next_id:
+                                pets_collection.update_one({"_id": next_id}, {"$set": {"is_active": True}})
+                        except Exception:
+                            pass
+                await interaction.response.send_message(embed=create_success_embed("Pet Released", f"You released '{name}'."), ephemeral=True)
+            else:
+                await interaction.response.send_message(embed=create_error_embed("Error", "Failed to release pet."), ephemeral=True)
+        except Exception as e:
+            logger.error(f"Error releasing pet for {user_id}: {e}", exc_info=True)
+            await interaction.response.send_message(embed=create_error_embed("Error", "An error occurred."), ephemeral=True)
+
     @app_commands.command(name="stats", description="View your pet's detailed statistics and status")
-    async def stats(self, interaction: Interaction):
+    @app_commands.describe(name="Optionally view stats for a specific pet by name")
+    async def stats(self, interaction: Interaction, name: Optional[str] = None):
         """Displays the user's pet stats, including balance and active items."""
         user_id = str(interaction.user.id)
         guild_id = str(interaction.guild.id)
         try:
-            pet = get_pet_document(user_id, guild_id)
+            # If a name is provided, fetch that unlocked pet; else use active/default
+            if name:
+                pet = pets_collection.find_one({
+                    "user_id": user_id,
+                    "guild_id": guild_id,
+                    "name": name,
+                    "is_locked": {"$ne": True}
+                })
+            else:
+                pet = get_pet_document(user_id, guild_id)
 
             if not pet:
                 embed = create_error_embed(
@@ -484,8 +752,21 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             xp_needed = calculate_xp_needed(pet['level'])
             xp_bar = create_xp_bar(pet['xp'], xp_needed) # Use the function from petstats
 
+            # Multi-pet: show active marker and total count/capacity
+            all_pets = get_user_pets(user_id, guild_id)
+            num_pets = len(all_pets)
+            from services.premium import get_user_entitlements
+            ent = get_user_entitlements(user_id)
+            extra = int(ent.get("extraPets", 0) or 0)
+            capacity = 1 + extra
+            active_marker = " (Active)" if pet.get("is_active") else ""
+
+            ent = get_user_entitlements(user_id)
+            badge = " ⭐" if ent.get("premiumBadge") else ""
+            tier = ent.get("tier", "free")
+
             embed = discord.Embed(
-                title=f"{interaction.user.display_name}'s Pet: {pet['name']}",
+                title=f"{interaction.user.display_name}'s Pet: {pet['name']}{active_marker}{badge}",
                 color=pet.get('color', discord.Color.blue()) # Use .get for safety
             )
             embed.set_thumbnail(url=pet['icon'])
@@ -538,6 +819,20 @@ class PetBattles(commands.GroupCog, name="petbattles"):
 
 
             embed.timestamp = datetime.now(timezone.utc)
+            # Premium tier info and capacity
+            embed.add_field(name="Premium Tier", value=tier.title(), inline=True)
+            from_here_unlocked = count_unlocked_user_pets(user_id, guild_id)
+            embed.add_field(name="Pet Capacity (Unlocked)", value=f"{from_here_unlocked}/{capacity}", inline=True)
+
+            # Add quick list of your pets with active/locked markers for convenience
+            pet_lines = []
+            for p in all_pets:
+                is_active = "(Active) " if p.get("is_active") else ""
+                locked = " [LOCKED]" if p.get("is_locked") else ""
+                pet_lines.append(f"{is_active}{p.get('name','Unnamed')} — L{p.get('level',1)}{locked}")
+            if pet_lines:
+                embed.add_field(name="Your Pets", value="\n".join(pet_lines), inline=False)
+
             embed.set_footer(text="Use /petbattles help for more commands.")
 
             await interaction.response.send_message(embed=embed)
@@ -592,9 +887,26 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                 await interaction.response.send_message(embed=embed, ephemeral=True)
                 return
 
+            # Prevent using a locked pet
+            if user_pet.get("is_locked"):
+                embed = create_error_embed(
+                    "Pet Locked",
+                    "Your active pet is locked due to your current tier capacity. Upgrade to unlock it or set another active pet."
+                )
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+                return
+
             # Ensure pets have necessary fields
             user_pet = ensure_quests_and_achievements(user_pet)
             opponent_pet = ensure_quests_and_achievements(opponent_pet)
+
+            # Record usage timestampts for prioritizing keeps
+            try:
+                now_ts = int(datetime.now(timezone.utc).timestamp())
+                pets_collection.update_one({"_id": user_pet["_id"]}, {"$set": {"last_used_ts": now_ts}})
+                pets_collection.update_one({"_id": opponent_pet["_id"]}, {"$set": {"last_used_ts": now_ts}})
+            except Exception:
+                pass
 
             # Level difference check (optional, adjust as needed)
             level_diff = abs(user_pet['level'] - opponent_pet['level'])

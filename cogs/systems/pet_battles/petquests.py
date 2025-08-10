@@ -6,6 +6,7 @@ from pymongo import MongoClient
 from bson import ObjectId  # Import ObjectId
 
 from .petconstants import DAILY_QUESTS, ACHIEVEMENTS, DAILY_COMPLETION_BONUS
+from services.premium import get_user_entitlements
 from config.settings import MONGODB_URI
 
 # Initialize the database connection
@@ -16,8 +17,15 @@ pets_collection = db['pets']
 logger = logging.getLogger(__name__)
 
 def assign_daily_quests(pet: Dict[str, Any]) -> Dict[str, Any]:
-    """Assigns 3 random daily quests to a pet."""
-    random_daily_quests = random.sample(DAILY_QUESTS, 3)
+    """Assigns random daily quests to a pet. Base 3 plus premium bonus."""
+    try:
+        user_id = str(pet.get('user_id', ''))
+        ent = get_user_entitlements(user_id) if user_id else {"dailyPetQuestsBonus": 0}
+        num_quests = 3 + int(ent.get('dailyPetQuestsBonus', 0))
+    except Exception:
+        num_quests = 3
+    num_quests = max(1, min(len(DAILY_QUESTS), num_quests))
+    random_daily_quests = random.sample(DAILY_QUESTS, num_quests)
     pet_daily_quests = []
     for quest in random_daily_quests:
         pet_daily_quests.append({
@@ -42,7 +50,7 @@ def assign_daily_quests(pet: Dict[str, Any]) -> Dict[str, Any]:
 
     if pet_id is not None:
         pets_collection.update_one(
-            {"_id": pet_id},
+            {"_id": pet_id, "is_locked": {"$ne": True}},
             {"$set": {"daily_quests": pet_daily_quests, "claimed_daily_completion_bonus": False}}
         )
     return pet
@@ -72,7 +80,7 @@ def assign_achievements(pet: Dict[str, Any]) -> Dict[str, Any]:
             pet_id = None # Avoid updating if ID is invalid
 
     if pet_id is not None:
-        pets_collection.update_one({"_id": pet_id}, {"$set": {"achievements": pet_achievements}})
+        pets_collection.update_one({"_id": pet_id, "is_locked": {"$ne": True}}, {"$set": {"achievements": pet_achievements}})
     return pet
 
 
@@ -82,6 +90,33 @@ def ensure_quests_and_achievements(pet: Dict[str, Any]) -> Dict[str, Any]:
     if 'daily_quests' not in pet or not pet['daily_quests']:
         pet = assign_daily_quests(pet)
         updated = True
+    else:
+        # Top-up daily quests if current entitlements allow more than currently assigned
+        try:
+            if not pet.get('is_locked'):
+                ent = get_user_entitlements(str(pet.get('user_id', '')))
+                desired = 3 + int(ent.get('dailyPetQuestsBonus', 0) or 0)
+                desired = max(1, min(len(DAILY_QUESTS), desired))
+                current = len(pet.get('daily_quests', []))
+                if current < desired:
+                    # Add additional unique quests
+                    existing_ids = {q.get('id') for q in pet['daily_quests']}
+                    candidates = [q for q in DAILY_QUESTS if q['id'] not in existing_ids]
+                    to_add = desired - current
+                    if candidates and to_add > 0:
+                        for quest in random.sample(candidates, min(len(candidates), to_add)):
+                            pet['daily_quests'].append({
+                                "id": quest["id"],
+                                "description": quest["description"],
+                                "progress_required": quest["progress_required"],
+                                "progress": 0,
+                                "completed": False,
+                                "xp_reward": quest["xp_reward"],
+                                "cash_reward": quest["cash_reward"]
+                            })
+                        updated = True
+        except Exception:
+            pass
     if 'achievements' not in pet or not pet['achievements']:
         pet = assign_achievements(pet)
         updated = True

@@ -11,6 +11,7 @@ import discord
 from discord.ext import commands
 from discord import app_commands, Interaction, Embed, Color, ButtonStyle
 from discord.ui import View, Button
+from services.premium import get_user_entitlements
 
 # Third-Party Imports
 from pymongo import MongoClient
@@ -669,7 +670,28 @@ class JoinButtonView(View):
              main_embed = embeds[0]
              player_embed = embeds[1] # The one to update
 
-             new_description = f"{player_count} Player{' has' if player_count == 1 else 's have'} joined the ranks."
+             # Determine capacity text based on host entitlements
+             cap_text = "∞"
+             try:
+                 from services.premium import get_user_entitlements
+                 ent = get_user_entitlements(str(main_embed.footer.text.split('Session ID: ')[-1]) if main_embed.footer and main_embed.footer.text else None)
+             except Exception:
+                 ent = None
+             try:
+                 # Best-effort: we have guild_id in the view, but not host id here; fetch game doc
+                 if squib_game_sessions is not None:
+                     game = squib_game_sessions.find_one({"guild_id": self.guild_id, "session_id": self.game_id})
+                     if game:
+                         host_id = str(game.get("host_user_id"))
+                         ent = get_user_entitlements(host_id)
+             except Exception:
+                 pass
+             if ent:
+                 cap = ent.get("squibgamesMaxPlayers")
+                 if isinstance(cap, int) and cap > 0:
+                     cap_text = str(cap)
+
+             new_description = f"{player_count}/{cap_text} Players joined."
              # Recreate embed to ensure changes apply (safer than modifying fields)
              new_player_embed = Embed(
                  # Keep original title if it exists, otherwise None
@@ -735,6 +757,22 @@ class JoinButtonView(View):
 
             user_id = str(interaction.user.id)
             participants = game.get("participants", [])
+
+            # Enforce max players based on host entitlements if specified
+            try:
+                host_id = str(game.get("host_user_id"))
+                ent = get_user_entitlements(host_id)
+                cap = ent.get("squibgamesMaxPlayers")
+                if isinstance(cap, int) and cap > 0:
+                    # Don't allow join if cap reached
+                    if len(participants) >= cap:
+                        await interaction.followup.send(
+                            f"{EMOJI_WARNING} This session has reached the maximum of {cap} players for the host's tier.",
+                            ephemeral=True,
+                        )
+                        return
+            except Exception as e:
+                logger.error(f"Error determining Squib Games cap: {e}")
 
             # Check if already joined
             if any(p.get("user_id") == user_id for p in participants):
@@ -851,9 +889,16 @@ class SquibGames(commands.GroupCog, name="squibgames"): # Reverted name
         main_embed.timestamp = new_session_doc.get('created_at', datetime.datetime.now(timezone.utc)) # Use .get
 
 
-        # Player Count Embed (using enhanced style)
+        # Player Count Embed (now shows capacity based on host entitlements)
+        try:
+            from services.premium import get_user_entitlements
+            ent = get_user_entitlements(user_id)
+            cap = ent.get("squibgamesMaxPlayers")
+            cap_text = str(cap) if isinstance(cap, int) and cap > 0 else "∞"
+        except Exception:
+            cap_text = "∞"
         player_embed = Embed(
-            description="1 Player has joined the ranks.", # Initial state
+            description=f"1/{cap_text} Players joined.",
             color=COLOR_SUCCESS
         )
 
