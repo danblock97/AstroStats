@@ -41,21 +41,31 @@ def add_fields_from_dict(embed: discord.Embed, fields_dict: Dict[str, str], inli
     return embed
 
 def get_premium_promotion_embed(user_id: str) -> Optional[discord.Embed]:
-    """Get premium promotion embed for free tier users."""
+    """Get premium promotion embed. Always show a small promo; tailor message by tier."""
     try:
         # Import here to avoid circular imports
         from services.premium import get_user_entitlements
-        
-        user_entitlements = get_user_entitlements(user_id)
-        current_tier = user_entitlements.get("tier", "free")
-        
-        if current_tier == "free":
-            promo_embed = discord.Embed(
-                description="Start massive Squib Game sessions and even more pet battles with `/premium`: [Get Premium](https://astrostats.info/pricing)",
-                color=discord.Color.gold()
+
+        entitlements = get_user_entitlements(user_id)
+        tier = (entitlements or {}).get("tier", "free")
+
+        if tier == "free":
+            description = (
+                "Start massive Squib Game sessions and unlock more pet capacity with `/premium`: "
+                "[Get Premium](https://astrostats.info/pricing)"
             )
-            promo_embed.set_footer(text="Built By Goldiez ❤️ Support: astrostats.info")
-            return promo_embed
-        return None
+        else:
+            # Light thank-you message for premium users
+            description = (
+                f"Thanks for being {tier.title()}! Invite friends or upgrade for more perks: "
+                "[Manage](https://astrostats.info/account)"
+            )
+
+        promo_embed = discord.Embed(
+            description=description,
+            color=discord.Color.gold()
+        )
+        promo_embed.set_footer(text="Built By Goldiez ❤️ Support: astrostats.info")
+        return promo_embed
     except Exception:
-        return None  # Don't break if promotion check fails
+        return None  # Never break caller on promo failure

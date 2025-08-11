@@ -1371,6 +1371,8 @@ class PetBattles(commands.GroupCog, name="petbattles"):
         # Define user_id for promo embed usage
         user_id = str(interaction.user.id)
         try:
+            # Defer early to avoid 3s interaction timeout; we'll send via follow-up
+            await interaction.response.defer()
             # Fetch top 10 pets sorted by level descending, then XP descending
             top_pets_cursor = pets_collection.find({"guild_id": guild_id}).sort(
                 [("level", -1), ("xp", -1)]
@@ -1424,12 +1426,15 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             if promo_embed:
                 embeds.append(promo_embed)
             
-            await interaction.response.send_message(embeds=embeds)
+            await interaction.followup.send(embeds=embeds)
 
         except Exception as e:
             logger.error(f"Error in leaderboard command for guild {guild_id}: {e}", exc_info=True)
             embed = create_error_embed("Leaderboard Error", "An error occurred while fetching the leaderboard.")
-            await interaction.response.send_message(embed=embed, ephemeral=True)
+            try:
+                await interaction.followup.send(embed=embed, ephemeral=True)
+            except Exception:
+                pass
 
 
     @app_commands.command(name="vote", description="Vote for AstroStats on Top.gg to earn rewards!")
