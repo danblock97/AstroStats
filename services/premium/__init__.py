@@ -129,8 +129,8 @@ def _tier_entitlements(role: Optional[str]) -> Dict[str, Any]:
         "tier": "free",
         "dailyPetQuestsBonus": 0,
         "extraPets": 0,
-        # Existing free default for squibgames: None => no explicit cap enforced by entitlements layer
-        "squibgamesMaxPlayers": None,
+        # Free tier cap for Squib Games sessions
+        "squibgamesMaxPlayers": 10,
         "premiumBadge": False,
         "accessToPremiumCommands": False,
     }
