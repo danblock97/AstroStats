@@ -1368,6 +1368,8 @@ class PetBattles(commands.GroupCog, name="petbattles"):
     async def leaderboard(self, interaction: Interaction):
         """Displays the top 10 pets in the server."""
         guild_id = str(interaction.guild.id)
+        # Define user_id for promo embed usage
+        user_id = str(interaction.user.id)
         try:
             # Fetch top 10 pets sorted by level descending, then XP descending
             top_pets_cursor = pets_collection.find({"guild_id": guild_id}).sort(
@@ -2028,13 +2030,16 @@ class PetBattles(commands.GroupCog, name="petbattles"):
         guild_id = str(interaction.guild.id)
         
         try:
+            # Defer early to avoid interaction timeout; we'll use follow-up messages
+            await interaction.response.defer()
+
             pet = get_pet_document(user_id, guild_id)
             if not pet:
                 embed = create_error_embed(
                     "No Pet Found",
                     f"{interaction.user.mention}, you need a pet first! Use `/petbattles summon`."
                 )
-                await interaction.response.send_message(embed=embed, ephemeral=True)
+                await interaction.followup.send(embed=embed, ephemeral=True)
                 return
             
             # Ensure pet has necessary fields
@@ -2133,12 +2138,16 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             embed.set_footer(text="Use /petbattles help for more commands")
             embed.timestamp = datetime.now(timezone.utc)
             
-            await interaction.response.send_message(embed=embed)
+            await interaction.followup.send(embed=embed)
             
         except Exception as e:
             logger.error(f"Error in profile command for user {user_id}: {e}", exc_info=True)
             embed = create_error_embed("Profile Error", "An unexpected error occurred while fetching the pet profile.")
-            await interaction.response.send_message(embed=embed, ephemeral=True)
+            # If follow-up send fails here, we just log since interaction was already deferred
+            try:
+                await interaction.followup.send(embed=embed, ephemeral=True)
+            except Exception:
+                pass
 
     @app_commands.command(name="daily", description="Claim your daily pet rewards")
     async def daily(self, interaction: Interaction):
