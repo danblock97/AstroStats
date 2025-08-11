@@ -8,6 +8,7 @@ from bson import ObjectId # Import ObjectId
 
 from config.settings import TOKEN, BLACKLISTED_GUILDS, MONGODB_URI # Import MONGODB_URI
 from core.errors import setup_error_handlers
+from ui.embeds import get_premium_promotion_embed
 
 logger = logging.getLogger(__name__) # Use __name__ for logger
 # logger = logging.getLogger('discord.gateway') # Keep gateway logs less verbose if needed
@@ -234,9 +235,19 @@ class AstroStatsBot(commands.Bot):
                     target_channel = channel
                     break
 
+        # Build embeds list with optional promo
+        embeds = [embed]
+        try:
+            promo_embed = get_premium_promotion_embed(str(guild.owner_id))
+            if promo_embed:
+                embeds.append(promo_embed)
+        except Exception:
+            # Never fail welcome on promo issues
+            pass
+
         if target_channel:
             try:
-                await target_channel.send(embed=embed)
+                await target_channel.send(embeds=embeds)
             except discord.Forbidden:
                 logger.warning(f"Missing permissions to send welcome message in {guild.name} ({target_channel.name})")
             except discord.HTTPException as e:
