@@ -147,7 +147,8 @@ def get_entitlements(user_doc: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     try:
         if not is_premium_active(user_doc):
             ent = _tier_entitlements(None)
-            logger.info("Entitlements decision: premium=0 tier=free")
+            # Reduce noise: only log free-tier decisions at DEBUG level
+            logger.debug("Entitlements decision: premium=0 tier=free")
             return ent
 
         role = user_doc.get("role")
