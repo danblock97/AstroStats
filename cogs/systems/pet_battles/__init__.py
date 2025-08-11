@@ -886,21 +886,38 @@ class PetBattles(commands.GroupCog, name="petbattles"):
         opponent_id = str(opponent.id)
         guild_id = str(interaction.guild.id)
 
-        battle_message: Optional[discord.WebhookMessage] = None # To store the message for editing
+        battle_message: Optional[Any] = None # To store the message for editing (WebhookMessage or Message)
+        use_channel_fallback: bool = False
+
+        async def send_reply(*, embed: Optional[discord.Embed] = None, embeds: Optional[list] = None, ephemeral: bool = False):
+            """Send a reply using followup if interaction acknowledged, else fallback to channel.send."""
+            if use_channel_fallback:
+                if embeds is not None:
+                    return await interaction.channel.send(embeds=embeds)
+                return await interaction.channel.send(embed=embed)
+            else:
+                if embeds is not None:
+                    return await interaction.followup.send(embeds=embeds, ephemeral=ephemeral)
+                return await interaction.followup.send(embed=embed, ephemeral=ephemeral)
 
         try:
             # Defer response immediately to prevent interaction expiry
-            await interaction.response.defer()
+            try:
+                if not interaction.response.is_done():
+                    await interaction.response.defer()
+            except discord.NotFound:
+                # Interaction expired before we could defer; fallback to channel messaging
+                use_channel_fallback = True
             
             # --- Initial Checks ---
             if user_id == opponent_id:
                 embed = create_error_embed("Battle Error", "You cannot battle yourself!")
-                await interaction.followup.send(embed=embed, ephemeral=True)
+                await send_reply(embed=embed, ephemeral=True)
                 return
 
             if opponent.bot:
                 embed = create_error_embed("Battle Error", "You cannot battle bots.")
-                await interaction.followup.send(embed=embed, ephemeral=True)
+                await send_reply(embed=embed, ephemeral=True)
                 return
 
             user_pet = get_pet_document(user_id, guild_id)
@@ -911,7 +928,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                     "No Pet Found",
                     f"{interaction.user.mention}, you need a pet! Use `/petbattles summon`."
                 )
-                await interaction.followup.send(embed=embed, ephemeral=True)
+                await send_reply(embed=embed, ephemeral=True)
                 return
 
             if not opponent_pet:
@@ -919,7 +936,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                     "Opponent Has No Pet",
                     f"{opponent.mention} doesn't have a pet in this server."
                 )
-                await interaction.followup.send(embed=embed, ephemeral=True)
+                await send_reply(embed=embed, ephemeral=True)
                 return
 
             # Prevent using a locked pet
@@ -928,7 +945,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                     "Pet Locked",
                     "Your active pet is locked due to your current tier capacity. Upgrade to unlock it or set another active pet."
                 )
-                await interaction.followup.send(embed=embed, ephemeral=True)
+                await send_reply(embed=embed, ephemeral=True)
                 return
 
             # Ensure pets have necessary fields
@@ -950,7 +967,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                     "Battle Error",
                     "You can only battle pets within 5 levels of your own."
                 )
-                await interaction.followup.send(embed=embed, ephemeral=True)
+                await send_reply(embed=embed, ephemeral=True)
                 return
 
             # Battle cooldown check
@@ -994,7 +1011,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                     "Battle Limit Reached",
                     limit_message
                 )
-                await interaction.followup.send(embed=embed, ephemeral=True)
+                await send_reply(embed=embed, ephemeral=True)
                 return
 
             # Log the battle attempt (before the actual fight)
@@ -1027,7 +1044,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             embed.add_field(name=f"{opponent.display_name}'s {opponent_pet['name']}", value=f"HP: {opponent_current_health}/{opponent_max_health}", inline=True)
             embed.set_thumbnail(url=user_pet['icon'])
             # embed.set_image(url=opponent_pet['icon']) # Maybe too large, thumbnail is often enough
-            battle_message = await interaction.followup.send(embed=embed)
+            battle_message = await send_reply(embed=embed)
             await asyncio.sleep(3) # Pause for suspense
 
             # --- Battle Loop ---
@@ -1219,8 +1236,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                 if battle_message:
                     await battle_message.edit(embed=error_embed, view=None) # Clear view if any
                 else:
-                    # Since we always defer at the start, use followup
-                    await interaction.followup.send(embed=error_embed, ephemeral=True)
+                    await send_reply(embed=error_embed, ephemeral=True)
             except Exception as followup_e:
                  logger.error(f"Failed to send battle error message: {followup_e}")
 
