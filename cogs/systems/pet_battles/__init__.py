@@ -21,7 +21,7 @@ import aiohttp # For network error handling
 from core.utils import get_conditional_embed, create_progress_bar # Import create_progress_bar
 from services.premium import get_user_entitlements, invalidate_user_entitlements
 from config.settings import MONGODB_URI, TOPGG_TOKEN
-from ui.embeds import create_error_embed, create_success_embed, add_support_field, get_premium_promotion_embed # Use standardized embeds
+from ui.embeds import create_error_embed, create_success_embed, get_premium_promotion_embed # Use standardized embeds
 
 
 from .petconstants import (
