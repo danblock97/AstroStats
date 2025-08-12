@@ -20,13 +20,6 @@ class ShowUpdateCog(commands.Cog):
             description=LATEST_UPDATES,
             color=discord.Color.blue()
         )
-        embed.add_field(
-            name="Support Us ❤️",
-            value=(
-                "[If you enjoy using this bot, consider supporting us!]"
-                "(https://astrostats.info)"
-            )
-        )
 
         embed.set_footer(text="AstroStats | astrostats.info", icon_url="attachment://astrostats.png")
 
