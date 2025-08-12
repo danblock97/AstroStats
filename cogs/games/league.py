@@ -167,11 +167,6 @@ class LeagueCog(commands.GroupCog, group_name="league"):
                 if live_game_data and 'status' not in live_game_data:
                     await self.add_live_game_data_to_embed(embed, live_game_data, region, headers, session)
 
-                embed.add_field(
-                    name="Support Us ❤️",
-                    value="[If you enjoy using this bot, consider supporting us!](https://astrostats.info)",
-                    inline=False
-                )
                 embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
                 embed.set_footer(text="AstroStats | astrostats.info", icon_url="attachment://astrostats.png")
 
@@ -299,11 +294,6 @@ class LeagueCog(commands.GroupCog, group_name="league"):
                     )
 
                 embed.description = "\n".join(description_lines)
-                embed.add_field(
-                    name="Support Us ❤️",
-                    value="[If you enjoy using this bot, consider supporting us!](https://astrostats.info)",
-                    inline=False
-                )
                 embed.set_footer(text="Built By Goldiez ❤️ Visit clutchgg.lol for more!")
                 
                 # Check if user needs premium promotion

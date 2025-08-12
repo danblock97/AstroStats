@@ -29,13 +29,6 @@ class ReviewCog(commands.Cog):
             ),
             inline=False
         )
-        embed.add_field(
-            name="Support Us ❤️",
-            value=(
-                "[If you enjoy using this bot, consider supporting us!]"
-                "(https://astrostats.info)"
-            )
-        )
         embed.set_footer(text="AstroStats | astrostats.info", icon_url="attachment://astrostats.png")
 
         # Fetch Conditional Embed

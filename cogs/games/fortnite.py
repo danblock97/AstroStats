@@ -193,10 +193,6 @@ class FortniteCog(commands.Cog):
             ),
             inline=False
         )
-        embed.add_field(
-            name="Support Us ❤️",
-            value="[If you enjoy using this bot, consider supporting us!](https://astrostats.info)"
-        )
         embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
         embed.set_footer(text="AstroStats | astrostats.info", icon_url="attachment://astrostats.png")
         return embed

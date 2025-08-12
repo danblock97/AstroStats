@@ -57,11 +57,6 @@ class HelpCog(commands.Cog):
             value="For support please visit [AstroStats](https://astrostats.info) or report issues on our [Issue Tracker](https://astrostats.info)",
             inline=False
         )
-        embed.add_field(
-            name="Support Us ❤️",
-            value="[If you enjoy using this bot, consider supporting us!](https://astrostats.info)",
-            inline=False
-        )
         embed.set_footer(text="AstroStats | astrostats.info", icon_url="attachment://astrostats.png")
         return embed
 
