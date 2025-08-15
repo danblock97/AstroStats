@@ -37,6 +37,8 @@ class HelpCog(commands.Cog):
                 "`/petbattles summon`, `/petbattles battle`, `/petbattles stats`, `/petbattles quests`, `/petbattles achievements`, `/petbattles leaderboard`, `/petbattles vote`\n\n"
                 "**Squib Games**\n"
                 "`/squibgames start`, `/squibgames run`, `/squibgames status`\n\n"
+                "**Catfight PvP**\n"
+                "`/catfight @user`, `/catfight-leaderboard`, `/catfight-stats`\n\n"
                 "**Support**\n"
                 "`/feedback` - Submit feature requests\n"
                 "`/bug` - Report bugs and issues"

@@ -1,6 +1,7 @@
 ﻿import datetime
 import discord
 from typing import Optional, Dict
+from discord.ui import View, Button
 
 def create_base_embed(title: str, description: Optional[str] = None, color: discord.Color = discord.Color.blue(),
                      url: Optional[str] = None) -> discord.Embed:
@@ -58,5 +59,39 @@ def get_premium_promotion_embed(user_id: str) -> Optional[discord.Embed]:
         )
         promo_embed.set_footer(text="Built By Goldiez ❤️ Support: astrostats.info")
         return promo_embed
+    except Exception:
+        return None  # Never break caller on promo failure
+
+
+def get_premium_promotion_view(user_id: str) -> Optional[View]:
+    """Get premium promotion view with link button. Returns a View with premium button."""
+    try:
+        # Import here to avoid circular imports
+        from services.premium import get_user_entitlements
+        
+        entitlements = get_user_entitlements(user_id)
+        tier = (entitlements or {}).get("tier", "free")
+        
+        view = View(timeout=None)
+        
+        if tier == "free":
+            # Premium upgrade button for free users
+            button = Button(
+                label="Get Premium",
+                style=discord.ButtonStyle.link,
+                url="https://astrostats.info/pricing",
+                emoji="💎"
+            )
+        else:
+            # Account management button for premium users
+            button = Button(
+                label="Manage Account",
+                style=discord.ButtonStyle.link,
+                url="https://astrostats.info/account",
+                emoji="⚙️"
+            )
+        
+        view.add_item(button)
+        return view
     except Exception:
         return None  # Never break caller on promo failure

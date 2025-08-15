@@ -114,6 +114,7 @@ class AstroStatsBot(commands.Bot):
         from cogs.admin.servers import setup as setup_servers
         from cogs.games.truthordare import setup as setup_truth_or_dare # Add this import
         from cogs.games.wouldyourather import setup as setup_would_you_rather
+        from cogs.games.catfight import setup as setup_catfight
 
         # Setup all cogs
         await setup_apex(self)
@@ -132,6 +133,7 @@ class AstroStatsBot(commands.Bot):
         await setup_squib_game(self)
         await setup_truth_or_dare(self) # Add this line to load the cog
         await setup_would_you_rather(self)
+        await setup_catfight(self)
 
         # Setup error handlers
         setup_error_handlers(self)
@@ -221,6 +223,7 @@ class AstroStatsBot(commands.Bot):
             value=(
                 "**🐾 Pet Battles** - `/petbattles summon` • `/petbattles battle` • `/petbattles stats`\n"
                 "**🦑 Squib Games** - `/squibgames start` • `/squibgames run` • `/squibgames status`\n"
+                "**⚔️ Catfight PvP** - `/catfight @user` • `/catfight-leaderboard` • `/catfight-stats`\n"
                 "**🎲 Party Games** - `/truthordare` • `/wouldyourather`"
             ),
             inline=False
