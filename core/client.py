@@ -8,7 +8,6 @@ from bson import ObjectId # Import ObjectId
 
 from config.settings import TOKEN, BLACKLISTED_GUILDS, MONGODB_URI # Import MONGODB_URI
 from core.errors import setup_error_handlers
-from ui.embeds import get_premium_promotion_embed
 
 logger = logging.getLogger(__name__) # Use __name__ for logger
 # logger = logging.getLogger('discord.gateway') # Keep gateway logs less verbose if needed
@@ -158,7 +157,7 @@ class AstroStatsBot(commands.Bot):
     async def update_presence(self):
         """Update the bot's presence with the server count."""
         guild_count = len(self.guilds)
-        activity_name = f"/help | {guild_count} servers"
+        activity_name = f"/premium | {guild_count} servers"
         # Use Playing status which is common for bots
         presence = discord.Activity(type=discord.ActivityType.playing, name=activity_name)
         try:
@@ -203,7 +202,7 @@ class AstroStatsBot(commands.Bot):
         embed.add_field(
             name="🚀 Getting Started",
             value=(
-                "Use `/help` to see all my commands.\n"
+                "Use `/premium` to unlock premium features.\n"
                 "Track stats for Apex, Fortnite, LoL, and TFT.\n"
                 "Try the `/petbattles` or `/squibgames` mini-games!"
             ),
@@ -238,9 +237,7 @@ class AstroStatsBot(commands.Bot):
         # Build embeds list with optional promo
         embeds = [embed]
         try:
-            promo_embed = get_premium_promotion_embed(str(guild.owner_id))
-            if promo_embed:
-                embeds.append(promo_embed)
+            pass
         except Exception:
             # Never fail welcome on promo issues
             pass
