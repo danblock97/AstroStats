@@ -13,7 +13,6 @@ from config.settings import FORTNITE_API_KEY
 from config.constants import FORTNITE_TIME_MAPPING
 from core.errors import send_error_embed
 from core.utils import get_conditional_embed
-from ui.embeds import get_premium_promotion_embed
 
 logger = logging.getLogger(__name__)
 
@@ -114,9 +113,6 @@ class FortniteCog(commands.Cog):
                 embeds.append(conditional_embed)
             
             # Check if user needs premium promotion
-            promo_embed = get_premium_promotion_embed(str(interaction.user.id))
-            if promo_embed:
-                embeds.append(promo_embed)
 
             await interaction.followup.send(
                 embeds=embeds,

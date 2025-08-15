@@ -12,6 +12,7 @@ from discord.ext import commands
 from discord import app_commands, Interaction, Embed, Color, ButtonStyle
 from discord.ui import View, Button
 from services.premium import get_user_entitlements
+from ui.embeds import get_premium_promotion_embed
 
 # Third-Party Imports
 from pymongo import MongoClient
@@ -504,6 +505,14 @@ async def conclude_game_auto(bot: commands.Bot, interaction: Interaction, game_d
     except Exception as e:
          logger.error(f"Error calling get_conditional_embed: {e}", exc_info=True)
 
+    # Add premium promotion embed
+    try:
+        if winner_id:
+            promo_embed = get_premium_promotion_embed(winner_id)
+            if promo_embed:
+                embeds_to_send.append(promo_embed)
+    except Exception as e:
+        logger.error(f"Error getting premium promotion embed: {e}", exc_info=True)
 
     return embeds_to_send
 

@@ -12,7 +12,6 @@ from config.constants import APEX_PLATFORM_MAPPING
 from core.errors import send_error_embed, ResourceNotFoundError
 from services.api.apex import fetch_apex_stats, format_stat_value
 from core.utils import get_conditional_embed
-from ui.embeds import get_premium_promotion_embed
 
 logger = logging.getLogger(__name__)
 
@@ -98,9 +97,6 @@ class ApexCog(commands.Cog):
                 embeds.append(conditional_embed)
             
             # Check if user needs premium promotion
-            promo_embed = get_premium_promotion_embed(str(interaction.user.id))
-            if promo_embed:
-                embeds.append(promo_embed)
 
             await interaction.followup.send(
                 embeds=embeds, 

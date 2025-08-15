@@ -4,7 +4,6 @@ from discord import app_commands
 import random
 import os
 from config import constants # Make sure constants.py is accessible
-from ui.embeds import get_premium_promotion_embed
 
 class TruthOrDare(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -67,11 +66,7 @@ class TruthOrDare(commands.Cog):
             # Set footer with AstroStats branding
             embed.set_footer(text="AstroStats | astrostats.info", icon_url=f"attachment://astrostats.png")
 
-            # Check if user needs premium promotion
-            promo_embed = get_premium_promotion_embed(str(interaction.user.id))
             embeds = [embed]
-            if promo_embed:
-                embeds.append(promo_embed)
             
             # Send the message with the image files
             await interaction.response.send_message(
