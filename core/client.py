@@ -192,38 +192,79 @@ class AstroStatsBot(commands.Bot):
     async def send_welcome_message(self, guild: discord.Guild):
         """Sends a welcome message to a new guild."""
         embed = discord.Embed(
-            title=f"Thanks for adding AstroStats to {guild.name}!",
-            description="I'm here to help you track game stats and have fun with mini-games!",
-            color=discord.Color.blue()
+            title=f"🎉 Welcome to AstroStats!",
+            description=(
+                f"Thanks for adding me to **{guild.name}**!\n\n"
+                "I'm your all-in-one gaming companion for **stat tracking**, **mini-games**, and **entertainment**. "
+                "Let's explore what I can do for you!"
+            ),
+            color=0x00d4ff
         )
         if guild.icon:
             embed.set_thumbnail(url=guild.icon.url)
 
+        # Game Stats Section
         embed.add_field(
-            name="🚀 Getting Started",
+            name="📊 **Game Statistics**",
             value=(
-                "Use `/premium` to unlock premium features.\n"
-                "Track stats for Apex, Fortnite, LoL, and TFT.\n"
-                "Try the `/petbattles` or `/squibgames` mini-games!"
+                "**🎯 Apex Legends** - `/apex <platform> <username>`\n"
+                "**⚔️ League of Legends** - `/league profile` • `/league championmastery`\n"
+                "**🏆 Teamfight Tactics** - `/tft <region> <RiotID#Tag>`\n"
+                "**🏗️ Fortnite** - `/fortnite <timeframe> <username>`"
             ),
             inline=False
         )
+
+        # Mini-Games Section
         embed.add_field(
-            name="🔗 Important Links",
+            name="🎮 **Interactive Mini-Games**",
             value=(
-                "[Documentation](https://astrostats.info) | "
-                "[Support](https://astrostats.info) | "
-                "[Issue Tracker](https://astrostats.info) | "
-                "[Support Us ❤️](https://astrostats.info)"
+                "**🐾 Pet Battles** - `/petbattles summon` • `/petbattles battle` • `/petbattles stats`\n"
+                "**🦑 Squib Games** - `/squibgames start` • `/squibgames run` • `/squibgames status`\n"
+                "**🎲 Party Games** - `/truthordare` • `/wouldyourather`"
             ),
             inline=False
         )
+
+        # Entertainment Section
         embed.add_field(
-            name="⭐ Leave a Review!",
-            value="Enjoying the bot? Consider leaving a review with `/review`!",
+            name="✨ **Entertainment & More**",
+            value=(
+                "**🔮 Daily Horoscope** - `/horoscope <sign>`\n"
+                "**❓ Help & Support** - `/help` • `/feedback` • `/bug`\n"
+                "**⭐ Show Love** - `/review` (Leave us a review!)"
+            ),
             inline=False
         )
-        embed.set_footer(text="Let the stats tracking begin!")
+
+        # Premium Section
+        embed.add_field(
+            name="💎 **Premium Features**",
+            value=(
+                "Unlock **unlimited players** in Squib Games, **extended pet capacity**, "
+                "and exclusive features!\n\n"
+                "**🚀 Get Premium** - `/premium`\n"
+                "**💰 View Pricing** - [astrostats.info/pricing](https://astrostats.info/pricing)"
+            ),
+            inline=False
+        )
+
+        # Links Section
+        embed.add_field(
+            name="🔗 **Quick Links**",
+            value=(
+                "[📖 Documentation](https://astrostats.info) • "
+                "[💬 Support](https://astrostats.info) • "
+                "[🐛 Report Issues](https://astrostats.info) • "
+                "[❤️ Support Us](https://astrostats.info/pricing)"
+            ),
+            inline=False
+        )
+        
+        embed.set_footer(
+            text="🚀 Ready to dominate the leaderboards? Let's get started!",
+            icon_url="https://astrostats.info/favicon.ico"
+        )
 
         # Find a suitable channel to send the welcome message
         target_channel = guild.system_channel
