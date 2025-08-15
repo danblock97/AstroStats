@@ -52,17 +52,23 @@ SPECIAL_EMOJI_NAMES = {
 # Latest bot updates
 
 LATEST_UPDATES = (
-    "**Version 2.5.0 (Premium Launch)**\n\n"
-    "Upgrade your AstroStats experience with Premium tiers. Manage or upgrade at https://astrostats.info\n\n"
-    "**What’s New**\n"
+    "**Version 2.6.0 (Catfight PvP)**\n\n"
+    "Battle other players in intense PvP combat with the new Catfight system!\n\n"
+    "**What's New**\n"
+    "- New `/catfight` command: Challenge players to PvP battles with dynamic combat system\n"
+    "- Health-based combat with variety of attack moves and damage ranges\n"
+    "- Server leaderboards tracking wins, losses, and battle streaks\n"
+    "- Dynamic battle image generation with custom avatars and backgrounds\n"
+    "- MongoDB integration for persistent player statistics\n\n"
+    "**Previous Updates (v2.5.0)**\n"
     "- Premium entitlements based on your Discord ID (Supporter, Sponsor, VIP)\n"
     "- Daily quests scaled by tier (Supporter +2, Sponsor +5, VIP +8 → up to 11 total)\n"
     "- Pet capacity by tier (Free 1, Sponsor 2, VIP 4) with soft-lock on extra pets when downgraded\n"
     "- SquibGames player caps by tier (Supporter 20, Sponsor 50, VIP 75) with live N/Cap display\n"
     "- XP & Cash multipliers on rewards (Supporter 1.2x, Sponsor 1.5x, VIP 1.75x) including /daily\n"
-    "- New `/premium` command: see tiers, pricing, and benefits with a link to manage\n"
-    "- New `/petbattles release name:<PetName>`: permanently release an unwanted pet (auto-sets another pet active if needed)\n"
-    "- New `/squibgames cancel`: host-only cancel of the current session\n\n"
+    "- `/premium` command: see tiers, pricing, and benefits with a link to manage\n"
+    "- `/petbattles release name:<PetName>`: permanently release an unwanted pet\n"
+    "- `/squibgames cancel`: host-only cancel of the current session\n\n"
     "Visit https://astrostats.info to get Premium or manage your plan."
 )
 
