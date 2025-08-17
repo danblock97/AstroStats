@@ -39,6 +39,8 @@ class HelpCog(commands.Cog):
                 "`/squibgames start`, `/squibgames run`, `/squibgames status`\n\n"
                 "**Catfight PvP**\n"
                 "`/catfight @user`, `/catfight-leaderboard`, `/catfight-stats`\n\n"
+                "**Premium**\n"
+                "`/premium` - View premium features and benefits\n\n"
                 "**Support**\n"
                 "`/feedback` - Submit feature requests\n"
                 "`/bug` - Report bugs and issues"
@@ -48,15 +50,13 @@ class HelpCog(commands.Cog):
         embed.add_field(
             name="Check Out My Other Apps",
             value=(
-                "[ClutchGG.LOL](https://clutchgg.lol)\n"
-                "[Diverse Diaries](https://diversediaries.com)\n"
-                "[SwiftTasks](https://swifttasks.co.uk)"
+                "[ClutchGG.LOL](https://clutchgg.lol)"
             ),
             inline=False
         )
         embed.add_field(
             name="Support",
-            value="For support please visit [AstroStats](https://astrostats.info) or report issues on our [Issue Tracker](https://astrostats.info)",
+            value="For support please visit our [Support Site](https://astrostats.info)",
             inline=False
         )
         embed.set_footer(text="AstroStats | astrostats.info", icon_url="attachment://astrostats.png")
