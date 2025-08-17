@@ -683,22 +683,18 @@ class JoinButtonView(View):
              cap_text = "∞"
              try:
                  from services.premium import get_user_entitlements
-                 ent = get_user_entitlements(str(main_embed.footer.text.split('Session ID: ')[-1]) if main_embed.footer and main_embed.footer.text else None)
-             except Exception:
-                 ent = None
-             try:
-                 # Best-effort: we have guild_id in the view, but not host id here; fetch game doc
+                 # Get host_id from game document, then get their entitlements
                  if squib_game_sessions is not None:
                      game = squib_game_sessions.find_one({"guild_id": self.guild_id, "session_id": self.game_id})
                      if game:
                          host_id = str(game.get("host_user_id"))
                          ent = get_user_entitlements(host_id)
+                         if ent:
+                             cap = ent.get("squibgamesMaxPlayers")
+                             if isinstance(cap, int) and cap > 0:
+                                 cap_text = str(cap)
              except Exception:
                  pass
-             if ent:
-                 cap = ent.get("squibgamesMaxPlayers")
-                 if isinstance(cap, int) and cap > 0:
-                     cap_text = str(cap)
 
              new_description = f"{player_count}/{cap_text} Players joined."
              # Recreate embed to ensure changes apply (safer than modifying fields)
