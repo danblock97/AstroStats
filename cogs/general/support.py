@@ -3,7 +3,7 @@ from discord import app_commands
 from discord.ext import commands
 import os
 from core.utils import get_conditional_embed
-from ui.embeds import create_base_embed
+from ui.embeds import create_base_embed, get_premium_promotion_view
 
 
 class SupportCog(commands.Cog):
@@ -35,8 +35,9 @@ class SupportCog(commands.Cog):
         if conditional_embed:
             embeds.append(conditional_embed)
         
+        premium_view = get_premium_promotion_view(str(interaction.user.id))
 
-        await interaction.response.send_message(embeds=embeds)
+        await interaction.response.send_message(embeds=embeds, view=premium_view)
 
     @app_commands.command(name="bug", description="Report a bug in AstroStats")
     async def bug_command(self, interaction: discord.Interaction):
@@ -60,8 +61,9 @@ class SupportCog(commands.Cog):
         if conditional_embed:
             embeds.append(conditional_embed)
         
+        premium_view = get_premium_promotion_view(str(interaction.user.id))
 
-        await interaction.response.send_message(embeds=embeds)
+        await interaction.response.send_message(embeds=embeds, view=premium_view)
 
 
 async def setup(bot: commands.Bot):

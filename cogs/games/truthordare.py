@@ -4,6 +4,7 @@ from discord import app_commands
 import random
 import os
 from config import constants # Make sure constants.py is accessible
+from ui.embeds import get_premium_promotion_view
 
 class TruthOrDare(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -67,10 +68,12 @@ class TruthOrDare(commands.Cog):
             embed.set_footer(text="AstroStats | astrostats.info", icon_url=f"attachment://astrostats.png")
 
             embeds = [embed]
+            premium_view = get_premium_promotion_view(str(interaction.user.id))
             
             # Send the message with the image files
             await interaction.response.send_message(
                 embeds=embeds,
+                view=premium_view,
                 files=[
                     discord.File(self.truth_or_dare_img, "truthordare.png"),
                     discord.File(self.astrostats_img, "astrostats.png")

@@ -13,6 +13,7 @@ from config.settings import FORTNITE_API_KEY
 from config.constants import FORTNITE_TIME_MAPPING
 from core.errors import send_error_embed
 from core.utils import get_conditional_embed
+from ui.embeds import get_premium_promotion_view
 
 logger = logging.getLogger(__name__)
 
@@ -112,10 +113,11 @@ class FortniteCog(commands.Cog):
             if conditional_embed:
                 embeds.append(conditional_embed)
             
-            # Check if user needs premium promotion
+            premium_view = get_premium_promotion_view(str(interaction.user.id))
 
             await interaction.followup.send(
                 embeds=embeds,
+                view=premium_view,
                 files=[discord.File(self.astrostats_img, "astrostats.png")]
             )
 

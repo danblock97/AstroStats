@@ -13,6 +13,7 @@ from config.settings import TFT_API
 from config.constants import LEAGUE_REGIONS, TFT_QUEUE_TYPE_NAMES
 from core.utils import get_conditional_embed
 from core.errors import send_error_embed
+from ui.embeds import get_premium_promotion_view
 
 logger = logging.getLogger(__name__)
 
@@ -153,8 +154,9 @@ class TFTCog(commands.Cog):
             if conditional_embed:
                 embeds.append(conditional_embed)
             
+            premium_view = get_premium_promotion_view(str(interaction.user.id))
 
-            await interaction.followup.send(embeds=embeds)
+            await interaction.followup.send(embeds=embeds, view=premium_view)
 
         except requests.exceptions.HTTPError as e:
             if e.response is not None and e.response.status_code == 404:

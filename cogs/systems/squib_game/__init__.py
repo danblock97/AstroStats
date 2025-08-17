@@ -12,7 +12,7 @@ from discord.ext import commands
 from discord import app_commands, Interaction, Embed, Color, ButtonStyle
 from discord.ui import View, Button
 from services.premium import get_user_entitlements
-from ui.embeds import get_premium_promotion_embed
+from ui.embeds import get_premium_promotion_embed, get_premium_promotion_view
 
 # Third-Party Imports
 from pymongo import MongoClient
@@ -505,14 +505,8 @@ async def conclude_game_auto(bot: commands.Bot, interaction: Interaction, game_d
     except Exception as e:
          logger.error(f"Error calling get_conditional_embed: {e}", exc_info=True)
 
-    # Add premium promotion embed
-    try:
-        if winner_id:
-            promo_embed = get_premium_promotion_embed(winner_id)
-            if promo_embed:
-                embeds_to_send.append(promo_embed)
-    except Exception as e:
-        logger.error(f"Error getting premium promotion embed: {e}", exc_info=True)
+    # Note: Premium promotion view will be added separately when sending the final message
+    # to avoid conflicts with multiple embeds
 
     return embeds_to_send
 
@@ -547,12 +541,14 @@ async def run_game_loop(bot: commands.Bot, interaction: Interaction, game_db_id:
                           winner = None
                           final_round = game.get("current_round", 0)
                           final_embeds = await conclude_game_auto(bot, interaction, game, guild_id, final_round, winner=winner)
+                          winner_id = winner.get("user_id") if winner else None
+                          premium_view = get_premium_promotion_view(winner_id) if winner_id else None
                           try:
-                              await interaction.followup.send(embeds=final_embeds)
+                              await interaction.followup.send(embeds=final_embeds, view=premium_view)
                           except discord.HTTPException as e:
                               # Handle cases where followup might fail (e.g., interaction expired)
                               logger.error(f"Failed to send final followup for {game_db_id} after state check: {e}")
-                              await channel.send(embeds=final_embeds)
+                              await channel.send(embeds=final_embeds, view=premium_view)
                      else:
                           pass
 
@@ -565,11 +561,13 @@ async def run_game_loop(bot: commands.Bot, interaction: Interaction, game_db_id:
             if len(alive_before) <= 1:
                 winner = alive_before[0] if len(alive_before) == 1 else None
                 final_embeds = await conclude_game_auto(bot, interaction, game, guild_id, current_round, winner=winner)
+                winner_id = winner.get("user_id") if winner else None
+                premium_view = get_premium_promotion_view(winner_id) if winner_id else None
                 try:
-                     await interaction.followup.send(embeds=final_embeds)
+                     await interaction.followup.send(embeds=final_embeds, view=premium_view)
                 except discord.HTTPException as e:
                      logger.error(f"Failed to send final followup for {game_db_id}: {e}")
-                     await channel.send(embeds=final_embeds)
+                     await channel.send(embeds=final_embeds, view=premium_view)
                 break # Exit loop
 
             # --- Play the next round ---
@@ -909,7 +907,13 @@ class SquibGames(commands.GroupCog, name="squibgames"): # Reverted name
 
         # Attach the original Join Button View
         view = JoinButtonView(game_id=session_id, guild_id=guild_id)
+        
+        # Add premium promotion button
+        premium_view = get_premium_promotion_view(str(interaction.user.id))
+        
         await interaction.followup.send(embeds=[main_embed, player_embed], view=view)
+        if premium_view:
+            await interaction.followup.send(view=premium_view, ephemeral=True)
 
 
     @app_commands.command(name="run", description="Run all minigame rounds until one winner remains")

@@ -4,6 +4,7 @@ from discord import app_commands
 import random
 import os
 from config import constants
+from ui.embeds import get_premium_promotion_view
 
 class WouldYouRather(commands.Cog):
     def __init__(self, bot: commands.Bot):
@@ -63,10 +64,12 @@ class WouldYouRather(commands.Cog):
             embed.set_footer(text="AstroStats | astrostats.info", icon_url=f"attachment://astrostats.png")
 
             embeds = [embed]
+            premium_view = get_premium_promotion_view(str(interaction.user.id))
             
             # Send the message with the image files
             await interaction.response.send_message(
                 embeds=embeds,
+                view=premium_view,
                 files=[
                     discord.File(thumbnail_file, "wouldyourather.png"),
                     discord.File(self.astrostats_img, "astrostats.png")
