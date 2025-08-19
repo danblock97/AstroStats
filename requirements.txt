@@ -6,3 +6,6 @@ pymongo
 topggpy
 aiohttp
 Pillow
+pytest
+pytest-asyncio
+pytest-mock
