@@ -12,6 +12,8 @@ PRICING = {
             "3 daily quests",
             "1 pet capacity",
             "Standard SquibGames cap",
+            "Basic welcome messages",
+            "Welcome toggle on/off",
         ],
     },
     "supporter": {
@@ -23,6 +25,7 @@ PRICING = {
             "Premium badge",
             "Premium-only commands",
             "1.2x XP & cash",
+            "Custom welcome messages",
         ],
     },
     "sponsor": {
@@ -34,6 +37,8 @@ PRICING = {
             "Premium badge",
             "Premium-only commands",
             "1.5x XP & cash",
+            "Custom welcome messages",
+            "Custom welcome images",
         ],
     },
     "vip": {
@@ -45,6 +50,8 @@ PRICING = {
             "Premium badge",
             "Premium-only commands",
             "1.75x XP & cash",
+            "Custom welcome messages",
+            "Custom welcome images",
         ],
     },
 }

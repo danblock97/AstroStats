@@ -27,6 +27,7 @@ class TestHelpCog:
         assert "Pet Battles" in commands_field.value
         assert "Squib Games" in commands_field.value
         assert "Catfight PvP" in commands_field.value
+        assert "Welcome System" in commands_field.value
         assert "Premium" in commands_field.value
         assert "Support" in commands_field.value
         
@@ -39,6 +40,9 @@ class TestHelpCog:
         assert "/petbattles summon" in commands_field.value
         assert "/squibgames start" in commands_field.value
         assert "/catfight @user" in commands_field.value
+        assert "/welcome toggle" in commands_field.value
+        assert "/welcome set-message" in commands_field.value
+        assert "/welcome set-image" in commands_field.value
         assert "/premium" in commands_field.value
         assert "/feedback" in commands_field.value
         assert "/bug" in commands_field.value
@@ -149,3 +153,31 @@ class TestHelpCog:
             cog = HelpCog(mock_bot)
             embed = cog.build_help_embed()
             assert f"Trusted by {count} servers" in embed.title
+
+    def test_welcome_commands_coverage(self, help_cog):
+        embed = help_cog.build_help_embed()
+        commands_field = next(field for field in embed.fields if field.name == "Commands & Usage")
+        
+        # Verify all welcome commands are mentioned
+        welcome_commands = [
+            "/welcome toggle",
+            "/welcome set-message", 
+            "/welcome set-image",
+            "/welcome remove-message",
+            "/welcome remove-image",
+            "/welcome test"
+        ]
+        
+        for command in welcome_commands:
+            assert command in commands_field.value
+
+    def test_premium_tagging_in_help(self, help_cog):
+        embed = help_cog.build_help_embed()
+        commands_field = next(field for field in embed.fields if field.name == "Commands & Usage")
+        
+        # Check that premium features are properly tagged
+        assert "🔒 **Premium**" in commands_field.value
+        assert "🔒 **Sponsor/VIP**" in commands_field.value
+        
+        # Check admin-only notation
+        assert "(Admin Only)" in commands_field.value

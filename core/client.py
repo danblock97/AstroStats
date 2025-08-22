@@ -1,5 +1,8 @@
 ﻿# core/client.py
 import logging
+import io
+import base64
+import asyncio
 import discord
 from discord.ext import commands, tasks
 import datetime
@@ -7,7 +10,9 @@ from pymongo import MongoClient, UpdateOne # Import UpdateOne
 from bson import ObjectId # Import ObjectId
 
 from config.settings import TOKEN, BLACKLISTED_GUILDS, MONGODB_URI # Import MONGODB_URI
+from config.constants import LATEST_UPDATES
 from core.errors import setup_error_handlers
+from services.database.welcome import get_welcome_settings
 
 logger = logging.getLogger(__name__) # Use __name__ for logger
 # logger = logging.getLogger('discord.gateway') # Keep gateway logs less verbose if needed
@@ -20,7 +25,8 @@ async def run_database_migration():
         client = MongoClient(MONGODB_URI)
         db = client['astrostats_database']
         pets_collection = db['pets']
-        logger.info("Running database migration check for pets...")
+        welcome_collection = db['welcome_settings']
+        logger.info("Running database migration check for pets and welcome settings...")
 
         # Fields to ensure exist with default values
         fields_to_add = {
@@ -74,6 +80,30 @@ async def run_database_migration():
         else:
             logger.info("No pet documents required migration.")
 
+        # Migrate welcome settings from custom_image_url to custom_image_data
+        logger.info("Migrating welcome settings...")
+        welcome_docs = welcome_collection.find({"custom_image_url": {"$exists": True, "$ne": None}})
+        welcome_updates = []
+        
+        for doc in welcome_docs:
+            # Convert old URL field to new data fields (set to None for manual re-upload)
+            welcome_updates.append(UpdateOne(
+                {"_id": doc["_id"]},
+                {
+                    "$unset": {"custom_image_url": ""},
+                    "$set": {
+                        "custom_image_data": None,
+                        "custom_image_filename": None
+                    }
+                }
+            ))
+        
+        if welcome_updates:
+            result = welcome_collection.bulk_write(welcome_updates)
+            logger.info(f"Migrated {result.modified_count} welcome settings. Users will need to re-upload images.")
+        else:
+            logger.info("No welcome settings required migration.")
+
         client.close()
     except Exception as e:
         logger.error(f"Database migration failed: {e}", exc_info=True)
@@ -85,6 +115,7 @@ class AstroStatsBot(commands.Bot):
 
     def __init__(self):
         intents = discord.Intents.default()
+        intents.members = True  # Required for member join events
         # Add message content intent if needed, but be mindful of verification requirements
         # intents.message_content = True
         super().__init__(command_prefix="/", intents=intents)
@@ -112,6 +143,7 @@ class AstroStatsBot(commands.Bot):
         from cogs.systems.squib_game import setup as setup_squib_game
         from cogs.admin.kick import setup as setup_kick
         from cogs.admin.servers import setup as setup_servers
+        from cogs.admin.welcome import setup as setup_welcome
         from cogs.games.truthordare import setup as setup_truth_or_dare # Add this import
         from cogs.games.wouldyourather import setup as setup_would_you_rather
         from cogs.games.catfight import setup as setup_catfight
@@ -130,6 +162,7 @@ class AstroStatsBot(commands.Bot):
         await setup_pet_battles(self)
         await setup_kick(self)
         await setup_servers(self)
+        await setup_welcome(self)
         await setup_squib_game(self)
         await setup_truth_or_dare(self) # Add this line to load the cog
         await setup_would_you_rather(self)
@@ -177,6 +210,7 @@ class AstroStatsBot(commands.Bot):
     async def on_ready(self):
         """Called when the bot is ready."""
         logger.info(f"{self.user} connected to Discord (ID: {self.user.id}). Ready!")
+
 
     async def on_guild_join(self, guild: discord.Guild):
         # Check if the guild is blacklisted
@@ -295,6 +329,76 @@ class AstroStatsBot(commands.Bot):
                 logger.error(f"Failed to send welcome message to {guild.name}: {e}")
         else:
             logger.warning(f"No suitable channel found to send welcome message in {guild.name}")
+
+    async def on_member_join(self, member: discord.Member):
+        """Called when a new member joins a guild."""
+        try:
+            # Get welcome settings for the guild
+            welcome_settings = get_welcome_settings(str(member.guild.id))
+            
+            # Check if welcome messages are enabled for this guild
+            if not welcome_settings or not welcome_settings.enabled:
+                return
+            
+            # Find the target channel (system channel or first available text channel)
+            target_channel = member.guild.system_channel
+            
+            if target_channel is None or not target_channel.permissions_for(member.guild.me).send_messages:
+                for channel in member.guild.text_channels:
+                    if channel.permissions_for(member.guild.me).send_messages:
+                        target_channel = channel
+                        break
+            
+            if target_channel is None:
+                logger.warning(f"No suitable channel found to send member welcome in {member.guild.name}")
+                return
+            
+            # Create the welcome message
+            if welcome_settings.custom_message:
+                # Use custom message with placeholder replacement
+                message_content = welcome_settings.custom_message.replace(
+                    "{user}", member.mention
+                ).replace(
+                    "{username}", member.display_name
+                ).replace(
+                    "{server}", member.guild.name
+                )
+                
+                # Replace channel mentions like {#channel-name} with actual channel mentions
+                import re
+                def replace_channel_mention(match):
+                    channel_name = match.group(1)
+                    # Find channel by name (case insensitive)
+                    for channel in member.guild.text_channels:
+                        if channel.name.lower() == channel_name.lower():
+                            return channel.mention
+                    # If channel not found, return original text
+                    return f"#{channel_name}"
+                
+                message_content = re.sub(r'\{#([^}]+)\}', replace_channel_mention, message_content)
+            else:
+                # Use default welcome message
+                message_content = f"Welcome {member.mention} to **{member.guild.name}**! Please verify yourself and get to know everyone!"
+            
+            # Send message with optional image attachment in single message
+            if welcome_settings.custom_image_data:
+                try:
+                    # Decode base64 image data and send with text
+                    image_bytes = base64.b64decode(welcome_settings.custom_image_data)
+                    filename = welcome_settings.custom_image_filename or "welcome_image.webp"
+                    file = discord.File(io.BytesIO(image_bytes), filename=filename)
+                    await target_channel.send(content=message_content, file=file)
+                except Exception as e:
+                    logger.error(f"Error sending welcome image: {e}")
+                    # Fallback to text only if image fails
+                    await target_channel.send(content=message_content)
+            else:
+                # Send just the text message
+                await target_channel.send(content=message_content)
+            logger.info(f"Sent welcome message for {member} in {member.guild.name}")
+            
+        except Exception as e:
+            logger.error(f"Error sending welcome message for {member} in {member.guild.name}: {e}", exc_info=True)
 
 
 def create_bot():

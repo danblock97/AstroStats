@@ -75,6 +75,8 @@ class TestPremiumCog:
         assert "3 daily quests" in free_benefits
         assert "1 pet capacity" in free_benefits
         assert "Standard SquibGames cap" in free_benefits
+        assert "Basic welcome messages" in free_benefits
+        assert "Welcome toggle on/off" in free_benefits
         
         # Verify supporter tier benefits  
         supporter_benefits = PRICING["supporter"]["benefits"]
@@ -83,6 +85,7 @@ class TestPremiumCog:
         assert "Premium badge" in supporter_benefits
         assert "Premium-only commands" in supporter_benefits
         assert "1.2x XP & cash" in supporter_benefits
+        assert "Custom welcome messages" in supporter_benefits
         
         # Verify sponsor tier benefits
         sponsor_benefits = PRICING["sponsor"]["benefits"]
@@ -90,6 +93,8 @@ class TestPremiumCog:
         assert "+1 extra pets (2 total)" in sponsor_benefits
         assert "SquibGames cap 50" in sponsor_benefits
         assert "1.5x XP & cash" in sponsor_benefits
+        assert "Custom welcome messages" in sponsor_benefits
+        assert "Custom welcome images" in sponsor_benefits
         
         # Verify VIP tier benefits
         vip_benefits = PRICING["vip"]["benefits"]
@@ -97,6 +102,8 @@ class TestPremiumCog:
         assert "+3 extra pets (4 total)" in vip_benefits
         assert "SquibGames cap 75" in vip_benefits
         assert "1.75x XP & cash" in vip_benefits
+        assert "Custom welcome messages" in vip_benefits
+        assert "Custom welcome images" in vip_benefits
 
     def test_pricing_values(self):
         assert PRICING["free"]["price"] == "£0"

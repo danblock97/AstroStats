@@ -88,3 +88,13 @@ class SquibGameStats:
     wins: int = 0
     games_played: int = 0
     _id: Optional[Any] = None # Use Any for ObjectId compatibility
+
+@dataclass
+class WelcomeSettings:
+    guild_id: str
+    enabled: bool = False
+    custom_message: Optional[str] = None
+    custom_image_data: Optional[str] = None  # Base64 encoded image data
+    custom_image_filename: Optional[str] = None  # Original filename for reference
+    _id: Optional[Any] = None # Use Any for ObjectId compatibility
+

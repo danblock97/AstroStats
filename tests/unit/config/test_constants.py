@@ -107,12 +107,12 @@ class TestConfigConstants:
         
         # Test contains version information
         assert "Version" in LATEST_UPDATES
-        assert "2.6.0" in LATEST_UPDATES
+        assert "2.7.0" in LATEST_UPDATES
         
-        # Test contains key feature mentions
-        assert "Catfight" in LATEST_UPDATES
+        # Test contains key feature mentions for current version
+        assert "welcome" in LATEST_UPDATES.lower()
         assert "Premium" in LATEST_UPDATES
-        assert "PvP" in LATEST_UPDATES
+        assert "placeholder" in LATEST_UPDATES.lower()
         
         # Test formatting markers
         assert "**" in LATEST_UPDATES  # Bold formatting
@@ -299,16 +299,16 @@ class TestConfigConstants:
         from config.constants import LATEST_UPDATES
         
         # Test version format
-        assert "Version 2.6.0" in LATEST_UPDATES
+        assert "Version 2.7.0" in LATEST_UPDATES
         
-        # Test contains feature descriptions
-        feature_keywords = ["Catfight", "PvP", "Premium", "battle", "leaderboard"]
+        # Test contains feature descriptions for current and previous versions
+        feature_keywords = ["welcome", "Premium", "toggle", "placeholder", "catfight", "battle"]
         found_features = 0
         for keyword in feature_keywords:
             if keyword.lower() in LATEST_UPDATES.lower():
                 found_features += 1
         
-        assert found_features >= 3, "Latest updates should mention key features"
+        assert found_features >= 4, "Latest updates should mention key features from current and previous versions"
 
     def test_region_code_validity(self):
         """Test League region codes follow expected patterns"""
