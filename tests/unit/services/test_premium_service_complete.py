@@ -461,7 +461,7 @@ class TestPremiumServiceComplete:
                 
                 # Should return free entitlements on error
                 assert result['tier'] == 'free'
-                mock_logger.error.assert_called()
+                mock_logger.warning.assert_called()
 
     def test_invalidate_user_entitlements(self):
         """Test cache invalidation"""

@@ -31,7 +31,12 @@ def _init_db_if_needed() -> None:
     if _mongo_client is not None and _users_collection is not None:
         return
     try:
-        _mongo_client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=5000)
+        _mongo_client = MongoClient(
+            MONGODB_URI, 
+            serverSelectionTimeoutMS=2000,  # Reduced timeout to fail fast
+            connectTimeoutMS=2000,
+            socketTimeoutMS=2000
+        )
         db = _mongo_client[USERS_DB_NAME]
         _users_collection = db[USERS_COLLECTION_NAME]
         # prepare fallback collection handle too
@@ -42,8 +47,8 @@ def _init_db_if_needed() -> None:
                 _fallback_users_collection = None
         except Exception:
             _fallback_users_collection = None
-        # Light ping
-        _mongo_client.admin.command("ping")
+        # Light ping with timeout
+        _mongo_client.admin.command("ping", maxTimeMS=1000)
         logger.info("Premium service connected to users collection in DB '%s' (fallback: %s)", USERS_DB_NAME, FALLBACK_USERS_DB_NAME if _fallback_users_collection else None)
     except Exception as e:
         logger.error("Failed to initialize MongoDB client for premium service: %s", e, exc_info=True)
@@ -173,12 +178,14 @@ def get_user_entitlements(discord_id: str) -> Dict[str, Any]:
             return ent
 
     try:
+        # Attempt to get user data with timeout protection
         user_doc = get_user_by_discord_id(str(discord_id))
         ent = get_entitlements(user_doc)
     except Exception as e:
-        logger.error("Falling back to free entitlements due to error for discordId %s: %s", discord_id, e)
+        logger.warning("Falling back to free entitlements due to error for discordId %s: %s", discord_id, e)
         ent = _tier_entitlements(None)
 
+    # Cache the result even if it's free tier due to error
     _ENTITLEMENTS_CACHE[str(discord_id)] = (now + _CACHE_TTL_SECONDS, ent)
     return ent
 

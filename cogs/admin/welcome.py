@@ -1,4 +1,5 @@
-﻿import io
+﻿import asyncio
+import io
 import logging
 import base64
 import aiohttp
@@ -19,8 +20,35 @@ def has_required_tier(required_tiers: List[str]):
     """Check if user has required premium tier."""
     async def predicate(interaction: discord.Interaction):
         user_id = str(interaction.user.id)
-        ent = get_user_entitlements(user_id)
-        user_tier = ent.get("tier", "free")
+        db_unavailable = False
+        
+        try:
+            # Use asyncio.wait_for to prevent blocking Discord interactions
+            ent = await asyncio.wait_for(
+                asyncio.get_event_loop().run_in_executor(
+                    None, get_user_entitlements, user_id
+                ),
+                timeout=1.0  # 1 second timeout
+            )
+            user_tier = ent.get("tier", "free")
+        except asyncio.TimeoutError:
+            logger.warning(f"Premium check timed out for user {user_id}, blocking access for security")
+            db_unavailable = True
+            user_tier = "free"
+        except Exception as e:
+            logger.error(f"Error checking premium tier for user {user_id}: {e}, blocking access for security")
+            db_unavailable = True
+            user_tier = "free"
+        
+        # If DB is unavailable, fail closed for security (block access)
+        if db_unavailable:
+            embed = discord.Embed(
+                title="⚠️ Service Temporarily Unavailable", 
+                description="Premium verification is currently unavailable. Please try again in a few minutes.",
+                color=discord.Color.red()
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return False
         
         if user_tier in required_tiers:
             return True
