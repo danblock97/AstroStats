@@ -26,6 +26,11 @@ _ENTITLEMENTS_CACHE: Dict[str, Tuple[float, Dict[str, Any]]] = {}
 _CACHE_TTL_SECONDS = 5 * 60
 
 
+def initialize_premium_service() -> None:
+    """Initialize the premium service MongoDB connection early during bot startup."""
+    logger.info("Initializing premium service connection...")
+    _init_db_if_needed()
+
 def _init_db_if_needed() -> None:
     global _mongo_client, _users_collection, _fallback_users_collection
     if _mongo_client is not None and _users_collection is not None:
@@ -199,6 +204,7 @@ def invalidate_user_entitlements(discord_id: str) -> None:
 
 
 __all__ = [
+    "initialize_premium_service",
     "get_user_by_discord_id",
     "is_premium_active",
     "get_entitlements",

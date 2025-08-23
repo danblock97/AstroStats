@@ -127,6 +127,10 @@ class AstroStatsBot(commands.Bot):
         # --- Run Database Migration ---
         await run_database_migration()
         # --- End Database Migration ---
+        
+        # Initialize premium service connection early
+        from services.premium import initialize_premium_service
+        initialize_premium_service()
 
         # Import cog setup functions only when needed to avoid circular imports
         from cogs.games.apex import setup as setup_apex

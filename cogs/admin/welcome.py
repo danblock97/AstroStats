@@ -24,11 +24,12 @@ def has_required_tier(required_tiers: List[str]):
         
         try:
             # Use asyncio.wait_for to prevent blocking Discord interactions
+            loop = asyncio.get_running_loop()
             ent = await asyncio.wait_for(
-                asyncio.get_event_loop().run_in_executor(
+                loop.run_in_executor(
                     None, get_user_entitlements, user_id
                 ),
-                timeout=1.0  # 1 second timeout
+                timeout=2.0  # 2 second timeout
             )
             user_tier = ent.get("tier", "free")
         except asyncio.TimeoutError:
