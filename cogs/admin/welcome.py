@@ -37,7 +37,7 @@ def has_required_tier(required_tiers: List[str]):
             inline=False
         )
         
-        view = get_premium_promotion_view() if user_tier == "free" else None
+        view = get_premium_promotion_view(user_id) if user_tier == "free" else None
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
         return False
     
