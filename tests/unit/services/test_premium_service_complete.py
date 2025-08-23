@@ -526,6 +526,7 @@ class TestPremiumServiceComplete:
         from services.premium import __all__
         
         expected_exports = [
+            "initialize_premium_service",
             "get_user_by_discord_id",
             "is_premium_active", 
             "get_entitlements",
