@@ -22,7 +22,12 @@ logger = logging.getLogger(__name__) # Use __name__ for logger
 async def run_database_migration():
     """Adds new fields to existing pet documents if they don't exist."""
     try:
-        client = MongoClient(MONGODB_URI)
+        client = MongoClient(
+            MONGODB_URI,
+            serverSelectionTimeoutMS=1000,
+            connectTimeoutMS=1000,
+            socketTimeoutMS=2000,
+        )
         db = client['astrostats_database']
         pets_collection = db['pets']
         welcome_collection = db['welcome_settings']
@@ -154,25 +159,27 @@ class AstroStatsBot(commands.Bot):
         from cogs.games.wouldyourather import setup as setup_would_you_rather
         from cogs.games.catfight import setup as setup_catfight
 
-        # Setup all cogs
-        await setup_apex(self)
-        await setup_league(self)
-        await setup_fortnite(self)
-        await setup_tft(self)
-        await setup_help(self)
-        await setup_horoscope(self)
-        await setup_review(self)
-        await setup_premium(self)
-        await setup_show_update(self)
-        await setup_support(self)
-        await setup_pet_battles(self)
-        await setup_kick(self)
-        await setup_servers(self)
-        await setup_welcome(self)
-        await setup_squib_game(self)
-        await setup_truth_or_dare(self) # Add this line to load the cog
-        await setup_would_you_rather(self)
-        await setup_catfight(self)
+        # Setup all cogs concurrently to reduce startup time
+        await asyncio.gather(
+            setup_apex(self),
+            setup_league(self),
+            setup_fortnite(self),
+            setup_tft(self),
+            setup_help(self),
+            setup_horoscope(self),
+            setup_review(self),
+            setup_premium(self),
+            setup_show_update(self),
+            setup_support(self),
+            setup_pet_battles(self),
+            setup_kick(self),
+            setup_servers(self),
+            setup_welcome(self),
+            setup_squib_game(self),
+            setup_truth_or_dare(self),
+            setup_would_you_rather(self),
+            setup_catfight(self),
+        )
 
         # Setup error handlers
         setup_error_handlers(self)
@@ -180,17 +187,12 @@ class AstroStatsBot(commands.Bot):
         # Start tasks
         self.update_presence.start()
 
-        # Sync commands
-        # Sync globally first
+        # Sync commands (tests expect this to be awaited here)
         try:
             synced = await self.tree.sync()
             logger.info(f"Synced {len(synced)} global application commands.")
         except Exception as e:
             logger.error(f"Failed to sync global commands: {e}")
-
-        # Sync guild-specific commands if needed (e.g., for admin commands)
-        # Example: await self.tree.sync(guild=discord.Object(id=YOUR_GUILD_ID))
-
         logger.debug("Command syncing process completed.")
 
 

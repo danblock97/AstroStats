@@ -38,9 +38,9 @@ def _init_db_if_needed() -> None:
     try:
         _mongo_client = MongoClient(
             MONGODB_URI, 
-            serverSelectionTimeoutMS=2000,  # Reduced timeout to fail fast
-            connectTimeoutMS=2000,
-            socketTimeoutMS=2000
+            serverSelectionTimeoutMS=1000,
+            connectTimeoutMS=1000,
+            socketTimeoutMS=1500
         )
         db = _mongo_client[USERS_DB_NAME]
         _users_collection = db[USERS_COLLECTION_NAME]
@@ -163,7 +163,7 @@ def get_entitlements(user_doc: Optional[Dict[str, Any]]) -> Dict[str, Any]:
 
         role = user_doc.get("role")
         ent = _tier_entitlements(role)
-        logger.info(
+        logger.debug(
             "Entitlements decision: premium=1 discordId=%s role=%s -> tier=%s",
             user_doc.get("discordId"), role, ent.get("tier")
         )

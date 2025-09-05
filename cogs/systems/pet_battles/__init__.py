@@ -287,7 +287,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             # Replace the method with our patched version
             self.topgg_client._auto_post = patched_auto_post
             
-            logger.info("Top.gg client initialized successfully with improved error handling.")
+            logger.info("Top.gg client initialized successfully")
         except Exception as e:
             from core.utils import handle_api_error
             handle_api_error(e, "Failed to initialize Top.gg client")

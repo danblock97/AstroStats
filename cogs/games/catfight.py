@@ -29,7 +29,7 @@ catfight_stats = None
 
 try:
     if MONGODB_URI:
-        mongo_client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=5000)
+        mongo_client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=1500, connectTimeoutMS=1500, socketTimeoutMS=2000)
         mongo_client.admin.command('ping')
         db = mongo_client['astrostats_database']
         catfight_stats = db['catfight_stats']
@@ -640,7 +640,7 @@ async def setup(bot: commands.Bot):
     else:
         try:
             await bot.add_cog(CatfightCog(bot))
-            logger.info("CatfightCog loaded successfully")
+            logger.debug("CatfightCog loaded successfully")
         except Exception as e:
             logger.error(f"Failed to load CatfightCog: {e}")
             print(f"[Catfight] CRITICAL: Failed to load cog: {e}")
