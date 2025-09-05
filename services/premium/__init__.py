@@ -163,7 +163,7 @@ def get_entitlements(user_doc: Optional[Dict[str, Any]]) -> Dict[str, Any]:
 
         role = user_doc.get("role")
         ent = _tier_entitlements(role)
-        logger.debug(
+        logger.info(
             "Entitlements decision: premium=1 discordId=%s role=%s -> tier=%s",
             user_doc.get("discordId"), role, ent.get("tier")
         )
