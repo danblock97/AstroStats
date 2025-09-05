@@ -52,8 +52,8 @@ def _init_db_if_needed() -> None:
                 _fallback_users_collection = None
         except Exception:
             _fallback_users_collection = None
-        # Light ping with timeout
-        _mongo_client.admin.command("ping", maxTimeMS=1000)
+        # Light ping
+        _mongo_client.admin.command("ping")
         logger.info("Premium service connected to users collection in DB '%s' (fallback: %s)", USERS_DB_NAME, FALLBACK_USERS_DB_NAME if _fallback_users_collection else None)
     except Exception as e:
         logger.error("Failed to initialize MongoDB client for premium service: %s", e, exc_info=True)

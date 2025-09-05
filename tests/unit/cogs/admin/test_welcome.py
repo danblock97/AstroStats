@@ -691,3 +691,126 @@ class TestWelcomeIntegration:
         
         assert new_doc["custom_image_data"] is not None
         assert new_doc["custom_image_filename"] is not None
+
+
+class TestWelcomeCogCommands:
+    """Direct tests for WelcomeCog slash command handlers."""
+
+    @pytest.mark.asyncio
+    async def test_toggle_welcome_enable_success(self):
+        from cogs.admin.welcome import WelcomeCog
+        with patch('cogs.admin.welcome.update_welcome_settings', return_value=True):
+            # Mock interaction and guild
+            interaction = AsyncMock()
+            interaction.guild = MagicMock()
+            interaction.guild.id = 123456789
+            interaction.guild.system_channel = MagicMock()
+            interaction.guild.system_channel.mention = "#general"
+            interaction.response = AsyncMock()
+
+            cog = WelcomeCog(MagicMock())
+            await WelcomeCog.toggle_welcome.callback(cog, interaction, "true")
+
+            interaction.response.send_message.assert_called_once()
+            # Should be ephemeral
+            assert interaction.response.send_message.call_args.kwargs.get('ephemeral') is True
+
+    @pytest.mark.asyncio
+    async def test_set_message_success(self):
+        from cogs.admin.welcome import WelcomeCog
+        with patch('cogs.admin.welcome.update_welcome_settings', return_value=True):
+            interaction = AsyncMock()
+            # Mock minimal guild with channels used in preview replacement
+            class MockTextChannel:
+                def __init__(self, name):
+                    self.name = name
+                    self.mention = f"<{name}>"
+            interaction.guild = MagicMock()
+            interaction.guild.id = 555
+            interaction.guild.name = "TestGuild"
+            interaction.guild.text_channels = [MockTextChannel("general")]
+            interaction.user = MagicMock()
+            interaction.user.mention = "<@user>"
+            interaction.user.display_name = "UserName"
+            interaction.response = AsyncMock()
+
+            cog = WelcomeCog(MagicMock())
+            await WelcomeCog.set_message.callback(cog, interaction, "Welcome {user} to {server}! See {#general}")
+
+            interaction.response.send_message.assert_called_once()
+            assert interaction.response.send_message.call_args.kwargs.get('ephemeral') is True
+
+    @pytest.mark.asyncio
+    async def test_set_message_too_long(self):
+        from cogs.admin.welcome import WelcomeCog
+        long_msg = "x" * 1001
+        interaction = AsyncMock()
+        interaction.guild = MagicMock()
+        interaction.guild.id = 1
+        interaction.response = AsyncMock()
+        cog = WelcomeCog(MagicMock())
+
+        await WelcomeCog.set_message.callback(cog, interaction, long_msg)
+
+        interaction.response.send_message.assert_called_once()
+        # Should not attempt DB update when invalid; assert via ensuring only one send_message call occurred
+
+    @pytest.mark.asyncio
+    async def test_remove_message_success(self):
+        from cogs.admin.welcome import WelcomeCog
+        with patch('cogs.admin.welcome.update_welcome_settings', return_value=True):
+            interaction = AsyncMock()
+            interaction.guild = MagicMock()
+            interaction.guild.id = 123
+            interaction.response = AsyncMock()
+
+            cog = WelcomeCog(MagicMock())
+            await WelcomeCog.remove_message.callback(cog, interaction)
+
+            interaction.response.send_message.assert_called_once()
+            assert interaction.response.send_message.call_args.kwargs.get('ephemeral') is True
+
+    @pytest.mark.asyncio
+    async def test_set_image_invalid_extension(self):
+        from cogs.admin.welcome import WelcomeCog
+        interaction = AsyncMock()
+        interaction.response = AsyncMock()
+        # Provide a fake attachment with unsupported extension
+        attachment = MagicMock()
+        attachment.filename = 'document.pdf'
+
+        cog = WelcomeCog(MagicMock())
+        await WelcomeCog.set_image.callback(cog, interaction, attachment)
+
+        interaction.response.send_message.assert_called_once()
+        assert interaction.response.send_message.call_args.kwargs.get('ephemeral') is True
+
+    @pytest.mark.asyncio
+    async def test_remove_image_success(self):
+        from cogs.admin.welcome import WelcomeCog
+        with patch('cogs.admin.welcome.update_welcome_settings', return_value=True):
+            interaction = AsyncMock()
+            interaction.guild = MagicMock()
+            interaction.guild.id = 321
+            interaction.response = AsyncMock()
+
+            cog = WelcomeCog(MagicMock())
+            await WelcomeCog.remove_image.callback(cog, interaction)
+
+            interaction.response.send_message.assert_called_once()
+            assert interaction.response.send_message.call_args.kwargs.get('ephemeral') is True
+
+    @pytest.mark.asyncio
+    async def test_test_welcome_disabled(self):
+        from cogs.admin.welcome import WelcomeCog
+        with patch('cogs.admin.welcome.get_welcome_settings', return_value=None):
+            interaction = AsyncMock()
+            interaction.guild = MagicMock()
+            interaction.guild.id = 99
+            interaction.response = AsyncMock()
+
+            cog = WelcomeCog(MagicMock())
+            await WelcomeCog.test_welcome.callback(cog, interaction)
+
+            # Should inform user it's disabled
+            interaction.response.send_message.assert_called_once()
