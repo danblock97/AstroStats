@@ -46,7 +46,7 @@ class LeagueCog(commands.GroupCog, group_name="league"):
                         self.emojis[e['name'].lower()] = f"<:{e['name']}:{e['id']}>"
                     else:
                         logger.warning(f"Invalid emoji format: {e}")
-                logger.info(f"Loaded {len(self.emojis)} emojis into cache.") # Added log
+                logger.debug(f"Loaded {len(self.emojis)} emojis into cache.") # Reduced verbosity
                 if not self.emojis:
                     logger.warning("Emoji data was fetched, but the cache is still empty. Check data format.") # Added log
             else:

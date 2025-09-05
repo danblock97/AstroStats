@@ -30,7 +30,7 @@ def _init_db_if_needed() -> None:
         _welcome_collection = db[WELCOME_COLLECTION_NAME]
         # Light ping
         _mongo_client.admin.command("ping")
-        logger.info("Welcome service connected to DB '%s'", WELCOME_DB_NAME)
+        logger.debug("Welcome service connected to DB '%s'", WELCOME_DB_NAME)
     except Exception as e:
         logger.error("Failed to initialize MongoDB client for welcome service: %s", e, exc_info=True)
         _mongo_client = None

@@ -33,7 +33,7 @@ try:
         mongo_client.admin.command('ping')
         db = mongo_client['astrostats_database']
         catfight_stats = db['catfight_stats']
-        logger.info("Catfight: MongoDB connection established")
+        logger.debug("Catfight: MongoDB connection established")
     else:
         logger.warning("Catfight: MONGODB_URI not set, database functionality disabled")
 except ConnectionFailure as e:
@@ -637,7 +637,6 @@ async def setup(bot: commands.Bot):
     """Add the CatfightCog to the bot."""
     if catfight_stats is None:
         logger.error("Cannot add CatfightCog: MongoDB connection failed")
-        print("[Catfight] Cog not loaded due to MongoDB connection failure")
     else:
         try:
             await bot.add_cog(CatfightCog(bot))

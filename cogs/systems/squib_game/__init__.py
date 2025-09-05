@@ -1241,11 +1241,10 @@ async def setup(bot: commands.Bot):
     # Fixed check: Compare with None
     if mongo_client is None:
          logger.error("Cannot add SquibGames cog: MongoDB connection failed or MONGODB_URI not set.")
-         print("[SquibGames] Cog not loaded due to MongoDB connection failure or missing URI.")
+         # Suppress console print; rely on logger
     else:
         try:
             await bot.add_cog(SquibGames(bot))
         except Exception as e:
              logger.critical(f"Failed to load SquibGames cog: {e}", exc_info=True)
-             print(f"[SquibGames] CRITICAL: Failed to load cog: {e}")
 

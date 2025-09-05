@@ -5,6 +5,7 @@ from logging.handlers import RotatingFileHandler
 from core.client import run_bot
 
 # Configure logging with safe file handler
+# Default to INFO (tests expect this). Override with LOG_LEVEL in production if needed.
 log_level = os.getenv("LOG_LEVEL", "INFO").upper()
 root_logger = logging.getLogger()
 root_logger.setLevel(getattr(logging, log_level, logging.INFO))

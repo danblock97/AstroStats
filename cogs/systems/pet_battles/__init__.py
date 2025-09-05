@@ -239,7 +239,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                             return
                         else:
                             # Try to reset circuit breaker
-                            logger.info("Attempting to reset TopGG circuit breaker after timeout")
+                            logger.debug("Attempting to reset TopGG circuit breaker after timeout")
                             self.topgg_circuit_open = False
                             self.topgg_failure_count = 0
                 
@@ -251,7 +251,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                         await original_auto_post()
                         # Success - reset failure count
                         if self.topgg_failure_count > 0:
-                            logger.info("TopGG autoposting recovered successfully")
+                            logger.debug("TopGG autoposting recovered successfully")
                             self.topgg_failure_count = 0
                             self.topgg_circuit_open = False
                         return
@@ -374,12 +374,12 @@ class PetBattles(commands.GroupCog, name="petbattles"):
         self.topgg_circuit_open = False
         self.topgg_failure_count = 0
         self.topgg_last_failure_time = None
-        logger.info("TopGG circuit breaker manually reset")
+        logger.debug("TopGG circuit breaker manually reset")
 
     @tasks.loop(time=dtime(hour=0, minute=0, tzinfo=timezone.utc))
     async def reset_daily_quests(self):
         """Resets daily quests for all pets at midnight UTC."""
-        logger.info("Starting daily quest reset...")
+        logger.debug("Starting daily quest reset...")
         try:
             # Find all pets. Use a cursor to handle potentially large numbers.
             all_pets_cursor = pets_collection.find({})
@@ -424,33 +424,33 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                 if update_result.modified_count > 0:
                     updated_count += 1
 
-            logger.info(f"Daily quest reset completed. Updated {updated_count} pets.")
+            logger.debug(f"Daily quest reset completed. Updated {updated_count} pets.")
         except Exception as e:
             logger.error(f"Error during daily quest reset task: {e}", exc_info=True)
 
     @reset_daily_quests.before_loop
     async def before_reset_daily_quests(self):
         await self.bot.wait_until_ready() # Ensure bot is ready before starting the loop
-        logger.info("Daily quest reset task ready.")
+        logger.debug("Daily quest reset task ready.")
 
     @tasks.loop(time=dtime(hour=0, minute=0, tzinfo=timezone.utc))
     async def reset_daily_training(self):
         """Resets daily training count for all pets at midnight UTC."""
-        logger.info("Starting daily training reset...")
+        logger.debug("Starting daily training reset...")
         try:
             # Use update_many to efficiently reset all pets' training count
             result = pets_collection.update_many(
                 {"trainingCount": {"$exists": True}},  # Only update pets with the training field
                 {"$set": {"trainingCount": 0, "lastTrainingReset": datetime.now(timezone.utc).isoformat()}}
             )
-            logger.info(f"Daily training reset completed. Reset {result.modified_count} pets.")
+            logger.debug(f"Daily training reset completed. Reset {result.modified_count} pets.")
         except Exception as e:
             logger.error(f"Error during daily training reset task: {e}", exc_info=True)
 
     @reset_daily_training.before_loop
     async def before_reset_daily_training(self):
         await self.bot.wait_until_ready()  # Ensure bot is ready before starting the loop
-        logger.info("Daily training reset task ready.")
+        logger.debug("Daily training reset task ready.")
 
 
     @app_commands.command(name="summon", description="Summon a new pet to join your adventures!")
@@ -2488,5 +2488,5 @@ class PetBattles(commands.GroupCog, name="petbattles"):
 async def setup(bot: commands.Bot):
     """Adds the PetBattles cog to the bot."""
     await bot.add_cog(PetBattles(bot))
-    logger.info("PetBattles Cog loaded.")
+    logger.debug("PetBattles Cog loaded.")
 

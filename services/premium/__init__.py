@@ -28,7 +28,7 @@ _CACHE_TTL_SECONDS = 5 * 60
 
 def initialize_premium_service() -> None:
     """Initialize the premium service MongoDB connection early during bot startup."""
-    logger.info("Initializing premium service connection...")
+    logger.debug("Initializing premium service connection...")
     _init_db_if_needed()
 
 def _init_db_if_needed() -> None:

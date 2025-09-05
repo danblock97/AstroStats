@@ -81,8 +81,9 @@ class TruthOrDare(commands.Cog):
             )
 
         except Exception as e:
-            # Log error for debugging - consider using a proper logger
-            print(f"Error in truth_or_dare command: {e}")
+            # Log error for debugging
+            import logging
+            logging.getLogger(__name__).error(f"Error in truth_or_dare command: {e}")
             await interaction.response.send_message("An error occurred while processing your request.", ephemeral=True)
 
 

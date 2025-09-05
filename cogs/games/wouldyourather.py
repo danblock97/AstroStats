@@ -119,7 +119,8 @@ class WouldYouRather(commands.Cog):
 
         except Exception as e:
             # Log error for debugging
-            print(f"Error in would_you_rather command: {e}")
+            import logging
+            logging.getLogger(__name__).error(f"Error in would_you_rather command: {e}")
             await interaction.response.send_message("An error occurred while processing your request.", ephemeral=True)
 
 

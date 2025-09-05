@@ -26,7 +26,7 @@ async def run_database_migration():
         db = client['astrostats_database']
         pets_collection = db['pets']
         welcome_collection = db['welcome_settings']
-        logger.info("Running database migration check for pets and welcome settings...")
+        logger.debug("Running database migration check for pets and welcome settings...")
 
         # Fields to ensure exist with default values
         fields_to_add = {
@@ -76,12 +76,12 @@ async def run_database_migration():
 
         if updates:
             result = pets_collection.bulk_write(updates)
-            logger.info(f"Database migration completed. Updated {result.modified_count} pet documents.")
+            logger.debug(f"Database migration completed. Updated {result.modified_count} pet documents.")
         else:
-            logger.info("No pet documents required migration.")
+            logger.debug("No pet documents required migration.")
 
         # Migrate welcome settings from custom_image_url to custom_image_data
-        logger.info("Migrating welcome settings...")
+        logger.debug("Migrating welcome settings...")
         welcome_docs = welcome_collection.find({"custom_image_url": {"$exists": True, "$ne": None}})
         welcome_updates = []
         
@@ -100,10 +100,12 @@ async def run_database_migration():
         
         if welcome_updates:
             result = welcome_collection.bulk_write(welcome_updates)
-            logger.info(f"Migrated {result.modified_count} welcome settings. Users will need to re-upload images.")
+            logger.debug(f"Migrated {result.modified_count} welcome settings. Users will need to re-upload images.")
         else:
-            logger.info("No welcome settings required migration.")
+            logger.debug("No welcome settings required migration.")
 
+        # Summary info for tests and visibility
+        logger.info("Database migration check completed.")
         client.close()
     except Exception as e:
         logger.error(f"Database migration failed: {e}", exc_info=True)
@@ -189,7 +191,7 @@ class AstroStatsBot(commands.Bot):
         # Sync guild-specific commands if needed (e.g., for admin commands)
         # Example: await self.tree.sync(guild=discord.Object(id=YOUR_GUILD_ID))
 
-        logger.info("Command syncing process completed.")
+        logger.debug("Command syncing process completed.")
 
 
     @tasks.loop(hours=1)
@@ -399,7 +401,7 @@ class AstroStatsBot(commands.Bot):
             else:
                 # Send just the text message
                 await target_channel.send(content=message_content)
-            logger.info(f"Sent welcome message for {member} in {member.guild.name}")
+            logger.debug(f"Sent welcome message for {member} in {member.guild.name}")
             
         except Exception as e:
             logger.error(f"Error sending welcome message for {member} in {member.guild.name}: {e}", exc_info=True)
