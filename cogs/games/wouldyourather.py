@@ -2,6 +2,8 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 import random
+from collections import deque
+from typing import Dict
 import os
 from config import constants
 from ui.embeds import get_premium_promotion_view
@@ -13,6 +15,45 @@ class WouldYouRather(commands.Cog):
         self.base_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         self.would_you_rather_img = os.path.join(self.base_path, 'images', 'wouldyourather.png')
         self.astrostats_img = os.path.join(self.base_path, 'images', 'astrostats.png')
+        # Recent-question memory per context (guild or DM) and category (SFW/NSFW)
+        # Structure: { context_key: { category: deque(maxlen=N) } }
+        self._recent_questions: Dict[str, Dict[str, deque]] = {}
+
+    def _get_context_key(self, interaction: discord.Interaction) -> str:
+        """Return a stable key for per-context memory (guild id or 'DM')."""
+        return str(interaction.guild.id) if interaction.guild else "DM"
+
+    def _select_non_repeating(self, interaction: discord.Interaction, category: str, questions_list: list) -> str:
+        """Select a question avoiding recent repeats within the same context and category.
+
+        Uses a sliding window sized to 20% of the pool (min 10, max len-1). Resets when exhausted.
+        """
+        context_key = self._get_context_key(interaction)
+        # Initialize storage for this context and category
+        if context_key not in self._recent_questions:
+            self._recent_questions[context_key] = {}
+
+        # Determine memory size based on pool size
+        pool_size = len(questions_list)
+        if pool_size <= 1:
+            return questions_list[0]
+        recent_window = max(10, min(pool_size - 1, pool_size // 5))  # 20% window, at least 10, at most pool_size-1
+
+        recent_for_category = self._recent_questions[context_key].get(category)
+        if recent_for_category is None or recent_for_category.maxlen != recent_window:
+            recent_for_category = deque(maxlen=recent_window)
+            self._recent_questions[context_key][category] = recent_for_category
+
+        # Build candidate pool excluding recent
+        candidates = [q for q in questions_list if q not in recent_for_category]
+        if not candidates:
+            # All questions recently used; reset memory for freshness
+            recent_for_category.clear()
+            candidates = questions_list[:]
+
+        selected = random.choice(candidates)
+        recent_for_category.append(selected)
+        return selected
 
     @app_commands.command(name="wouldyourather", description="Play a game of Would You Rather!")
     @app_commands.describe(
@@ -40,8 +81,8 @@ class WouldYouRather(commands.Cog):
                 await interaction.response.send_message(f"The list for {category.name} Would You Rather questions is empty!", ephemeral=True)
                 return
 
-            # Pick a random question
-            selected_question = random.choice(questions_list)
+            # Pick a question with reduced repeat probability per context/category
+            selected_question = self._select_non_repeating(interaction, category.value, questions_list)
 
             # Create emoji based on category
             category_emoji = "😈" if category.value == "NSFW" else "🤔"
