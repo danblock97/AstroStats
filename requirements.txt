@@ -2,7 +2,7 @@ discord
 requests
 python-dotenv
 beautifulsoup4
-pymongo
+pymongo[srv]
 topggpy
 aiohttp
 Pillow
