@@ -612,12 +612,12 @@ class TestPremiumServiceComplete:
             debug_calls = [call for call in mock_logger.debug.call_args_list if 'premium=0' in str(call)]
             assert len(debug_calls) > 0
             
-            # Test premium tier logging (should be INFO level)
+            # Test premium tier logging (now DEBUG level to reduce noise)
             get_entitlements(sample_user_docs['active_supporter'])
             
-            # Should log at info level for premium tier
-            info_calls = [call for call in mock_logger.info.call_args_list if 'premium=1' in str(call)]
-            assert len(info_calls) > 0
+            # Should log at debug level for premium tier
+            premium_debug_calls = [c for c in mock_logger.debug.call_args_list if 'premium=1' in str(c)]
+            assert len(premium_debug_calls) > 0
 
     def test_database_fallback_error_handling(self, mock_mongo_client):
         """Test error handling when fallback database also fails"""
