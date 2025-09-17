@@ -211,6 +211,41 @@ MINIGAMES = [
 # --- Helper Functions ---
 # Using the enhanced helper functions
 
+async def safe_send_with_view(channel_or_interaction, embeds=None, view=None, content=None, ephemeral=False):
+    """
+    Safely sends a message with embeds and view, handling Discord's 15-minute timeout.
+    Falls back to channel.send if interaction.followup fails.
+    """
+    try:
+        if channel_or_interaction is None:
+            # Interaction was set to None due to timeout, use channel directly
+            raise AttributeError("Interaction is None")
+            
+        if hasattr(channel_or_interaction, 'followup') and not channel_or_interaction.response.is_done():
+            # It's an interaction and we can use followup
+            if embeds and view is not None:
+                return await channel_or_interaction.followup.send(embeds=embeds, view=view, content=content, ephemeral=ephemeral)
+            elif embeds:
+                return await channel_or_interaction.followup.send(embeds=embeds, content=content, ephemeral=ephemeral)
+            elif view is not None:
+                return await channel_or_interaction.followup.send(view=view, content=content, ephemeral=ephemeral)
+            else:
+                return await channel_or_interaction.followup.send(content=content, ephemeral=ephemeral)
+        else:
+            # It's a channel or interaction followup expired, use channel.send
+            channel = channel_or_interaction if hasattr(channel_or_interaction, 'send') else channel_or_interaction.channel
+            if embeds and view is not None:
+                return await channel.send(embeds=embeds, view=view, content=content)
+            elif embeds:
+                return await channel.send(embeds=embeds, content=content)
+            elif view is not None:
+                return await channel.send(view=view, content=content)
+            else:
+                return await channel.send(content=content)
+    except (discord.HTTPException, AttributeError) as e:
+        logger.error(f"Failed to send message via interaction or channel: {e}")
+        raise
+
 async def get_guild_avatar_url(guild: Optional[discord.Guild], user_id: int) -> Optional[str]:
     """Safely fetches a user's guild-specific or default avatar URL."""
     if not guild:
@@ -519,8 +554,19 @@ async def run_game_loop(bot: commands.Bot, interaction: Interaction, game_db_id:
         logger.error(f"Game loop {game_db_id}: Invalid channel type {type(channel)}. Aborting.")
         return # Stop if channel is invalid
 
+    # Track interaction age to handle 15-minute timeout
+    interaction_start_time = datetime.datetime.now(timezone.utc)
+    interaction_timeout_threshold = datetime.timedelta(minutes=14)  # Use 14 minutes to be safe
+
     try:
         while True:
+            # Check if interaction is approaching timeout (15-minute limit)
+            current_time = datetime.datetime.now(timezone.utc)
+            if current_time - interaction_start_time > interaction_timeout_threshold:
+                logger.warning(f"Game loop {game_db_id}: Interaction approaching timeout, switching to channel-only mode.")
+                # Switch to using channel for all future messages
+                interaction = None
+            
             # Fixed check: Compare with None
             if squib_game_sessions is None:
                  logger.error(f"Game loop {game_db_id}: Database not available. Stopping.")
@@ -544,11 +590,14 @@ async def run_game_loop(bot: commands.Bot, interaction: Interaction, game_db_id:
                           winner_id = winner.get("user_id") if winner else None
                           premium_view = get_premium_promotion_view(winner_id) if winner_id else None
                           try:
-                              await interaction.followup.send(embeds=final_embeds, view=premium_view)
+                              await safe_send_with_view(interaction, embeds=final_embeds, view=premium_view)
                           except discord.HTTPException as e:
-                              # Handle cases where followup might fail (e.g., interaction expired)
-                              logger.error(f"Failed to send final followup for {game_db_id} after state check: {e}")
-                              await channel.send(embeds=final_embeds, view=premium_view)
+                              # Handle cases where both interaction and channel.send fail
+                              logger.error(f"Failed to send final message for {game_db_id} after state check: {e}")
+                              try:
+                                  await channel.send(content=f"{EMOJI_ERROR} Game concluded but failed to send final message. Check game status with `/squibgames status`.")
+                              except:
+                                  pass  # Last resort - don't crash the bot
                      else:
                           pass
 
@@ -564,10 +613,13 @@ async def run_game_loop(bot: commands.Bot, interaction: Interaction, game_db_id:
                 winner_id = winner.get("user_id") if winner else None
                 premium_view = get_premium_promotion_view(winner_id) if winner_id else None
                 try:
-                     await interaction.followup.send(embeds=final_embeds, view=premium_view)
+                     await safe_send_with_view(interaction, embeds=final_embeds, view=premium_view)
                 except discord.HTTPException as e:
-                     logger.error(f"Failed to send final followup for {game_db_id}: {e}")
-                     await channel.send(embeds=final_embeds, view=premium_view)
+                     logger.error(f"Failed to send final message for {game_db_id}: {e}")
+                     try:
+                         await channel.send(content=f"{EMOJI_ERROR} Game concluded but failed to send final message. Check game status with `/squibgames status`.")
+                     except:
+                         pass  # Last resort - don't crash the bot
                 break # Exit loop
 
             # --- Play the next round ---
@@ -619,12 +671,15 @@ async def run_game_loop(bot: commands.Bot, interaction: Interaction, game_db_id:
             round_embed.set_footer(text=f"Next round starts in {ROUND_DELAY_SECONDS} seconds...")
             round_embed.timestamp = datetime.datetime.now(timezone.utc)
 
-            # Send round update using interaction.followup (as in original structure)
+            # Send round update using safe_send_with_view
             try:
-                await interaction.followup.send(embed=round_embed)
+                await safe_send_with_view(interaction, embeds=[round_embed])
             except discord.HTTPException as e:
-                 logger.warning(f"Failed to send followup for round {next_round_num} of {game_db_id} (Interaction might have expired): {e}. Sending to channel.")
-                 await channel.send(embed=round_embed) # Fallback
+                 logger.warning(f"Failed to send round update for round {next_round_num} of {game_db_id}: {e}")
+                 try:
+                     await channel.send(content=f"{EMOJI_ERROR} Round {next_round_num} completed but failed to send update. Game continues.")
+                 except:
+                     pass  # Don't crash the bot
 
             await asyncio.sleep(ROUND_DELAY_SECONDS)
 
@@ -709,6 +764,18 @@ class JoinButtonView(View):
              await interaction.message.edit(embeds=[main_embed, new_player_embed], view=self)
          except discord.NotFound:
               logger.warning(f"Original message for game {self.game_id} not found when updating player count.")
+         except discord.Forbidden:
+              # Handle 403 Forbidden - message is too old to edit (15+ minutes)
+              logger.warning(f"Message too old to edit for game {self.game_id}. Sending new player count update.")
+              try:
+                  # Send a new message with updated player count
+                  update_embed = Embed(
+                      description=f"🔄 Player count updated: {new_description}",
+                      color=COLOR_SUCCESS
+                  )
+                  await interaction.channel.send(embed=update_embed)
+              except Exception as send_e:
+                  logger.error(f"Failed to send player count update message for game {self.game_id}: {send_e}")
          except discord.HTTPException as e:
              logger.error(f"Failed to edit message to update player count for game {self.game_id}: {e}")
          except Exception as e:
@@ -741,6 +808,8 @@ class JoinButtonView(View):
                         await interaction.message.edit(view=self) # Update message to show disabled button
                     except discord.NotFound:
                          logger.warning(f"Original message for game {self.game_id} not found when disabling join button.")
+                    except discord.Forbidden:
+                         logger.warning(f"Message too old to edit for game {self.game_id}. Join button disabled in memory.")
                     except discord.HTTPException as e:
                          logger.error(f"Failed to edit message to disable join button for {self.game_id}: {e}")
                 return
@@ -754,6 +823,8 @@ class JoinButtonView(View):
                         await interaction.message.edit(view=self)
                     except discord.NotFound:
                          logger.warning(f"Original message for game {self.game_id} not found when disabling join button (already started).")
+                    except discord.Forbidden:
+                         logger.warning(f"Message too old to edit for game {self.game_id} (already started). Join button disabled in memory.")
                     except discord.HTTPException as e:
                          logger.error(f"Failed to edit message to disable join button for already started game {self.game_id}: {e}")
                 return
