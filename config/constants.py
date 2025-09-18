@@ -52,31 +52,10 @@ SPECIAL_EMOJI_NAMES = {
 # Latest bot updates
 
 LATEST_UPDATES = (
-    "**Version 2.7.0 (Welcome System)**\n\n"
-    "Welcome new members with style! Introduce a comprehensive welcome system with custom messages and images.\n\n"
-    "**What's New**\n"
-    "- New `/welcome` command group with tier-based features:\n"
-    "  • `/welcome toggle` (Free): Enable/disable welcome messages\n"
-    "  • `/welcome set-message` (Supporter+): Custom welcome messages with placeholders\n"
-    "  • `/welcome set-image` (Sponsor/VIP): Custom welcome images with auto-compression\n"
-    "  • `/welcome test`: Preview your welcome setup without waiting for new members\n"
-    "- Smart placeholder system: `{user}`, `{username}`, `{server}`, `{#channel-name}`\n"
-    "- Channel tagging: `{#rules}` becomes clickable channel links in welcome messages\n"
-    "- Image support: PNG, JPG, WEBP, **animated GIFs** with auto-compression to fit Discord limits\n"
-    "- Secure MongoDB storage: Images stored as base64 data, no more Discord CDN expiration\n"
-    "- Admin-only access: Requires 'Manage Server' permission for all welcome commands\n\n"
-    "**Previous Updates (v2.6.0)**\n"
-    "- New `/catfight` command: Challenge players to PvP battles with dynamic combat system\n"
-    "- Health-based combat with variety of attack moves and damage ranges\n"
-    "- Server leaderboards tracking wins, losses, and battle streaks\n"
-    "- Dynamic battle image generation with custom avatars and backgrounds\n\n"
-    "**Premium Features (v2.5.0)**\n"
-    "- Premium entitlements based on your Discord ID (Supporter, Sponsor, VIP)\n"
-    "- Daily quests scaled by tier (Supporter +2, Sponsor +5, VIP +8 → up to 11 total)\n"
-    "- Pet capacity by tier (Free 1, Sponsor 2, VIP 4) with soft-lock on extra pets when downgraded\n"
-    "- SquibGames player caps by tier (Supporter 20, Sponsor 50, VIP 75) with live N/Cap display\n"
-    "- XP & Cash multipliers on rewards (Supporter 1.2x, Sponsor 1.5x, VIP 1.75x) including /daily\n\n"
-    "Visit https://astrostats.info to get Premium or manage your plan."
+    "**Version 2.7.1 (Bug fixes)**\n\n"
+    "Bug fixes and improvements.\n\n"
+    "- Gracefully handling errors where people would try to join a Squib Game session past Discord's 15 minute message edit limit. This now no longer throws an error and shows an appropriate message.\n\n"
+    "Visit https://astrostats.info to report any issues, manage your plan or get Premium."
 )
 
 SFW_TRUTHS = [
