@@ -1,4 +1,4 @@
-﻿# core/client.py
+# core/client.py
 import logging
 import io
 import base64
@@ -152,6 +152,7 @@ class AstroStatsBot(commands.Bot):
         from cogs.general.support import setup as setup_support
         from cogs.systems.pet_battles import setup as setup_pet_battles
         from cogs.systems.squib_game import setup as setup_squib_game
+        from cogs.systems.bingo_game import setup as setup_bingo_game
         from cogs.admin.kick import setup as setup_kick
         from cogs.admin.servers import setup as setup_servers
         from cogs.admin.welcome import setup as setup_welcome
@@ -176,6 +177,7 @@ class AstroStatsBot(commands.Bot):
             setup_servers(self),
             setup_welcome(self),
             setup_squib_game(self),
+            setup_bingo_game(self),
             setup_truth_or_dare(self),
             setup_would_you_rather(self),
             setup_catfight(self),
@@ -265,6 +267,7 @@ class AstroStatsBot(commands.Bot):
             value=(
                 "**🐾 Pet Battles** - `/petbattles summon` • `/petbattles battle` • `/petbattles stats`\n"
                 "**🦑 Squib Games** - `/squibgames start` • `/squibgames run` • `/squibgames status`\n"
+                "**🎲 Bingo** - `/bingo start` • `/bingo run` • `/bingo stats` • `/bingo leaderboard`\n"
                 "**⚔️ Catfight PvP** - `/catfight @user` • `/catfight-leaderboard` • `/catfight-stats`\n"
                 "**🎲 Party Games** - `/truthordare` • `/wouldyourather`"
             ),

@@ -1,4 +1,4 @@
-﻿# services/database/models.py
+# services/database/models.py
 from typing import Dict, List, Optional, Union, Any
 from dataclasses import dataclass, field
 import datetime
@@ -87,6 +87,46 @@ class SquibGameStats:
     guild_id: str
     wins: int = 0
     games_played: int = 0
+    _id: Optional[Any] = None # Use Any for ObjectId compatibility
+
+@dataclass
+class BingoParticipant:
+    user_id: str
+    username: str
+    card: List[List[int]] = field(default_factory=list)
+    marked: List[int] = field(default_factory=list)
+    has_bingo: bool = False
+
+@dataclass
+class BingoSession:
+    guild_id: str
+    host_user_id: str
+    session_id: str
+    current_game_state: str = "waiting_for_players"
+    participants: List[BingoParticipant] = field(default_factory=list)
+    called_numbers: List[int] = field(default_factory=list)
+    created_at: datetime.datetime = field(default_factory=lambda: datetime.datetime.now(datetime.timezone.utc))
+    started_at: Optional[datetime.datetime] = None
+    ended_at: Optional[datetime.datetime] = None
+    winner_user_ids: List[str] = field(default_factory=list)
+    halfway_break_shown: bool = False
+    _id: Optional[Any] = None # Use Any for ObjectId compatibility
+
+@dataclass
+class BingoStats:
+    user_id: str
+    guild_id: str
+    wins: int = 0
+    games_played: int = 0
+    username: str = "Unknown"
+    _id: Optional[Any] = None # Use Any for ObjectId compatibility
+
+@dataclass
+class BingoGlobalStats:
+    user_id: str
+    wins: int = 0
+    games_played: int = 0
+    username: str = "Unknown"
     _id: Optional[Any] = None # Use Any for ObjectId compatibility
 
 @dataclass

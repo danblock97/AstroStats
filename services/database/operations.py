@@ -1,4 +1,4 @@
-﻿import logging
+import logging
 from typing import Dict, List, Optional, Any
 from datetime import datetime, timezone
 
@@ -17,6 +17,9 @@ pets_collection = db['pets']
 battle_logs_collection = db['battle_logs']
 squib_game_sessions = db['squib_game_sessions']
 squib_game_stats = db['squib_game_stats']
+bingo_sessions = db['bingo_sessions']
+bingo_stats = db['bingo_stats']
+bingo_global_stats = db['bingo_global_stats']
 
 # Pet Operations
 def get_pet(user_id: str, guild_id: str) -> Optional[Dict[str, Any]]:
@@ -95,5 +98,66 @@ def update_squib_game_stats(user_id: str, guild_id: str, win_increment: int = 0)
         squib_game_stats.update_one(
             {"_id": user_stats["_id"]},
             {"$set": {"wins": new_wins, "games_played": new_games_played}}
+        )
+        return new_wins
+
+# Bingo Game Operations
+def create_bingo_session(session_data: Dict[str, Any]) -> str:
+    """Create a new Bingo Game session."""
+    result = bingo_sessions.insert_one(session_data)
+    return str(result.inserted_id)
+
+def get_active_bingo_game(guild_id: str) -> Optional[Dict[str, Any]]:
+    """Get the active Bingo Game session for a guild."""
+    return bingo_sessions.find_one({
+        "guild_id": guild_id,
+        "current_game_state": {"$in": ["waiting_for_players", "in_progress"]}
+    })
+
+def update_bingo_game(game_id: str, update_data: Dict[str, Any]) -> bool:
+    """Update a Bingo Game session."""
+    result = bingo_sessions.update_one({"_id": game_id}, {"$set": update_data})
+    return result.modified_count > 0
+
+def update_bingo_stats(user_id: str, guild_id: str, username: str, win_increment: int = 0) -> int:
+    """Update a user's Bingo stats (server) and return their win count."""
+    user_stats = bingo_stats.find_one({"user_id": user_id, "guild_id": guild_id})
+    if not user_stats:
+        new_stats = {
+            "user_id": user_id,
+            "guild_id": guild_id,
+            "username": username,
+            "wins": win_increment,
+            "games_played": 1
+        }
+        bingo_stats.insert_one(new_stats)
+        return new_stats["wins"]
+    else:
+        new_wins = user_stats.get("wins", 0) + win_increment
+        new_games_played = user_stats.get("games_played", 0) + 1
+        bingo_stats.update_one(
+            {"_id": user_stats["_id"]},
+            {"$set": {"wins": new_wins, "games_played": new_games_played, "username": username}}
+        )
+        return new_wins
+
+def update_bingo_global_stats(user_id: str, username: str, win_increment: int = 0) -> int:
+    """Update a user's Bingo global stats and return their win count."""
+    user_stats = bingo_global_stats.find_one({"user_id": user_id})
+    if not user_stats:
+        new_stats = {
+            "user_id": user_id,
+            "username": username,
+            "wins": win_increment,
+            "games_played": 1
+        }
+        bingo_global_stats.insert_one(new_stats)
+        return new_stats["wins"]
+    else:
+        new_wins = user_stats.get("wins", 0) + win_increment
+        new_games_played = user_stats.get("games_played", 0) + 1
+        bingo_global_stats.update_one(
+            {"_id": user_stats["_id"]},
+            {"$set": {"wins": new_wins, "games_played": new_games_played, "username": username}}
         )
         return new_wins
