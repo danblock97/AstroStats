@@ -1,4 +1,4 @@
-﻿# League related constants
+# League related constants
 LEAGUE_REGIONS = [
     "EUW1", "EUN1", "TR1", "RU", "NA1", "BR1", "LA1", "LA2",
     "JP1", "KR", "OC1", "SG2", "TW2", "VN2"
@@ -52,9 +52,16 @@ SPECIAL_EMOJI_NAMES = {
 # Latest bot updates
 
 LATEST_UPDATES = (
-    "**Version 2.7.1 (Bug fixes)**\n\n"
-    "Bug fixes and improvements.\n\n"
-    "- Gracefully handling errors where people would try to join a Squib Game session past Discord's 15 minute message edit limit. This now no longer throws an error and shows an appropriate message.\n\n"
+    "**Version 2.8.0 (New Feature: Bingo!)**\n\n"
+    "Introducing Server-Wide Bingo Games!\n\n"
+    "- New `/bingo` command group for hosting bingo games\n"
+    "- Join games via interactive buttons\n"
+    "- Receive your unique bingo card\n"
+    "- Automatic number calling every 8 seconds\n"
+    "- Halfway leaderboard shows who's closest to winning\n"
+    "- Track wins both per-server and globally\n"
+    "- Premium tiers support more players (10/20/50/unlimited)\n"
+    "- Commands: `/bingo start`, `/bingo run`, `/bingo status`, `/bingo stats`, `/bingo leaderboard`\n\n"
     "Visit https://astrostats.info to report any issues, manage your plan or get Premium."
 )
 

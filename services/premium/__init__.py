@@ -114,6 +114,7 @@ def _tier_entitlements(role: Optional[str]) -> Dict[str, Any]:
             "dailyPetQuestsBonus": 2,
             "extraPets": 0,
             "squibgamesMaxPlayers": 20,
+            "bingoMaxPlayers": 20,
             "premiumBadge": True,
             "accessToPremiumCommands": True,
         },
@@ -122,6 +123,7 @@ def _tier_entitlements(role: Optional[str]) -> Dict[str, Any]:
             "dailyPetQuestsBonus": 5,
             "extraPets": 1,
             "squibgamesMaxPlayers": 50,
+            "bingoMaxPlayers": 50,
             "premiumBadge": True,
             "accessToPremiumCommands": True,
         },
@@ -130,6 +132,7 @@ def _tier_entitlements(role: Optional[str]) -> Dict[str, Any]:
             "dailyPetQuestsBonus": 8,
             "extraPets": 3,
             "squibgamesMaxPlayers": 75,
+            "bingoMaxPlayers": -1,  # Unlimited for VIP
             "premiumBadge": True,
             "accessToPremiumCommands": True,
         },
@@ -141,6 +144,8 @@ def _tier_entitlements(role: Optional[str]) -> Dict[str, Any]:
         "extraPets": 0,
         # Free tier cap for Squib Games sessions
         "squibgamesMaxPlayers": 10,
+        # Free tier cap for Bingo Games sessions
+        "bingoMaxPlayers": 10,
         "premiumBadge": False,
         "accessToPremiumCommands": False,
     }
