@@ -24,9 +24,9 @@ async def run_database_migration():
     try:
         client = MongoClient(
             MONGODB_URI,
-            serverSelectionTimeoutMS=1000,
-            connectTimeoutMS=1000,
-            socketTimeoutMS=2000,
+            serverSelectionTimeoutMS=30000,
+            connectTimeoutMS=20000,
+            socketTimeoutMS=20000,
         )
         db = client['astrostats_database']
         pets_collection = db['pets']

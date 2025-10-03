@@ -1,4 +1,4 @@
-﻿# services/database/welcome.py
+# services/database/welcome.py
 import logging
 import os
 from typing import Optional, Dict, Any
@@ -25,7 +25,7 @@ def _init_db_if_needed() -> None:
     if _mongo_client is not None and _welcome_collection is not None:
         return
     try:
-        _mongo_client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=5000)
+        _mongo_client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=30000, connectTimeoutMS=20000, socketTimeoutMS=20000)
         db = _mongo_client[WELCOME_DB_NAME]
         _welcome_collection = db[WELCOME_COLLECTION_NAME]
         # Light ping

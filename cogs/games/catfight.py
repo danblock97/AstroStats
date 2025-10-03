@@ -1,4 +1,4 @@
-﻿"""
+"""
 Catfight PvP Battle System
 Player vs Player battles with server leaderboards and dynamic images.
 """
@@ -29,7 +29,7 @@ catfight_stats = None
 
 try:
     if MONGODB_URI:
-        mongo_client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=1500, connectTimeoutMS=1500, socketTimeoutMS=2000)
+        mongo_client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=30000, connectTimeoutMS=20000, socketTimeoutMS=20000)
         mongo_client.admin.command('ping')
         db = mongo_client['astrostats_database']
         catfight_stats = db['catfight_stats']

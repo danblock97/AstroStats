@@ -1,4 +1,4 @@
-﻿# Standard Library Imports
+# Standard Library Imports
 import random
 import asyncio
 import logging
@@ -84,7 +84,7 @@ squib_game_stats: Optional[Collection] = None
 try:
     if MONGODB_URI:
         # Set serverSelectionTimeoutMS to handle connection issues faster
-        mongo_client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=1500, connectTimeoutMS=1500, socketTimeoutMS=2000)
+        mongo_client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=30000, connectTimeoutMS=20000, socketTimeoutMS=20000)
         # The ismaster command is cheap and does not require auth.
         mongo_client.admin.command('ping')
         db = mongo_client['astrostats_database'] # Consider making the DB name configurable

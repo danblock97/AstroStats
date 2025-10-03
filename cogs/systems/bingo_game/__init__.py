@@ -89,7 +89,7 @@ bingo_global_stats: Optional[Collection] = None
 
 try:
     if MONGODB_URI:
-        mongo_client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=1500, connectTimeoutMS=1500, socketTimeoutMS=2000)
+        mongo_client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=30000, connectTimeoutMS=20000, socketTimeoutMS=20000)
         mongo_client.admin.command('ping')
         db = mongo_client['astrostats_database']
         bingo_sessions = db['bingo_sessions']

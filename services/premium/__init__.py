@@ -38,9 +38,9 @@ def _init_db_if_needed() -> None:
     try:
         _mongo_client = MongoClient(
             MONGODB_URI, 
-            serverSelectionTimeoutMS=1000,
-            connectTimeoutMS=1000,
-            socketTimeoutMS=1500
+            serverSelectionTimeoutMS=30000,
+            connectTimeoutMS=20000,
+            socketTimeoutMS=20000
         )
         db = _mongo_client[USERS_DB_NAME]
         _users_collection = db[USERS_COLLECTION_NAME]
