@@ -17,51 +17,57 @@ class TestHelpCog:
         assert "AstroStats Help & Support - Trusted by 5 servers" in embed.title
         assert embed.color.value == 0xdd4f7a
         
+        # Combine all field values for easier checking
+        all_field_content = " ".join([field.value for field in embed.fields])
+        
         # Check that all command categories are present
-        commands_field = next(field for field in embed.fields if field.name == "Commands & Usage")
-        assert "Apex Legends Lifetime Stats" in commands_field.value
-        assert "LoL Player Stats" in commands_field.value
-        assert "TFT Player Stats" in commands_field.value
-        assert "Fortnite Player Stats" in commands_field.value
-        assert "Horoscope" in commands_field.value
-        assert "Pet Battles" in commands_field.value
-        assert "Squib Games" in commands_field.value
-        assert "Catfight PvP" in commands_field.value
-        assert "Welcome System" in commands_field.value
-        assert "Premium" in commands_field.value
-        assert "Support" in commands_field.value
+        assert "Apex Legends" in all_field_content
+        assert "League of Legends" in all_field_content
+        assert "TFT" in all_field_content
+        assert "Fortnite" in all_field_content
+        assert "Horoscope" in all_field_content
+        assert "Pet Battles" in all_field_content
+        assert "Squib Games" in all_field_content
+        assert "Catfight PvP" in all_field_content
+        assert "Welcome System" in all_field_content
+        assert "Premium" in all_field_content
         
         # Check command examples
-        assert "/apex <platform> <username>" in commands_field.value
-        assert "/league profile" in commands_field.value
-        assert "/tft <Summoner#0001>" in commands_field.value
-        assert "/fortnite <time> <name>" in commands_field.value
-        assert "/horoscope <sign>" in commands_field.value
-        assert "/petbattles summon" in commands_field.value
-        assert "/squibgames start" in commands_field.value
-        assert "/catfight @user" in commands_field.value
-        assert "/welcome toggle" in commands_field.value
-        assert "/welcome set-message" in commands_field.value
-        assert "/welcome set-image" in commands_field.value
-        assert "/premium" in commands_field.value
-        assert "/feedback" in commands_field.value
-        assert "/bug" in commands_field.value
+        assert "/apex <platform> <username>" in all_field_content
+        assert "/league profile" in all_field_content
+        assert "/tft <Summoner#0001>" in all_field_content
+        assert "/fortnite <time> <name>" in all_field_content
+        assert "/horoscope <sign>" in all_field_content
+        assert "/petbattles summon" in all_field_content
+        assert "/squibgames start" in all_field_content
+        assert "/catfight @user" in all_field_content
+        assert "/welcome toggle" in all_field_content
+        assert "/welcome set-message" in all_field_content
+        assert "/welcome set-image" in all_field_content
+        assert "/premium" in all_field_content
+        assert "/feedback" in all_field_content
+        assert "/bug" in all_field_content
 
     def test_help_embed_fields(self, help_cog):
         embed = help_cog.build_help_embed()
         
         field_names = [field.name for field in embed.fields]
-        assert "Commands & Usage" in field_names
+        assert "🎮 Gaming Stats Commands" in field_names
+        assert "🎲 Fun & Games" in field_names
+        assert "⚙️ Server & Premium" in field_names
+        assert "💬 Support & Feedback" in field_names
         assert "Check Out My Other Apps" in field_names
-        assert "Support" in field_names
+        assert "🆘 Need Help?" in field_names
         
         # Check specific field content
         apps_field = next(field for field in embed.fields if field.name == "Check Out My Other Apps")
         assert "ClutchGG.LOL" in apps_field.value
         assert "https://clutchgg.lol" in apps_field.value
         
-        support_field = next(field for field in embed.fields if field.name == "Support")
+        support_field = next(field for field in embed.fields if field.name == "🆘 Need Help?")
         assert "astrostats.info" in support_field.value
+        assert "/bug" in support_field.value or "/feedback" in support_field.value
+        assert "Jira" in support_field.value
 
     def test_help_embed_footer(self, help_cog):
         embed = help_cog.build_help_embed()
@@ -128,7 +134,7 @@ class TestHelpCog:
 
     def test_pet_battles_commands_coverage(self, help_cog):
         embed = help_cog.build_help_embed()
-        commands_field = next(field for field in embed.fields if field.name == "Commands & Usage")
+        games_field = next(field for field in embed.fields if field.name == "🎲 Fun & Games")
         
         # Verify all pet battle commands are mentioned
         pet_commands = [
@@ -142,7 +148,7 @@ class TestHelpCog:
         ]
         
         for command in pet_commands:
-            assert command in commands_field.value
+            assert command in games_field.value
 
     def test_guild_count_integration(self, mock_bot):
         # Test with different guild counts
@@ -156,7 +162,7 @@ class TestHelpCog:
 
     def test_welcome_commands_coverage(self, help_cog):
         embed = help_cog.build_help_embed()
-        commands_field = next(field for field in embed.fields if field.name == "Commands & Usage")
+        server_field = next(field for field in embed.fields if field.name == "⚙️ Server & Premium")
         
         # Verify all welcome commands are mentioned
         welcome_commands = [
@@ -169,15 +175,15 @@ class TestHelpCog:
         ]
         
         for command in welcome_commands:
-            assert command in commands_field.value
+            assert command in server_field.value
 
     def test_premium_tagging_in_help(self, help_cog):
         embed = help_cog.build_help_embed()
-        commands_field = next(field for field in embed.fields if field.name == "Commands & Usage")
+        server_field = next(field for field in embed.fields if field.name == "⚙️ Server & Premium")
         
         # Check that premium features are properly tagged
-        assert "🔒 **Premium**" in commands_field.value
-        assert "🔒 **Sponsor/VIP**" in commands_field.value
+        assert "🔒 **Premium**" in server_field.value
+        assert "🔒 **Sponsor/VIP**" in server_field.value
         
         # Check admin-only notation
-        assert "(Admin Only)" in commands_field.value
+        assert "(Admin Only)" in server_field.value
