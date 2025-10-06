@@ -15,12 +15,16 @@ class SupportCog(commands.Cog):
     @app_commands.command(name="feedback", description="Submit feedback or feature requests for AstroStats")
     async def feedback_command(self, interaction: discord.Interaction):
         embed = create_base_embed(
-            title="Submit Feedback or Feature Requests",
+            title="💡 Submit Feedback or Feature Requests",
             description=(
-                "We value your feedback! To submit a feature request or share your thoughts:\n\n"
-                "**1.** Visit the [AstroStats Website](https://astrostats.info)\n"
-                "**2.** Click on the 'Need Help' button\n"
-                "**3.** Fill out the form with your suggestion\n\n"
+                "We value your feedback and ideas! Help shape the future of AstroStats by sharing your suggestions.\n\n"
+                "**📝 Submit a Feature Request**\n"
+                "Click here to fill out our feature request form:\n"
+                "[Submit Feature Request](https://danblock97.atlassian.net/jira/software/c/form/9b68dccf-5be1-4817-b3f5-102b974e025a?atlOrigin=eyJpIjoiZDVkYTQzYTNhYjQ2NGJlNGIxYTk2MTJiMzdhNGVhZmMiLCJwIjoiaiJ9)\n\n"
+                "**✨ What to Include**\n"
+                "• Detailed description of your feature idea\n"
+                "• How it would benefit you and other users\n"
+                "• Any specific examples or use cases\n\n"
                 "Your feedback helps make AstroStats better for everyone!"
             ),
             color=discord.Color.blue()
@@ -42,13 +46,18 @@ class SupportCog(commands.Cog):
     @app_commands.command(name="bug", description="Report a bug in AstroStats")
     async def bug_command(self, interaction: discord.Interaction):
         embed = create_base_embed(
-            title="Report a Bug",
+            title="🐛 Report a Bug",
             description=(
-                "Found a bug? Help us fix it by reporting it directly to the developer:\n\n"
-                "**1.** Visit the [AstroStats Website](https://astrostats.info)\n"
-                "**2.** Click on 'Need Help' button\n"
-                "**3.** Describe the issue in detail (including steps to reproduce)\n\n"
-                "Your reports help us improve the bot's reliability!"
+                "Found a bug? Help us fix it quickly by providing detailed information!\n\n"
+                "**📋 Submit a Bug Report**\n"
+                "Click here to fill out our bug report form:\n"
+                "[Submit Bug Report](https://danblock97.atlassian.net/jira/software/c/form/c31187ff-4e38-40dd-aafd-261adcb7722d?atlOrigin=eyJpIjoiNWJmYjYxYzFmY2VmNDc3YWJhOWE5MzZlYmQ5ZjhmNGYiLCJwIjoiaiJ9)\n\n"
+                "**📝 What to Include**\n"
+                "• Clear description of the issue\n"
+                "• Steps to reproduce the bug\n"
+                "• Expected vs. actual behavior\n"
+                "• Any error messages or screenshots\n\n"
+                "Your reports help us improve the bot's reliability and performance!"
             ),
             color=discord.Color.red()
         )

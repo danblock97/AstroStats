@@ -1,4 +1,4 @@
-﻿import os
+import os
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -21,16 +21,22 @@ class HelpCog(commands.Cog):
             color=0xdd4f7a
         )
         embed.add_field(
-            name="Commands & Usage",
+            name="🎮 Gaming Stats Commands",
             value=(
-                "**Apex Legends Lifetime Stats**\n"
+                "**Apex Legends**\n"
                 "`/apex <platform> <username>`\n\n"
-                "**LoL Player Stats**\n"
+                "**League of Legends**\n"
                 "`/league profile`, `/league championmastery`\n\n"
-                "**TFT Player Stats**\n"
+                "**TFT**\n"
                 "`/tft <Summoner#0001>`\n\n"
-                "**Fortnite Player Stats**\n"
-                "`/fortnite <time> <name>`\n\n"
+                "**Fortnite**\n"
+                "`/fortnite <time> <name>`"
+            ),
+            inline=False
+        )
+        embed.add_field(
+            name="🎲 Fun & Games",
+            value=(
                 "**Horoscope**\n"
                 "`/horoscope <sign>`\n\n"
                 "**Pet Battles**\n"
@@ -38,17 +44,28 @@ class HelpCog(commands.Cog):
                 "**Squib Games**\n"
                 "`/squibgames start`, `/squibgames run`, `/squibgames status`\n\n"
                 "**Catfight PvP**\n"
-                "`/catfight @user`, `/catfight-leaderboard`, `/catfight-stats`\n\n"
+                "`/catfight @user`, `/catfight-leaderboard`, `/catfight-stats`"
+            ),
+            inline=False
+        )
+        embed.add_field(
+            name="⚙️ Server & Premium",
+            value=(
                 "**Welcome System** (Admin Only)\n"
                 "`/welcome toggle` - Enable/disable welcome messages\n"
                 "`/welcome set-message` 🔒 **Premium** - Custom welcome messages\n"
                 "`/welcome set-image` 🔒 **Sponsor/VIP** - Custom welcome images\n"
                 "`/welcome remove-message`, `/welcome remove-image`, `/welcome test`\n\n"
                 "**Premium**\n"
-                "`/premium` - View premium features and benefits\n\n"
-                "**Support**\n"
-                "`/feedback` - Submit feature requests\n"
-                "`/bug` - Report bugs and issues"
+                "`/premium` - View premium features and benefits"
+            ),
+            inline=False
+        )
+        embed.add_field(
+            name="💬 Support & Feedback",
+            value=(
+                "`/feedback` - Submit feature requests via Jira form\n"
+                "`/bug` - Report bugs via Jira form"
             ),
             inline=False
         )
@@ -60,8 +77,12 @@ class HelpCog(commands.Cog):
             inline=False
         )
         embed.add_field(
-            name="Support",
-            value="For support please visit our [Support Site](https://astrostats.info)",
+            name="🆘 Need Help?",
+            value=(
+                "Use `/bug` to report issues or `/feedback` to suggest features.\n"
+                "Both commands link directly to our Jira forms for quick support!\n\n"
+                "Visit our [Support Site](https://astrostats.info) for more information."
+            ),
             inline=False
         )
         embed.set_footer(text="AstroStats | astrostats.info", icon_url="attachment://astrostats.png")
