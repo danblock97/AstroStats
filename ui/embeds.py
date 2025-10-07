@@ -1,4 +1,4 @@
-﻿import datetime
+import datetime
 import discord
 from typing import Optional, Dict
 from discord.ui import View, Button
@@ -92,6 +92,16 @@ def get_premium_promotion_view(user_id: str) -> Optional[View]:
             )
         
         view.add_item(button)
+        
+        # Add nomination button for all users
+        nomination_button = Button(
+            label="Nominate AstroStats",
+            style=discord.ButtonStyle.link,
+            url="https://top.gg/bot/1088929834748616785",
+            emoji="🏅"
+        )
+        view.add_item(nomination_button)
+        
         return view
     except Exception:
         return None  # Never break caller on promo failure
