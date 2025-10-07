@@ -257,6 +257,7 @@ class TestPremiumServiceComplete:
             "dailyPetQuestsBonus": 2,
             "extraPets": 0,
             "squibgamesMaxPlayers": 20,
+            "bingoMaxPlayers": 20,
             "premiumBadge": True,
             "accessToPremiumCommands": True,
         }
@@ -274,6 +275,7 @@ class TestPremiumServiceComplete:
             "dailyPetQuestsBonus": 5,
             "extraPets": 1,
             "squibgamesMaxPlayers": 50,
+            "bingoMaxPlayers": 50,
             "premiumBadge": True,
             "accessToPremiumCommands": True,
         }
@@ -291,6 +293,7 @@ class TestPremiumServiceComplete:
             "dailyPetQuestsBonus": 8,
             "extraPets": 3,
             "squibgamesMaxPlayers": 75,
+            "bingoMaxPlayers": -1,
             "premiumBadge": True,
             "accessToPremiumCommands": True,
         }
@@ -306,6 +309,7 @@ class TestPremiumServiceComplete:
             "dailyPetQuestsBonus": 0,
             "extraPets": 0,
             "squibgamesMaxPlayers": 10,
+            "bingoMaxPlayers": 10,
             "premiumBadge": False,
             "accessToPremiumCommands": False,
         }
@@ -326,6 +330,7 @@ class TestPremiumServiceComplete:
         assert result['dailyPetQuestsBonus'] == 2
         assert result['extraPets'] == 0
         assert result['squibgamesMaxPlayers'] == 20
+        assert result['bingoMaxPlayers'] == 20
         
         # Test sponsor
         result = get_entitlements(sample_user_docs['active_sponsor'])
@@ -333,6 +338,7 @@ class TestPremiumServiceComplete:
         assert result['dailyPetQuestsBonus'] == 5
         assert result['extraPets'] == 1
         assert result['squibgamesMaxPlayers'] == 50
+        assert result['bingoMaxPlayers'] == 50
         
         # Test VIP
         result = get_entitlements(sample_user_docs['active_vip'])
@@ -340,6 +346,7 @@ class TestPremiumServiceComplete:
         assert result['dailyPetQuestsBonus'] == 8
         assert result['extraPets'] == 3
         assert result['squibgamesMaxPlayers'] == 75
+        assert result['bingoMaxPlayers'] == -1
 
     def test_get_entitlements_non_premium_users(self, sample_user_docs):
         """Test entitlements for non-premium users"""
@@ -350,6 +357,7 @@ class TestPremiumServiceComplete:
             "dailyPetQuestsBonus": 0,
             "extraPets": 0,
             "squibgamesMaxPlayers": 10,
+            "bingoMaxPlayers": 10,
             "premiumBadge": False,
             "accessToPremiumCommands": False,
         }
