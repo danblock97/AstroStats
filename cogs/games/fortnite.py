@@ -150,7 +150,7 @@ class FortniteCog(commands.Cog):
             url=f"https://fortnitetracker.com/profile/all/{encoded_name}"
         )
         embed.set_thumbnail(
-            url="https://seeklogo.com/images/F/fortnite-logo-1F7897BD1E-seeklogo.com.png"
+            url="https://images.seeklogo.com/logo-png/33/1/fortnite-logo-png_seeklogo-330839.png"
         )
 
         embed.add_field(
