@@ -24,6 +24,7 @@ class FortniteCog(commands.Cog):
         # Get the absolute path to the images
         self.base_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         self.astrostats_img = os.path.join(self.base_path, 'images', 'astrostats.png')
+        self.fortnite_thumbnail = os.path.join(self.base_path, 'images', 'fortnite_thumbnail.png')
 
     async def fetch_fortnite_stats(self, name: str, time_window: str) -> Optional[Dict]:
         if not FORTNITE_API_KEY:
@@ -118,7 +119,10 @@ class FortniteCog(commands.Cog):
             await interaction.followup.send(
                 embeds=embeds,
                 view=premium_view,
-                files=[discord.File(self.astrostats_img, "astrostats.png")]
+                files=[
+                    discord.File(self.astrostats_img, "astrostats.png"),
+                    discord.File(self.fortnite_thumbnail, "fortnite_thumbnail.png")
+                ]
             )
 
         except ValueError as e:
@@ -149,9 +153,7 @@ class FortniteCog(commands.Cog):
             color=0xdd4f7a,
             url=f"https://fortnitetracker.com/profile/all/{encoded_name}"
         )
-        embed.set_thumbnail(
-            url="https://images.seeklogo.com/logo-png/33/1/fortnite-logo-png_seeklogo-330839.png"
-        )
+        embed.set_thumbnail(url="attachment://fortnite_thumbnail.png")
 
         embed.add_field(
             name="Account",
