@@ -36,9 +36,11 @@ if os.getenv("LOG_TO_FILE", "1") not in {"0", "false", "False"}:
 # Reduce exception spew from logging backend in constrained environments
 logging.raiseExceptions = False
 
-# Suppress noisy loggers
+# Suppress noisy loggers - force these to ERROR regardless of root log level
+# This prevents Discord connection/reconnection logs from appearing in production
 logging.getLogger("discord.gateway").setLevel(logging.ERROR)
 logging.getLogger("discord.client").setLevel(logging.ERROR)
+logging.getLogger("discord.http").setLevel(logging.WARNING)  # Suppress HTTP request logs too
 logging.getLogger("topgg").setLevel(logging.CRITICAL)
 
 def main():
