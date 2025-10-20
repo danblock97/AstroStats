@@ -107,7 +107,7 @@ class TestConfigConstants:
         
         # Test contains version information
         assert "Version" in LATEST_UPDATES
-        assert "2.8.1" in LATEST_UPDATES
+        assert "2.8.2" in LATEST_UPDATES
         
         # Test contains key feature mentions for current version
         assert "bug" in LATEST_UPDATES.lower() or "Bug" in LATEST_UPDATES
@@ -300,7 +300,7 @@ class TestConfigConstants:
         from config.constants import LATEST_UPDATES
         
         # Test version format
-        assert "Version 2.8.1" in LATEST_UPDATES
+        assert "Version 2.8.2" in LATEST_UPDATES
         
         # Test contains feature descriptions for current version
         feature_keywords = ["bug", "feedback", "help", "jira", "support", "command"]

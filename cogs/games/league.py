@@ -1,11 +1,9 @@
 ﻿import os
-import time
 import asyncio
 import logging
 import datetime
 import re
-from typing import Literal, Dict, Any, List, Optional
-from collections import defaultdict
+from typing import Literal
 from urllib.parse import urlencode
 
 import aiohttp
@@ -14,16 +12,12 @@ from discord.ext import commands
 from discord import app_commands
 
 from config.settings import LOL_API, DISCORD_APP_ID, TOKEN
-from config.constants import LEAGUE_REGIONS, LEAGUE_QUEUE_TYPE_NAMES, SPECIAL_EMOJI_NAMES
+from config.constants import LEAGUE_QUEUE_TYPE_NAMES, SPECIAL_EMOJI_NAMES
 from core.errors import send_error_embed
 from core.utils import get_conditional_embed
 from ui.embeds import get_premium_promotion_view
 
 logger = logging.getLogger(__name__)
-
-account_data_cache = {}
-CACHE_EXPIRY_SECONDS = 300
-
 
 class LeagueCog(commands.GroupCog, group_name="league"):
     """A cog grouping League of Legends commands under `/league`."""
@@ -161,11 +155,6 @@ class LeagueCog(commands.GroupCog, group_name="league"):
                 # Always add two fields for Ranked Solo/Duo and Ranked Flex 5v5 in that order
                 embed.add_field(name="Ranked Solo/Duo", value=ranked_info["Ranked Solo/Duo"], inline=True)
                 embed.add_field(name="Ranked Flex 5v5", value=ranked_info["Ranked Flex 5v5"], inline=True)
-
-                # Check for live game data and add it if available.
-                live_game_data = await self.fetch_live_game(session, puuid, region, headers)
-                if live_game_data and 'status' not in live_game_data:
-                    await self.add_live_game_data_to_embed(embed, live_game_data, region, headers, session)
 
                 embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
                 embed.set_footer(text="AstroStats | astrostats.info", icon_url="attachment://astrostats.png")
@@ -354,153 +343,6 @@ class LeagueCog(commands.GroupCog, group_name="league"):
         except Exception as e:
             logger.error(f"Failed to fetch league data: {e}")
             return None
-
-    async def fetch_live_game(self, session: aiohttp.ClientSession, puuid: str, region: str,
-                              headers: dict) -> dict:
-        try:
-            live_game_url = f"https://{region.lower()}.api.riotgames.com/lol/spectator/v5/active-games/by-summoner/{puuid}"
-            data = await self.fetch_data(session, live_game_url, headers)
-            if not data:
-                return None
-            return data
-        except Exception as e:
-            logger.error(f"Failed to fetch live game data: {e}")
-            return None
-
-    async def add_live_game_data_to_embed(self, embed: discord.Embed, live_game_data: dict, region: str, headers: dict,
-                                          session: aiohttp.ClientSession):
-        """
-        Processes live game data and appends live game information to the provided embed.
-        Special handling is added for Arena mode (queueId 1700) where the game is split into 8 teams of 2.
-        """
-        try:
-            tasks = []
-            for player in live_game_data.get('participants', []):
-                tasks.append(self.fetch_participant_data(player, region, headers, session))
-            participants_data = await asyncio.gather(*tasks)
-
-            # Determine game mode based on queue id.
-            queue_config_id = live_game_data.get("gameQueueConfigId")
-            if queue_config_id == 1700 or queue_config_id == 1710:
-                game_mode_name = "Arena"
-                embed.add_field(name="\u200b", value=f"**Currently In Game - {game_mode_name}**", inline=False)
-                # Extract player data from participants_data (ignoring any team_id, since Arena teams are implicit)
-                arena_players = [p for p, _ in participants_data]
-                # Split the 16 players into 8 teams of 2
-                for i in range(0, len(arena_players), 2):
-                    team = arena_players[i:i + 2]
-                    team_details = "\n".join([
-                        f"{await self.get_emoji_for_champion(p['champion_name'])} {p['champion_name']} - {p['riotId']} ({p['rank']})"
-                        for p in team
-                    ])
-                    embed.add_field(name=f"Team {i // 2 + 1}", value=team_details, inline=True)
-            else:
-                # Non-Arena modes – keep the current two-team (blue/red) layout.
-                if queue_config_id:
-                    game_mode_name = {
-                        400: "Normal Draft",
-                        420: "Ranked Solo/Duo",
-                        440: "Ranked Flex 5v5",
-                        450: "ARAM",
-                        700: "Clash",
-                        830: "Co-op vs. AI Intro",
-                        840: "Co-op vs. AI Beginner",
-                        850: "Co-op vs. AI Intermediate",
-                        900: "URF",
-                    }.get(queue_config_id, f"Queue ID {queue_config_id}")
-                else:
-                    game_mode_name = live_game_data.get("gameMode", "Unknown")
-                embed.add_field(name="\u200b", value=f"**Currently In Game - {game_mode_name}**", inline=False)
-
-                blue_team = []
-                red_team = []
-                for player_data, team_id in participants_data:
-                    if team_id == 100:
-                        blue_team.append(player_data)
-                    else:
-                        red_team.append(player_data)
-
-                blue_team_champions = '\n'.join([
-                    f"{await self.get_emoji_for_champion(p['champion_name'])} {p['champion_name']}" for p in blue_team
-                ]) or "No data"
-                blue_team_names = '\n'.join([p['riotId'] for p in blue_team]) or "No data"
-                blue_team_ranks = '\n'.join([p['rank'] for p in blue_team]) or "No data"
-
-                red_team_champions = '\n'.join([
-                    f"{await self.get_emoji_for_champion(p['champion_name'])} {p['champion_name']}" for p in red_team
-                ]) or "No data"
-                red_team_names = '\n'.join([p['riotId'] for p in red_team]) or "No data"
-                red_team_ranks = '\n'.join([p['rank'] for p in red_team]) or "No data"
-
-                embed.add_field(name="Blue Team", value=blue_team_champions, inline=True)
-                embed.add_field(name="RiotID", value=blue_team_names, inline=True)
-                embed.add_field(name="Rank", value=blue_team_ranks, inline=True)
-
-                embed.add_field(name="Red Team", value=red_team_champions, inline=True)
-                embed.add_field(name="RiotID", value=red_team_names, inline=True)
-                embed.add_field(name="Rank", value=red_team_ranks, inline=True)
-        except Exception as e:
-            logger.error(f"Error adding live game data to embed: {e}")
-
-    async def fetch_participant_data(self, player, region, headers, session):
-        try:
-            puuid = player['puuid']
-            team_id = player['teamId']
-            current_time = time.time()
-            cached_account_data = account_data_cache.get(puuid)
-
-            if cached_account_data and current_time - cached_account_data['timestamp'] < CACHE_EXPIRY_SECONDS:
-                account_data = cached_account_data['data']
-            else:
-                account_url = f"https://{region.lower()}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/{puuid}"
-                summoner_data = await self.fetch_data(session, account_url, headers)
-
-                if summoner_data and 'puuid' in summoner_data:
-                    riot_id_url = f"https://europe.api.riotgames.com/riot/account/v1/accounts/by-puuid/{summoner_data['puuid']}"
-                    account_data = await self.fetch_data(session, riot_id_url, headers)
-                    if account_data:
-                        account_data_cache[puuid] = {'data': account_data, 'timestamp': current_time}
-                else:
-                    account_data = None
-
-            if account_data:
-                game_name = account_data.get('gameName', 'Unknown')
-                tag_line = account_data.get('tagLine', '')
-                riotId = f"{game_name}#{tag_line}" if tag_line else game_name
-            else:
-                # Try riotId first, then summonerName, finally default to 'Unknown'
-                riotId = player.get('riotId') or player.get('summonerName', 'Unknown')
-
-            rank = await self.get_player_rank(session, puuid, region, headers)
-            champion_id = player['championId']
-            champion_name = await self.fetch_champion_name(session, champion_id)
-
-            return {'riotId': riotId, 'champion_name': champion_name, 'rank': rank}, team_id
-        except Exception as e:
-            logger.error(f"Error fetching participant data: {e}")
-            return {'riotId': 'Unknown', 'champion_name': 'Unknown', 'rank': 'Unranked'}, player.get('teamId', 0)
-
-    async def get_player_rank(self, session: aiohttp.ClientSession, puuid: str, region: str,
-                              headers: dict) -> str:
-        try:
-            league_data = await self.fetch_league_data(session, puuid, region, headers)
-            if not isinstance(league_data, list):
-                return "Unranked"
-
-            for entry in league_data:
-                if isinstance(entry, dict) and entry.get('queueType') == 'RANKED_SOLO_5x5':
-                    tier = entry.get('tier') or "Unranked"
-                    if isinstance(tier, str):
-                        tier = tier.capitalize()
-                    else:
-                        tier = "Unranked"
-                    rank = entry.get('rank', '').upper()
-                    lp = entry.get('leaguePoints', 0)
-                    return f"{tier} {rank} {lp} LP"
-            return "Unranked"
-        except Exception as e:
-            logger.error(f"Error getting player rank: {e}")
-            return "Unranked"
 
     async def fetch_champion_name(self, session: aiohttp.ClientSession, champion_id: int) -> str:
         try:
