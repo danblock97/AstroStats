@@ -2,12 +2,14 @@ import logging
 from typing import Dict, List, Optional, Any
 from datetime import datetime, timezone
 
-from services.database import get_mongo_client
+from pymongo import MongoClient
+
+from config.settings import MONGODB_URI
 
 logger = logging.getLogger(__name__)
 
 # Initialize MongoDB client
-client = get_mongo_client()
+client = MongoClient(MONGODB_URI)
 db = client['astrostats_database']
 
 # Collections

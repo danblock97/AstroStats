@@ -6,8 +6,6 @@ from discord.ext import commands
 import os
 import sys
 
-os.environ.setdefault("ASTROSTATS_USE_MOCK_DB", "1")
-
 sys.path.insert(0, os.path.abspath('.'))
 
 @pytest.fixture
