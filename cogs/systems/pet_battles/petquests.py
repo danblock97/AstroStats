@@ -2,14 +2,15 @@
 import random
 import logging
 from typing import List, Tuple, Dict, Any
+from pymongo import MongoClient
 from bson import ObjectId  # Import ObjectId
 
 from .petconstants import DAILY_QUESTS, ACHIEVEMENTS, DAILY_COMPLETION_BONUS
-from services.database import get_mongo_client
 from services.premium import get_user_entitlements
+from config.settings import MONGODB_URI
 
 # Initialize the database connection
-mongo_client = get_mongo_client()
+mongo_client = MongoClient(MONGODB_URI)
 db = mongo_client['astrostats_database']
 pets_collection = db['pets']
 
