@@ -12,15 +12,15 @@ from typing import List, Dict, Any, Optional, Tuple # Added Tuple
 import discord
 from discord.ext import commands, tasks
 from discord import app_commands, Interaction # Added Interaction
-from pymongo import MongoClient
 from bson import ObjectId # Import ObjectId
 import topgg # Ensure topgg is imported
 import asyncio # For retry delays
 import aiohttp # For network error handling
 
 from core.utils import get_conditional_embed, create_progress_bar # Import create_progress_bar
+from services.database import get_mongo_client
 from services.premium import get_user_entitlements, invalidate_user_entitlements
-from config.settings import MONGODB_URI, TOPGG_TOKEN
+from config.settings import TOPGG_TOKEN
 from ui.embeds import create_error_embed, create_success_embed, get_premium_promotion_embed, get_premium_promotion_view # Use standardized embeds
 
 
@@ -47,7 +47,7 @@ from .petbattle import calculate_damage, get_active_buff # Import buff getter
 
 logger = logging.getLogger("PetBattlesCog")
 
-mongo_client = MongoClient(MONGODB_URI)
+mongo_client = get_mongo_client()
 db = mongo_client['astrostats_database']
 pets_collection = db['pets']
 battle_logs_collection = db['battle_logs']
@@ -2489,4 +2489,3 @@ async def setup(bot: commands.Bot):
     """Adds the PetBattles cog to the bot."""
     await bot.add_cog(PetBattles(bot))
     logger.debug("PetBattles Cog loaded.")
-
