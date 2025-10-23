@@ -8,6 +8,7 @@ LEAGUE_QUEUE_TYPE_NAMES = {
     "RANKED_SOLO_5x5": "Ranked Solo/Duo",
     "RANKED_FLEX_SR": "Ranked Flex 5v5",
     "CHERRY": "Arena"
+    "KIWI": "ARAM Mayhem"
 }
 
 TFT_QUEUE_TYPE_NAMES = {
@@ -52,27 +53,10 @@ SPECIAL_EMOJI_NAMES = {
 # Latest bot updates
 
 LATEST_UPDATES = (
-    "## 🎉 Version 2.8.1 - Enhanced Support & Help System\n\n"
+    "## 🎉 Version 2.8.2 - League of Legends Queue Fix\n\n"
     "### ✨ What's New\n\n"
-    "**🐛 Improved Bug Reporting**\n"
-    "• Direct link to Jira bug report form\n"
-    "• Clear guidance on what to include in reports\n"
-    "• Faster issue tracking and resolution\n\n"
-    "**💡 Better Feedback System**\n"
-    "• Direct link to Jira feature request form\n"
-    "• Streamlined process for suggesting features\n"
-    "• Your ideas reach the developer instantly\n\n"
-    "**📚 Redesigned Help Command**\n"
-    "• Commands now organized into clear categories:\n"
-    "  - 🎮 Gaming Stats (Apex, League, TFT, Fortnite)\n"
-    "  - 🎲 Fun & Games (Horoscope, Pet Battles, Squib Games, Catfight)\n"
-    "  - ⚙️ Server & Premium (Welcome System, Premium)\n"
-    "  - 💬 Support & Feedback\n"
-    "• Easier to find the commands you need\n"
-    "• Better visual organization with emojis\n\n"
-    "### 🔗 Quick Access\n"
-    "Use `/bug` to report issues or `/feedback` to suggest features.\n"
-    "Both commands link directly to our Jira forms for quick support!\n\n"
+    "**🐛 League of Legends Queue Type Names**\n"
+    "• Fixed an issue where ARAM Mayhem was showing as 'KIWI'\n"
     "Visit [astrostats.info](https://astrostats.info) for more information."
 )
 
