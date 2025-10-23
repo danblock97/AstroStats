@@ -7,7 +7,7 @@ LEAGUE_REGIONS = [
 LEAGUE_QUEUE_TYPE_NAMES = {
     "RANKED_SOLO_5x5": "Ranked Solo/Duo",
     "RANKED_FLEX_SR": "Ranked Flex 5v5",
-    "CHERRY": "Arena"
+    "CHERRY": "Arena",
     "KIWI": "ARAM Mayhem"
 }
 
