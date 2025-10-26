@@ -18,19 +18,18 @@ class SupportCog(commands.Cog):
             title="💡 Submit Feedback or Feature Requests",
             description=(
                 "We value your feedback and ideas! Help shape the future of AstroStats by sharing your suggestions.\n\n"
-                "**📝 Submit a Feature Request**\n"
-                "Click here to fill out our feature request form:\n"
-                "[Submit Feature Request](https://danblock97.atlassian.net/jira/software/c/form/9b68dccf-5be1-4817-b3f5-102b974e025a?atlOrigin=eyJpIjoiZDVkYTQzYTNhYjQ2NGJlNGIxYTk2MTJiMzdhNGVhZmMiLCJwIjoiaiJ9)\n\n"
-                "**✨ What to Include**\n"
+                "**💬 Join Our Discord Server**\n"
+                "Share your feedback and feature requests in our community:\n"
+                "[Join AstroStats Discord](https://discord.gg/BeszQxTn9D)\n\n"
+                "**✨ What to Share**\n"
                 "• Detailed description of your feature idea\n"
                 "• How it would benefit you and other users\n"
                 "• Any specific examples or use cases\n\n"
-                "Your feedback helps make AstroStats better for everyone!"
+                "Connect with the community and help shape the future of AstroStats!"
             ),
             color=discord.Color.blue()
         )
 
-        embed.set_footer(text="AstroStats | astrostats.info", icon_url="attachment://astrostats.png")
         conditional_embed = await get_conditional_embed(
             interaction, 'FEEDBACK_EMBED', discord.Color.orange()
         )
@@ -38,7 +37,7 @@ class SupportCog(commands.Cog):
         embeds = [embed]
         if conditional_embed:
             embeds.append(conditional_embed)
-        
+
         premium_view = get_premium_promotion_view(str(interaction.user.id))
 
         await interaction.response.send_message(embeds=embeds, view=premium_view)
@@ -49,9 +48,9 @@ class SupportCog(commands.Cog):
             title="🐛 Report a Bug",
             description=(
                 "Found a bug? Help us fix it quickly by providing detailed information!\n\n"
-                "**📋 Submit a Bug Report**\n"
-                "Click here to fill out our bug report form:\n"
-                "[Submit Bug Report](https://danblock97.atlassian.net/jira/software/c/form/c31187ff-4e38-40dd-aafd-261adcb7722d?atlOrigin=eyJpIjoiNWJmYjYxYzFmY2VmNDc3YWJhOWE5MzZlYmQ5ZjhmNGYiLCJwIjoiaiJ9)\n\n"
+                "**💬 Join Our Discord Server**\n"
+                "Report bugs directly in our community:\n"
+                "[Join AstroStats Discord](https://discord.gg/BeszQxTn9D)\n\n"
                 "**📝 What to Include**\n"
                 "• Clear description of the issue\n"
                 "• Steps to reproduce the bug\n"
@@ -69,7 +68,7 @@ class SupportCog(commands.Cog):
         embeds = [embed]
         if conditional_embed:
             embeds.append(conditional_embed)
-        
+
         premium_view = get_premium_promotion_view(str(interaction.user.id))
 
         await interaction.response.send_message(embeds=embeds, view=premium_view)
