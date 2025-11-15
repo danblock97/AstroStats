@@ -53,10 +53,10 @@ SPECIAL_EMOJI_NAMES = {
 # Latest bot updates
 
 LATEST_UPDATES = (
-    "## 🎉 Version 2.8.2 - League of Legends Queue Fix\n\n"
+    "## 🎉 Version 2.9.0\n\n"
     "### ✨ What's New\n\n"
-    "**🐛 League of Legends Queue Type Names**\n"
-    "• Fixed an issue where ARAM Mayhem was showing as 'KIWI'\n"
+    "**Would You Rather Auto Messages**\n"
+    "• Added auto messages for Would You Rather as an optional toggle with /wouldyourather-automode - if enabled, it will post a Would You Rather question daily at 12:00 PM (Europe/London time) in the channel you have selected.\n"
     "Visit [astrostats.info](https://astrostats.info) for more information."
 )
 
