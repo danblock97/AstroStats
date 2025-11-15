@@ -125,12 +125,17 @@ class LeagueCog(commands.GroupCog, group_name="league"):
                     color=0x1a78ae,
                     url=profile_url
                 )
-                embed.set_thumbnail(
-                    url=(
-                        "https://raw.communitydragon.org/latest/game/assets/ux/summonericons/"
-                        f"profileicon{summoner_data['profileIconId']}.png"
-                    )
-                )
+                profile_icon_id = summoner_data.get('profileIconId')
+                if profile_icon_id is not None and isinstance(profile_icon_id, int) and profile_icon_id >= 0:
+                    try:
+                        latest_version = await self.get_latest_ddragon_version(session)
+                        embed.set_thumbnail(
+                            url=f"https://ddragon.leagueoflegends.com/cdn/{latest_version}/img/profileicon/{profile_icon_id}.png"
+                        )
+                    except Exception as e:
+                        logger.error(f"Error setting profile icon thumbnail: {e}")
+                else:
+                    logger.error(f"Invalid or missing profileIconId for {riotid} in region {region}. Summoner data: {summoner_data}")
 
                 # Prepare default values for the required queues
                 ranked_info = {
@@ -502,11 +507,19 @@ class LeagueCog(commands.GroupCog, group_name="league"):
             logger.error(f"Error getting player rank: {e}")
             return "Unranked"
 
-    async def fetch_champion_name(self, session: aiohttp.ClientSession, champion_id: int) -> str:
+    async def get_latest_ddragon_version(self, session: aiohttp.ClientSession) -> str:
+        """Get the latest Data Dragon version."""
         try:
             versions_url = "https://ddragon.leagueoflegends.com/api/versions.json"
             versions_data = await self.fetch_data(session, versions_url)
-            latest_version = versions_data[0] if versions_data else '13.1.1'
+            return versions_data[0] if versions_data else '13.1.1'
+        except Exception as e:
+            logger.error(f"Error fetching Data Dragon version: {e}")
+            return '13.1.1'
+
+    async def fetch_champion_name(self, session: aiohttp.ClientSession, champion_id: int) -> str:
+        try:
+            latest_version = await self.get_latest_ddragon_version(session)
 
             champions_url = f"https://ddragon.leagueoflegends.com/cdn/{latest_version}/data/en_US/champion.json"
             champions_data = await self.fetch_data(session, champions_url)
