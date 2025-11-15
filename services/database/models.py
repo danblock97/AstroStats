@@ -138,3 +138,11 @@ class WelcomeSettings:
     custom_image_filename: Optional[str] = None  # Original filename for reference
     _id: Optional[Any] = None # Use Any for ObjectId compatibility
 
+@dataclass
+class WouldYouRatherAutoSettings:
+    guild_id: str
+    enabled: bool = False
+    category: Optional[str] = None  # "SFW" or "NSFW"
+    channel_id: Optional[str] = None  # Channel ID where auto messages should be sent
+    _id: Optional[Any] = None # Use Any for ObjectId compatibility
+
