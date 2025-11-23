@@ -53,6 +53,7 @@ def get_wyr_auto_settings(guild_id: str) -> Optional[WouldYouRatherAutoSettings]
             enabled=doc.get("enabled", False),
             category=doc.get("category"),
             channel_id=doc.get("channel_id"),
+            recent_questions=doc.get("recent_questions", {}),
             _id=doc.get("_id")
         )
     except PyMongoError as e:
@@ -79,6 +80,8 @@ def update_wyr_auto_settings(guild_id: str, **kwargs) -> bool:
             update_doc["$set"]["category"] = kwargs["category"]
         if "channel_id" in kwargs:
             update_doc["$set"]["channel_id"] = kwargs["channel_id"]
+        if "recent_questions" in kwargs:
+            update_doc["$set"]["recent_questions"] = kwargs["recent_questions"]
         
         if not update_doc["$set"]:
             return True  # No changes to make

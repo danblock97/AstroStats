@@ -73,33 +73,52 @@ class WouldYouRather(commands.Cog):
         recent_for_category.append(selected)
         return selected
 
-    def _select_non_repeating_for_guild(self, guild_id: Optional[int], category: str, questions_list: list) -> str:
-        """Select a question avoiding recent repeats for a guild (used in auto mode)."""
-        context_key = self._get_context_key_for_guild(guild_id)
-        # Initialize storage for this context and category
-        if context_key not in self._recent_questions:
-            self._recent_questions[context_key] = {}
-
+    def _select_non_repeating_for_guild(self, guild_id: str, category: str, questions_list: list, recent_history: Optional[list] = None) -> tuple[str, list]:
+        """Select a question avoiding recent repeats for a guild (used in auto mode).
+        
+        Returns:
+            tuple: (selected_question, updated_history)
+        """
         # Determine memory size based on pool size
         pool_size = len(questions_list)
         if pool_size <= 1:
-            return questions_list[0]
-        recent_window = max(10, min(pool_size - 1, pool_size // 5))
+            return questions_list[0], []
+            
+        # Use a larger window for auto mode since it's daily and we want to avoid repeats for a long time
+        # For ~75 questions, 75% is ~56 days. This ensures a very long rotation before any repeat is possible.
+        recent_window = max(10, min(pool_size - 1, int(pool_size * 0.75)))
 
-        recent_for_category = self._recent_questions[context_key].get(category)
-        if recent_for_category is None or recent_for_category.maxlen != recent_window:
-            recent_for_category = deque(maxlen=recent_window)
-            self._recent_questions[context_key][category] = recent_for_category
+        current_history = recent_history if recent_history is not None else []
+        
+        # Filter history to only include valid questions (in case list changed)
+        valid_history = [q for q in current_history if q in questions_list]
+        
+        # If history is too long, trim it
+        if len(valid_history) > recent_window:
+            valid_history = valid_history[-recent_window:]
 
         # Build candidate pool excluding recent
-        candidates = [q for q in questions_list if q not in recent_for_category]
+        candidates = [q for q in questions_list if q not in valid_history]
+        
         if not candidates:
-            recent_for_category.clear()
+            # All questions recently used; reset memory but keep the last few to avoid immediate repeat
+            # Keep last 20%
+            keep_count = max(1, int(recent_window * 0.2))
+            valid_history = valid_history[-keep_count:]
+            candidates = [q for q in questions_list if q not in valid_history]
+
+        if not candidates:
+             # Should rarely happen unless pool is tiny
             candidates = questions_list[:]
 
         selected = random.choice(candidates)
-        recent_for_category.append(selected)
-        return selected
+        valid_history.append(selected)
+        
+        # Ensure we don't exceed window size
+        if len(valid_history) > recent_window:
+            valid_history = valid_history[-recent_window:]
+            
+        return selected, valid_history
 
     async def _send_wyr_message(self, channel: discord.TextChannel, category: str, guild_name: str):
         """Send a would you rather message to a channel."""
@@ -109,7 +128,9 @@ class WouldYouRather(commands.Cog):
             logger.error(f"Could not find questions list for {category}")
             return
 
-        selected_question = self._select_non_repeating_for_guild(channel.guild.id if channel.guild else None, category, questions_list)
+        # This method is for manual command, keep using in-memory for now or update if needed.
+        # For now, we are focusing on auto mode persistence.
+        selected_question = self._select_non_repeating_for_guild(str(channel.guild.id) if channel.guild else None, category, questions_list)[0]
         category_emoji = "😈" if category == "NSFW" else "🤔"
 
         embed = discord.Embed(
@@ -317,7 +338,61 @@ class WouldYouRather(commands.Cog):
                         logger.warning(f"Bot lacks permission to send messages in channel {channel_id}")
                         continue
 
-                    await self._send_wyr_message(channel, category, guild.name)
+                    # Get current settings to access history
+                    settings = get_wyr_auto_settings(str(guild_id))
+                    if not settings:
+                         continue
+
+                    list_key = f"{category}_WOULD_YOU_RATHER"
+                    questions_list = getattr(constants, list_key, None)
+                    if not questions_list:
+                        continue
+
+                    # Get recent history for this category
+                    recent_history = settings.recent_questions.get(category, [])
+
+                    # Select question and get updated history
+                    selected_question, updated_history = self._select_non_repeating_for_guild(
+                        str(guild_id), category, questions_list, recent_history
+                    )
+
+                    # Update DB with new history
+                    # We need to update the specific category in the dictionary
+                    # Since we can't easily update a nested dict field partially in this setup without overwriting,
+                    # we'll fetch, update local dict, and save back.
+                    # Ideally we'd use dot notation in update, but our service wrapper is simple.
+                    
+                    # Update the specific category history
+                    settings.recent_questions[category] = updated_history
+                    
+                    update_success = update_wyr_auto_settings(
+                        guild_id=str(guild_id),
+                        recent_questions=settings.recent_questions
+                    )
+
+                    if not update_success:
+                        logger.warning(f"Failed to save WYR history for guild {guild_id}")
+
+                    # Send message
+                    category_emoji = "😈" if category == "NSFW" else "🤔"
+                    embed = discord.Embed(
+                        title=f"{category_emoji} {guild.name} - Would You Rather",
+                        description=selected_question,
+                        color=discord.Color.red() if category == "NSFW" else discord.Color.blue()
+                    )
+                    
+                    thumbnail_file = self.would_you_rather_img if os.path.exists(self.would_you_rather_img) else os.path.join(self.base_path, 'images', 'truthordare.png')
+                    embed.set_thumbnail(url=f"attachment://wouldyourather.png")
+                    embed.set_footer(text="AstroStats | astrostats.info", icon_url=f"attachment://astrostats.png")
+
+                    await channel.send(
+                        embeds=[embed],
+                        files=[
+                            discord.File(thumbnail_file, "wouldyourather.png"),
+                            discord.File(self.astrostats_img, "astrostats.png")
+                        ]
+                    )
+                    
                     logger.debug(f"Sent auto would you rather message to guild {guild_id} in channel {channel_id}")
 
                 except Exception as e:

@@ -144,5 +144,6 @@ class WouldYouRatherAutoSettings:
     enabled: bool = False
     category: Optional[str] = None  # "SFW" or "NSFW"
     channel_id: Optional[str] = None  # Channel ID where auto messages should be sent
+    recent_questions: Dict[str, List[str]] = field(default_factory=dict)  # Track recent questions to avoid repeats
     _id: Optional[Any] = None # Use Any for ObjectId compatibility
 

@@ -53,10 +53,10 @@ SPECIAL_EMOJI_NAMES = {
 # Latest bot updates
 
 LATEST_UPDATES = (
-    "## 🎉 Version 2.9.0\n\n"
+    "## 🎉 Version 2.9.1\n\n"
     "### ✨ What's New\n\n"
-    "**Would You Rather Auto Messages**\n"
-    "• Added auto messages for Would You Rather as an optional toggle with /wouldyourather-automode - if enabled, it will post a Would You Rather question daily at 12:00 PM (Europe/London time) in the channel you have selected.\n"
+    "**Would You Rather Improvements**\n"
+    "• Improved the randomness of the auto Would You Rather questions to prevent repeats. The bot now remembers recent questions even after restarting!\n"
     "Visit [astrostats.info](https://astrostats.info) for more information."
 )
 
