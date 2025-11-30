@@ -15,6 +15,14 @@ TFT_QUEUE_TYPE_NAMES = {
     "RANKED_TFT": "Ranked TFT",
 }
 
+# Region to routing cluster mapping for match history endpoints
+REGION_TO_ROUTING = {
+    "NA1": "americas", "BR1": "americas", "LA1": "americas", "LA2": "americas",
+    "EUW1": "europe", "EUN1": "europe", "TR1": "europe", "RU": "europe",
+    "JP1": "asia", "KR": "asia",
+    "OC1": "sea", "SG2": "sea", "TW2": "sea", "VN2": "sea"
+}
+
 # Platform mappings for Apex Legends
 APEX_PLATFORM_MAPPING = {
     'Xbox': 'xbl',
@@ -53,10 +61,23 @@ SPECIAL_EMOJI_NAMES = {
 # Latest bot updates
 
 LATEST_UPDATES = (
-    "## 🎉 Version 2.9.1\n\n"
+    "## 🎉 Version 2.10.0\n\n"
     "### ✨ What's New\n\n"
-    "**Would You Rather Improvements**\n"
-    "• Improved the randomness of the auto Would You Rather questions to prevent repeats. The bot now remembers recent questions even after restarting!\n"
+    "**League Match History**\n"
+    "• View your last 9 matches in a clean 3x3 grid layout\n"
+    "• Shows result, champion, KDA ratio, and game duration\n"
+    "• Access via the new Match History button on your profile\n\n"
+    "**TFT Match History**\n"
+    "• View your last 9 TFT matches with placement, level, and top traits\n"
+    "• Beautiful grid layout for quick match scanning\n"
+    "• Access via the Match History button on your TFT profile\n\n"
+    "**Champion Mastery Button**\n"
+    "• Champion Mastery is now a button on the League profile instead of a separate command\n\n"
+    "### 🔧 Improvements\n\n"
+    "• TFT command now uses async requests for better performance\n"
+    "• Champion names display properly with correct formatting\n\n"
+    "### 🐛 Fixes\n\n"
+    "• Fixed TFT profile thumbnail not displaying correctly\n\n"
     "Visit [astrostats.info](https://astrostats.info) for more information."
 )
 

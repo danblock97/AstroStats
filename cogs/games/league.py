@@ -14,10 +14,11 @@ from discord.ext import commands
 from discord import app_commands
 
 from config.settings import LOL_API, DISCORD_APP_ID, TOKEN
-from config.constants import LEAGUE_REGIONS, LEAGUE_QUEUE_TYPE_NAMES, SPECIAL_EMOJI_NAMES
+from config.constants import LEAGUE_REGIONS, LEAGUE_QUEUE_TYPE_NAMES, SPECIAL_EMOJI_NAMES, REGION_TO_ROUTING
 from core.errors import send_error_embed
 from core.utils import get_conditional_embed
 from ui.embeds import get_premium_promotion_view
+from discord.ui import View, Button
 
 logger = logging.getLogger(__name__)
 
@@ -180,9 +181,8 @@ class LeagueCog(commands.GroupCog, group_name="league"):
                 if conditional_embed:
                     embeds.append(conditional_embed)
                 
-                premium_view = get_premium_promotion_view(str(interaction.user.id))
-
-                await interaction.followup.send(embeds=embeds, view=premium_view)
+                view = LeagueProfileView(self, puuid, region, riotid, str(interaction.user.id))
+                await interaction.followup.send(embeds=embeds, view=view)
 
         except aiohttp.ClientError as e:
             logger.error(f"Request Error: {e}")
@@ -210,112 +210,6 @@ class LeagueCog(commands.GroupCog, group_name="league"):
                     "An unexpected error occurred while processing your request. "
                     "Please try again later or contact support if the issue persists."
                 )
-            )
-
-    @app_commands.command(name="championmastery", description="Show your top 10 Champion Masteries")
-    async def championmastery(self, interaction: discord.Interaction, region: Literal[
-        "EUW1", "EUN1", "TR1", "RU", "NA1", "BR1", "LA1", "LA2", "JP1", "KR", "OC1", "SG2", "TW2", "VN2"], riotid: str):
-        try:
-            await interaction.response.defer()
-            if "#" not in riotid:
-                await send_error_embed(
-                    interaction,
-                    "Invalid Riot ID",
-                    "Please enter your Riot ID in the format gameName#tagLine."
-                )
-                return
-
-            game_name, tag_line = riotid.split("#")
-            riot_api_key = LOL_API
-            if not riot_api_key:
-                logger.error("Riot API key is missing in environment variables.")
-                await send_error_embed(
-                    interaction,
-                    "Configuration Error",
-                    "Riot API key is not configured. Please contact the bot owner."
-                )
-                return
-            headers = {'X-Riot-Token': riot_api_key}
-
-            # Retrieve the PUUID using the global account endpoint.
-            account_url = f"https://europe.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{game_name}/{tag_line}"
-            async with aiohttp.ClientSession() as session:
-                account_data = await self.fetch_data(session, account_url, headers)
-                puuid = account_data.get("puuid") if account_data else None
-                if not puuid:
-                    await send_error_embed(
-                        interaction,
-                        "Account Not Found",
-                        f"Failed to retrieve PUUID for {riotid}. Make sure your Riot ID is correct."
-                    )
-                    return
-
-                # Get summoner ID from puuid
-                summoner_data = await self.fetch_summoner_data(session, puuid, region, headers)
-                if not summoner_data:
-                    await send_error_embed(
-                        interaction,
-                        "No Data Found",
-                        f"No summoner data found in region '{region}' for {riotid}."
-                    )
-                    return
-
-                # Fetch champion mastery data.
-                mastery_url = f"https://{region.lower()}.api.riotgames.com/lol/champion-mastery/v4/champion-masteries/by-puuid/{puuid}"
-                mastery_data = await self.fetch_data(session, mastery_url, headers)
-                if mastery_data is None:
-                    await send_error_embed(
-                        interaction,
-                        "Error",
-                        "Failed to fetch champion mastery data. Please try again later."
-                    )
-                    return
-
-                # Get the top 10 champion mastery entries.
-                top_masteries = mastery_data[:10]
-
-                embed = discord.Embed(
-                    title=f"Champion Mastery for {riotid}",
-                    color=0x1a78ae,
-                    timestamp=datetime.datetime.now(datetime.timezone.utc)
-                )
-                description_lines = []
-                for mastery in top_masteries:
-                    champion_id = mastery.get("championId")
-                    champion_name = await self.fetch_champion_name(session, champion_id)
-                    emoji = await self.get_emoji_for_champion(champion_name)
-                    mastery_level = mastery.get("championLevel", "N/A")
-                    mastery_points = mastery.get("championPoints", "N/A")
-
-                    # If mastery_points is a number, format it with commas
-                    if mastery_points != "N/A":
-                        mastery_points = f"{mastery_points:,}"
-
-                    description_lines.append(
-                        f"{emoji} **{champion_name}: Mastery {mastery_level} - {mastery_points} pts**"
-                    )
-
-                embed.description = "\n".join(description_lines)
-                embed.set_footer(text="Built By Goldiez ❤️ Visit clutchgg.lol for more!")
-                
-                embeds = [embed]
-                premium_view = get_premium_promotion_view(str(interaction.user.id))
-                
-                await interaction.followup.send(embeds=embeds, view=premium_view)
-
-        except aiohttp.ClientError as e:
-            logger.error(f"Request Error: {e}")
-            await send_error_embed(
-                interaction,
-                "API Error",
-                "Could not retrieve champion mastery data. Please try again later."
-            )
-        except Exception as e:
-            logger.error(f"Unexpected Error: {e}")
-            await send_error_embed(
-                interaction,
-                "Unexpected Error",
-                "An unexpected error occurred while processing your request."
             )
 
     # Helper methods
@@ -593,6 +487,172 @@ class LeagueCog(commands.GroupCog, group_name="league"):
         except Exception as e:
             logger.error(f"Exception fetching emojis: {e}")
             return None
+
+    async def fetch_match_ids(self, session: aiohttp.ClientSession, puuid: str, region: str, headers: dict, count: int = 5) -> List[str]:
+        """Fetch recent match IDs for a player."""
+        try:
+            routing = REGION_TO_ROUTING.get(region.upper(), "europe")
+            url = f"https://{routing}.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids?count={count}"
+            data = await self.fetch_data(session, url, headers)
+            return data if data else []
+        except Exception as e:
+            logger.error(f"Failed to fetch match IDs: {e}")
+            return []
+
+    async def fetch_match_details(self, session: aiohttp.ClientSession, match_id: str, region: str, headers: dict) -> Optional[dict]:
+        """Fetch details for a specific match."""
+        try:
+            routing = REGION_TO_ROUTING.get(region.upper(), "europe")
+            url = f"https://{routing}.api.riotgames.com/lol/match/v5/matches/{match_id}"
+            return await self.fetch_data(session, url, headers)
+        except Exception as e:
+            logger.error(f"Failed to fetch match details for {match_id}: {e}")
+            return None
+
+    def get_champion_display_name(self, api_name: str) -> str:
+        """Convert API champion name to proper display name using SPECIAL_EMOJI_NAMES."""
+        # Reverse lookup: find display name from internal name
+        for display_name, internal_name in SPECIAL_EMOJI_NAMES.items():
+            if internal_name.lower() == api_name.lower() or internal_name.lower() == api_name.replace("'", "").replace(" ", "").lower():
+                return display_name
+        # Add spaces before capitals for names like "MissFortune" -> "Miss Fortune"
+        spaced = re.sub(r'([a-z])([A-Z])', r'\1 \2', api_name)
+        return spaced
+
+    async def create_match_history_embed(self, session: aiohttp.ClientSession, puuid: str, region: str, headers: dict, riotid: str) -> discord.Embed:
+        """Create an embed displaying recent match history."""
+        embed = discord.Embed(
+            title=f"📜 Match History - {riotid}",
+            color=0x1a78ae,
+            timestamp=datetime.datetime.now(datetime.timezone.utc)
+        )
+        match_ids = await self.fetch_match_ids(session, puuid, region, headers, count=9)
+        if not match_ids:
+            embed.description = "No recent matches found."
+            embed.set_footer(text="AstroStats | astrostats.info")
+            return embed
+        matches_data = await asyncio.gather(*[self.fetch_match_details(session, mid, region, headers) for mid in match_ids])
+        for match_data in matches_data:
+            if not match_data:
+                continue
+            info = match_data.get('info', {})
+            participants = info.get('participants', [])
+            player = next((p for p in participants if p.get('puuid') == puuid), None)
+            if not player:
+                continue
+            # Result with emoji
+            win = player.get('win', False)
+            result_emoji = "✅" if win else "❌"
+            result_text = "Victory" if win else "Defeat"
+            # Champion with proper display name
+            champion_api = player.get('championName', 'Unknown')
+            champion_display = self.get_champion_display_name(champion_api)
+            champ_emoji = await self.get_emoji_for_champion(champion_display)
+            # Key stats - KDA
+            kills = player.get('kills', 0)
+            deaths = player.get('deaths', 0)
+            assists = player.get('assists', 0)
+            kda_ratio = (kills + assists) / max(deaths, 1)
+            # Game details - duration
+            duration_secs = info.get('gameDuration', 0)
+            duration_mins = duration_secs // 60
+            duration_secs_rem = duration_secs % 60
+            # Build field: Result • Champion | KDA | Duration
+            field_name = f"{result_emoji} {result_text} • {champ_emoji}{champion_display}"
+            field_value = f"**{kills}/{deaths}/{assists}** ({kda_ratio:.1f} KDA)\n⏱️ {duration_mins}:{duration_secs_rem:02d}"
+            embed.add_field(name=field_name, value=field_value, inline=True)
+        if not embed.fields:
+            embed.description = "No match data available."
+        embed.set_footer(text="AstroStats | astrostats.info")
+        return embed
+
+    async def create_champion_mastery_embed(self, session: aiohttp.ClientSession, puuid: str, region: str, headers: dict, riotid: str) -> discord.Embed:
+        """Create an embed displaying champion mastery data."""
+        embed = discord.Embed(
+            title=f"🏆 Champion Mastery - {riotid}",
+            color=0x1a78ae,
+            timestamp=datetime.datetime.now(datetime.timezone.utc)
+        )
+        mastery_url = f"https://{region.lower()}.api.riotgames.com/lol/champion-mastery/v4/champion-masteries/by-puuid/{puuid}"
+        mastery_data = await self.fetch_data(session, mastery_url, headers)
+        if not mastery_data:
+            embed.description = "No champion mastery data found."
+            embed.set_footer(text="AstroStats | astrostats.info")
+            return embed
+        top_masteries = mastery_data[:10]
+        description_lines = []
+        for mastery in top_masteries:
+            champion_id = mastery.get("championId")
+            champion_name = await self.fetch_champion_name(session, champion_id)
+            emoji = await self.get_emoji_for_champion(champion_name)
+            mastery_level = mastery.get("championLevel", "N/A")
+            mastery_points = mastery.get("championPoints", "N/A")
+            if mastery_points != "N/A":
+                mastery_points = f"{mastery_points:,}"
+            description_lines.append(f"{emoji} **{champion_name}** • Mastery {mastery_level} • {mastery_points} pts")
+        embed.description = "\n".join(description_lines)
+        embed.set_footer(text="AstroStats | astrostats.info")
+        return embed
+
+
+class LeagueProfileView(View):
+    """View with Match History and Champion Mastery buttons for League profile."""
+    def __init__(self, cog: 'LeagueCog', puuid: str, region: str, riotid: str, user_id: str):
+        super().__init__(timeout=300)
+        self.cog = cog
+        self.puuid = puuid
+        self.region = region
+        self.riotid = riotid
+        self.user_id = user_id
+        self._add_premium_buttons()
+
+    def _add_premium_buttons(self):
+        """Add premium promotion buttons."""
+        try:
+            from services.premium import get_user_entitlements
+            entitlements = get_user_entitlements(self.user_id)
+            tier = (entitlements or {}).get("tier", "free")
+            if tier == "free":
+                btn = Button(label="Get Premium", style=discord.ButtonStyle.link, url="https://astrostats.info/pricing", emoji="💎")
+            else:
+                btn = Button(label="Manage Account", style=discord.ButtonStyle.link, url="https://astrostats.info/account", emoji="⚙️")
+            self.add_item(btn)
+            nom_btn = Button(label="Nominate AstroStats", style=discord.ButtonStyle.link, url="https://top.gg/bot/1088929834748616785", emoji="🏅")
+            self.add_item(nom_btn)
+        except Exception:
+            pass
+
+    @discord.ui.button(label="Match History", style=discord.ButtonStyle.primary, emoji="📜")
+    async def match_history_button(self, interaction: discord.Interaction, button: Button):
+        await interaction.response.defer()
+        try:
+            riot_api_key = LOL_API
+            if not riot_api_key:
+                await interaction.followup.send("API key not configured.", ephemeral=True)
+                return
+            headers = {'X-Riot-Token': riot_api_key}
+            async with aiohttp.ClientSession() as session:
+                embed = await self.cog.create_match_history_embed(session, self.puuid, self.region, headers, self.riotid)
+                await interaction.followup.send(embed=embed)
+        except Exception as e:
+            logger.error(f"Error fetching match history: {e}")
+            await interaction.followup.send("Failed to fetch match history. Please try again later.", ephemeral=True)
+
+    @discord.ui.button(label="Champion Mastery", style=discord.ButtonStyle.secondary, emoji="🏆")
+    async def champion_mastery_button(self, interaction: discord.Interaction, button: Button):
+        await interaction.response.defer()
+        try:
+            riot_api_key = LOL_API
+            if not riot_api_key:
+                await interaction.followup.send("API key not configured.", ephemeral=True)
+                return
+            headers = {'X-Riot-Token': riot_api_key}
+            async with aiohttp.ClientSession() as session:
+                embed = await self.cog.create_champion_mastery_embed(session, self.puuid, self.region, headers, self.riotid)
+                await interaction.followup.send(embed=embed)
+        except Exception as e:
+            logger.error(f"Error fetching champion mastery: {e}")
+            await interaction.followup.send("Failed to fetch champion mastery. Please try again later.", ephemeral=True)
 
 
 async def setup(bot: commands.Bot):
