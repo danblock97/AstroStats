@@ -76,7 +76,7 @@ class PremiumCog(commands.Cog):
             ),
             color=discord.Color.gold()
         )
-        embed.set_footer(text="Built By Goldiez ❤️ Support: astrostats.info")
+        embed.set_footer(text="Built By Goldiez ❤️ Support: astrostats.info/support")
 
         embed.add_field(name="Your Tier", value=f"{current_tier}", inline=False)
 

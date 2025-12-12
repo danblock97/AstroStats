@@ -61,23 +61,14 @@ SPECIAL_EMOJI_NAMES = {
 # Latest bot updates
 
 LATEST_UPDATES = (
-    "## 🎉 Version 2.10.0\n\n"
-    "### ✨ What's New\n\n"
-    "**League Match History**\n"
-    "• View your last 9 matches in a clean 3x3 grid layout\n"
-    "• Shows result, champion, KDA ratio, and game duration\n"
-    "• Access via the new Match History button on your profile\n\n"
-    "**TFT Match History**\n"
-    "• View your last 9 TFT matches with placement, level, and top traits\n"
-    "• Beautiful grid layout for quick match scanning\n"
-    "• Access via the Match History button on your TFT profile\n\n"
-    "**Champion Mastery Button**\n"
-    "• Champion Mastery is now a button on the League profile instead of a separate command\n\n"
+    "## 🎉 Version 2.10.1\n\n"
     "### 🔧 Improvements\n\n"
-    "• TFT command now uses async requests for better performance\n"
-    "• Champion names display properly with correct formatting\n\n"
-    "### 🐛 Fixes\n\n"
-    "• Fixed TFT profile thumbnail not displaying correctly\n\n"
+    "**Fortnite Command**\n"
+    "• Name parameter is now required for better user experience\n\n"
+    "**Support Links**\n"
+    "• All support-related commands and links now direct to astrostats.info/support\n"
+    "• Updated `/bug` and `/feedback` commands to link to support page\n"
+    "• Consistent support navigation across all commands\n\n"
     "Visit [astrostats.info](https://astrostats.info) for more information."
 )
 

@@ -81,7 +81,7 @@ class HelpCog(commands.Cog):
             value=(
                 "Use `/bug` to report issues or `/feedback` to suggest features.\n"
                 "Both commands link directly to our Jira forms for quick support!\n\n"
-                "Visit our [Support Site](https://astrostats.info) for more information."
+                "Visit our [Support Site](https://astrostats.info/support) for more information."
             ),
             inline=False
         )

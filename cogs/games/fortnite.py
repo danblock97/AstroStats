@@ -62,18 +62,10 @@ class FortniteCog(commands.Cog):
             self,
             interaction: discord.Interaction,
             time: Literal['Season', 'Lifetime'],
-            name: str = None
+            name: str
     ):
         try:
             await interaction.response.defer()
-
-            if not name:
-                await send_error_embed(
-                    interaction,
-                    "Missing Username",
-                    "You need to provide a username for the stats."
-                )
-                return
 
             time_window = FORTNITE_TIME_MAPPING.get(time)
             if not time_window:

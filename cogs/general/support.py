@@ -18,14 +18,14 @@ class SupportCog(commands.Cog):
             title="💡 Submit Feedback or Feature Requests",
             description=(
                 "We value your feedback and ideas! Help shape the future of AstroStats by sharing your suggestions.\n\n"
-                "**💬 Join Our Discord Server**\n"
-                "Share your feedback and feature requests in our community:\n"
-                "[Join AstroStats Discord](https://discord.gg/BeszQxTn9D)\n\n"
+                "**🆘 Get Support**\n"
+                "Share your feedback and feature requests on our support page:\n"
+                "[Visit Support Page](https://astrostats.info/support)\n\n"
                 "**✨ What to Share**\n"
                 "• Detailed description of your feature idea\n"
                 "• How it would benefit you and other users\n"
                 "• Any specific examples or use cases\n\n"
-                "Connect with the community and help shape the future of AstroStats!"
+                "Your feedback helps shape the future of AstroStats!"
             ),
             color=discord.Color.blue()
         )
@@ -48,9 +48,9 @@ class SupportCog(commands.Cog):
             title="🐛 Report a Bug",
             description=(
                 "Found a bug? Help us fix it quickly by providing detailed information!\n\n"
-                "**💬 Join Our Discord Server**\n"
-                "Report bugs directly in our community:\n"
-                "[Join AstroStats Discord](https://discord.gg/BeszQxTn9D)\n\n"
+                "**🆘 Get Support**\n"
+                "Report bugs directly on our support page:\n"
+                "[Visit Support Page](https://astrostats.info/support)\n\n"
                 "**📝 What to Include**\n"
                 "• Clear description of the issue\n"
                 "• Steps to reproduce the bug\n"
