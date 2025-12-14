@@ -67,7 +67,7 @@ class TestHelpCog:
         support_field = next(field for field in embed.fields if field.name == "🆘 Need Help?")
         assert "astrostats.info" in support_field.value
         assert "/bug" in support_field.value or "/feedback" in support_field.value
-        assert "Jira" in support_field.value
+        assert "tracker" in support_field.value
 
     def test_help_embed_footer(self, help_cog):
         embed = help_cog.build_help_embed()

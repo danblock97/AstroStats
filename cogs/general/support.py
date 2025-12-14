@@ -15,17 +15,17 @@ class SupportCog(commands.Cog):
     @app_commands.command(name="feedback", description="Submit feedback or feature requests for AstroStats")
     async def feedback_command(self, interaction: discord.Interaction):
         embed = create_base_embed(
-            title="💡 Submit Feedback or Feature Requests",
+            title="💡 Submit Feature Request",
             description=(
-                "We value your feedback and ideas! Help shape the future of AstroStats by sharing your suggestions.\n\n"
-                "**🆘 Get Support**\n"
-                "Share your feedback and feature requests on our support page:\n"
-                "[Visit Support Page](https://astrostats.info/support)\n\n"
+                "Have an idea for AstroStats? We'd love to hear it!\n\n"
+                "**🚀 Submit Request**\n"
+                "Share your feature request directly on our request board:\n"
+                "[Submit Feature Request](http://localhost:3000/feature-request)\n\n"
                 "**✨ What to Share**\n"
                 "• Detailed description of your feature idea\n"
                 "• How it would benefit you and other users\n"
                 "• Any specific examples or use cases\n\n"
-                "Your feedback helps shape the future of AstroStats!"
+                "Your ideas help shape the future of AstroStats!"
             ),
             color=discord.Color.blue()
         )
@@ -49,8 +49,8 @@ class SupportCog(commands.Cog):
             description=(
                 "Found a bug? Help us fix it quickly by providing detailed information!\n\n"
                 "**🆘 Get Support**\n"
-                "Report bugs directly on our support page:\n"
-                "[Visit Support Page](https://astrostats.info/support)\n\n"
+                "Report bugs directly on our bug tracker:\n"
+                "[Report Bug](https://astrostats.info/bug)\n\n"
                 "**📝 What to Include**\n"
                 "• Clear description of the issue\n"
                 "• Steps to reproduce the bug\n"

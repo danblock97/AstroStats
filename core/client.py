@@ -302,7 +302,7 @@ class AstroStatsBot(commands.Bot):
             name="🔗 **Quick Links**",
             value=(
                 "[📖 Documentation](https://astrostats.info) • "
-                "[💬 Support](https://astrostats.info/support) • "
+                "[💬 Support](https://astrostats.info/bug) • "
                 "[🐛 Report Issues](https://astrostats.info) • "
                 "[❤️ Support Us](https://astrostats.info/pricing)"
             ),

@@ -61,14 +61,13 @@ SPECIAL_EMOJI_NAMES = {
 # Latest bot updates
 
 LATEST_UPDATES = (
-    "## 🎉 Version 2.10.1\n\n"
+    "## 🎉 Version 2.10.2\n\n"
     "### 🔧 Improvements\n\n"
-    "**Fortnite Command**\n"
-    "• Name parameter is now required for better user experience\n\n"
+    "**Feature Requests**\n"
+    "• New `/feedback` command points to our dedicated feature request board\n\n"
     "**Support Links**\n"
-    "• All support-related commands and links now direct to astrostats.info/support\n"
-    "• Updated `/bug` and `/feedback` commands to link to support page\n"
-    "• Consistent support navigation across all commands\n\n"
+    "• Updated `/bug` command to link directly to bug reporting\n"
+    "• Improved support navigation across the bot\n\n"
     "Visit [astrostats.info](https://astrostats.info) for more information."
 )
 

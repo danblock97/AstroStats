@@ -13,7 +13,7 @@ def create_base_embed(title: str, description: Optional[str] = None, color: disc
         url=url,
         timestamp=datetime.datetime.now(datetime.timezone.utc)
     )
-    embed.set_footer(text="Built By Goldiez ❤️ Support: astrostats.info/support")
+    embed.set_footer(text="Built By Goldiez ❤️ Support: astrostats.info/bug")
     return embed
 
 def create_error_embed(title: str, description: str) -> discord.Embed:
@@ -57,7 +57,7 @@ def get_premium_promotion_embed(user_id: str) -> Optional[discord.Embed]:
             description=description,
             color=discord.Color.gold()
         )
-        promo_embed.set_footer(text="Built By Goldiez ❤️ Support: astrostats.info/support")
+        promo_embed.set_footer(text="Built By Goldiez ❤️ Support: astrostats.info/bug")
         return promo_embed
     except Exception:
         return None  # Never break caller on promo failure
