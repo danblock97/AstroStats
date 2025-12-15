@@ -192,8 +192,9 @@ class TestApexCog:
             "percentile": 10
         }
         
+        # 10th percentile -> Bottom 10%
         result = apex_cog.format_ranked_stats(ranked_stats)
-        assert "**Diamond**: 4,500 (Top 10%)" in result
+        assert "**Diamond**: 4,500 (Bottom 10%)" in result
 
     def test_format_ranked_stats_no_percentile(self, apex_cog):
         ranked_stats = {
@@ -204,6 +205,7 @@ class TestApexCog:
         result = apex_cog.format_ranked_stats(ranked_stats)
         assert "**Diamond**: 4,500" in result
         assert "Top" not in result
+        assert "Bottom" not in result
 
     def test_format_peak_rank(self, apex_cog):
         peak_rank = {

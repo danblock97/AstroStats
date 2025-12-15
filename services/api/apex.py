@@ -63,20 +63,41 @@ def fetch_apex_stats(platform: str, name: str) -> Dict:
         raise APIError(f"Request error: {str(e)}")
 
 
-def get_percentile_label(percentile: Optional[float]) -> str:
-    """Get a label for a percentile value."""
+def get_formatted_percentile(percentile: Optional[float]) -> str:
+    """
+    Get a formatted string for a percentile value.
+    
+    If percentile >= 50, it shows "Top X%" where X is (100 - percentile).
+    If percentile < 50, it shows "Bottom X%" where X is the percentile.
+    """
     if percentile is None:
         return 'N/A'
-    if percentile >= 90:
-        return '🌟 Top'
-    return 'Top' if percentile >= 50 else 'Bottom'
+    
+    if percentile >= 50:
+        value = 100 - percentile
+        # Use simple integer if it's a whole number close to integer, otherwise 1 decimal
+        precision = 0 if value >= 1 and value % 1 == 0 else 1
+        formatted_value = f"{value:.{precision}f}".rstrip('0').rstrip('.') if precision > 0 else f"{int(value)}"
+        
+        # Special case for 100th percentile (0% top) -> Top 0.1% or similar to avoid "Top 0%" if not precise
+        if formatted_value == '0':
+             formatted_value = '0.1' 
+
+        return f"Top {formatted_value}%"
+    else:
+        # Bottom X%
+        formatted_value = f"{int(percentile)}"
+        return f"Bottom {formatted_value}%"
 
 
 def format_stat_value(stat_data: Dict) -> str:
     """Format a stat value with percentile."""
     stat_value = stat_data.get('value')
     if stat_value is not None:
-        percentile_label = get_percentile_label(stat_data.get('percentile', 0))
-        percentile_value = int(stat_data.get('percentile', 0)) if percentile_label != 'N/A' else 0
-        return f"{int(stat_value):,} ({percentile_label} {percentile_value}%)"
+        percentile = stat_data.get('percentile')
+        percentile_str = get_formatted_percentile(percentile)
+        
+        if percentile_str != 'N/A':
+            return f"{int(stat_value):,} ({percentile_str})"
+        return f"{int(stat_value):,}"
     return 'N/A'

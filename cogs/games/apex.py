@@ -178,8 +178,16 @@ class ApexCog(commands.Cog):
     def format_ranked_stats(self, ranked: Dict) -> str:
         rank_name = ranked.get('metadata', {}).get('rankName', 'Unranked')
         rank_value = ranked.get('value', 0)
-        rank_percentile = ranked.get('percentile', 0)
-        percentile_display = f"(Top {int(rank_percentile)}%)" if rank_percentile else ""
+        rank_percentile = ranked.get('percentile')
+        
+        # Use shared helper for consistency
+        from services.api.apex import get_formatted_percentile
+        percentile_display = ""
+        if rank_percentile is not None:
+             p_str = get_formatted_percentile(rank_percentile)
+             if p_str != 'N/A':
+                 percentile_display = f"({p_str})"
+
         return f"**{rank_name}**: {int(rank_value):,} {percentile_display}"
 
     def format_peak_rank(self, peak_rank: Dict) -> str:

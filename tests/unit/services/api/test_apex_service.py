@@ -215,36 +215,38 @@ class TestApexAPIService:
 
     def test_get_percentile_label_top_tier(self):
         """Test percentile label for top tier performance"""
-        from services.api.apex import get_percentile_label
+        from services.api.apex import get_formatted_percentile
         
-        # Top tier (>= 90th percentile)
-        assert get_percentile_label(95.0) == '🌟 Top'
-        assert get_percentile_label(90.0) == '🌟 Top'
-        assert get_percentile_label(99.9) == '🌟 Top'
+        # Top tier (>= 90th percentile) -> should show small Top X%
+        assert get_formatted_percentile(95.0) == 'Top 5%'
+        assert get_formatted_percentile(90.0) == 'Top 10%'
+        
+        # Special case for 100th percentile or very close
+        assert get_formatted_percentile(99.9) == 'Top 0.1%'
 
     def test_get_percentile_label_above_average(self):
         """Test percentile label for above average performance"""
-        from services.api.apex import get_percentile_label
+        from services.api.apex import get_formatted_percentile
         
         # Above average (50-89th percentile)
-        assert get_percentile_label(75.0) == 'Top'
-        assert get_percentile_label(50.0) == 'Top'
-        assert get_percentile_label(89.9) == 'Top'
+        assert get_formatted_percentile(75.0) == 'Top 25%'
+        assert get_formatted_percentile(50.0) == 'Top 50%'
+        assert get_formatted_percentile(89.0) == 'Top 11%'
 
     def test_get_percentile_label_below_average(self):
         """Test percentile label for below average performance"""
-        from services.api.apex import get_percentile_label
+        from services.api.apex import get_formatted_percentile
         
         # Below average (< 50th percentile)
-        assert get_percentile_label(25.0) == 'Bottom'
-        assert get_percentile_label(0.0) == 'Bottom'
-        assert get_percentile_label(49.9) == 'Bottom'
+        assert get_formatted_percentile(25.0) == 'Bottom 25%'
+        assert get_formatted_percentile(0.0) == 'Bottom 0%'
+        assert get_formatted_percentile(49.0) == 'Bottom 49%'
 
     def test_get_percentile_label_none_value(self):
         """Test percentile label when value is None"""
-        from services.api.apex import get_percentile_label
+        from services.api.apex import get_formatted_percentile
         
-        assert get_percentile_label(None) == 'N/A'
+        assert get_formatted_percentile(None) == 'N/A'
 
     def test_format_stat_value_with_percentile(self):
         """Test stat value formatting with percentile"""
@@ -255,8 +257,9 @@ class TestApexAPIService:
             'percentile': 75.0
         }
         
+        # 75th percentile -> Top 25%
         result = format_stat_value(stat_data)
-        assert result == "1,500 (Top 75%)"
+        assert result == "1,500 (Top 25%)"
 
     def test_format_stat_value_top_tier(self):
         """Test stat value formatting for top tier performance"""
@@ -267,8 +270,9 @@ class TestApexAPIService:
             'percentile': 95.0
         }
         
+        # 95th percentile -> Top 5%
         result = format_stat_value(stat_data)
-        assert result == "2,500 (🌟 Top 95%)"
+        assert result == "2,500 (Top 5%)"
 
     def test_format_stat_value_no_percentile(self):
         """Test stat value formatting without percentile"""
@@ -301,7 +305,7 @@ class TestApexAPIService:
         }
         
         result = format_stat_value(stat_data)
-        assert result == "800 (N/A 0%)"
+        assert result == "800"
 
     def test_format_stat_value_decimal_handling(self):
         """Test stat value formatting handles decimals correctly"""
@@ -312,8 +316,9 @@ class TestApexAPIService:
             'percentile': 60.0
         }
         
+        # 60th percentile -> Top 40%
         result = format_stat_value(stat_data)
-        assert result == "1,234 (Top 60%)"  # Should convert to int for display
+        assert result == "1,234 (Top 40%)"
 
     def test_format_stat_value_large_numbers(self):
         """Test stat value formatting with large numbers"""
@@ -324,8 +329,10 @@ class TestApexAPIService:
             'percentile': 85.0
         }
         
+        # 85th percentile -> Top 15%
         result = format_stat_value(stat_data)
-        assert result == "1,234,567 (Top 85%)"  # Should include comma separators
+        assert result == "1,234,567 (Top 15%)"
+
 
     def test_api_constants_integration(self):
         """Test integration with constants for platform mapping"""
@@ -416,15 +423,15 @@ class TestApexAPIService:
 
     def test_percentile_edge_cases(self):
         """Test percentile calculation edge cases"""
-        from services.api.apex import get_percentile_label
+        from services.api.apex import get_formatted_percentile
         
         # Test boundary values
-        assert get_percentile_label(0.0) == 'Bottom'
-        assert get_percentile_label(49.999) == 'Bottom'
-        assert get_percentile_label(50.0) == 'Top'
-        assert get_percentile_label(89.999) == 'Top'
-        assert get_percentile_label(90.0) == '🌟 Top'
-        assert get_percentile_label(100.0) == '🌟 Top'
+        assert get_formatted_percentile(0.0) == 'Bottom 0%'
+        assert get_formatted_percentile(49.0) == 'Bottom 49%'
+        assert get_formatted_percentile(50.0) == 'Top 50%'
+        assert get_formatted_percentile(89.0) == 'Top 11%'
+        assert get_formatted_percentile(90.0) == 'Top 10%'
+        assert get_formatted_percentile(100.0) == 'Top 0.1%'  # Special case: 0% becomes 0.1%
 
     def test_stat_formatting_edge_cases(self):
         """Test stat formatting with edge cases"""
