@@ -182,7 +182,8 @@ class LeagueCog(commands.GroupCog, group_name="league"):
                     embeds.append(conditional_embed)
                 
                 view = LeagueProfileView(self, puuid, region, riotid, str(interaction.user.id))
-                await interaction.followup.send(embeds=embeds, view=view)
+                message = await interaction.followup.send(embeds=embeds, view=view)
+                view.message = message
 
         except aiohttp.ClientError as e:
             logger.error(f"Request Error: {e}")
@@ -598,13 +599,26 @@ class LeagueCog(commands.GroupCog, group_name="league"):
 class LeagueProfileView(View):
     """View with Match History and Champion Mastery buttons for League profile."""
     def __init__(self, cog: 'LeagueCog', puuid: str, region: str, riotid: str, user_id: str):
-        super().__init__(timeout=300)
+        super().__init__(timeout=3600)
         self.cog = cog
         self.puuid = puuid
         self.region = region
         self.riotid = riotid
         self.user_id = user_id
+        self.message: Optional[discord.Message] = None
         self._add_premium_buttons()
+
+    async def on_timeout(self) -> None:
+        """Disable all buttons when the view times out."""
+        try:
+            for child in self.children:
+                if isinstance(child, (discord.ui.Button, discord.ui.Select)):
+                    child.disabled = True
+            
+            if self.message:
+                await self.message.edit(view=self)
+        except Exception as e:
+            logger.error(f"Error handling timeout for LeagueProfileView: {e}")
 
     def _add_premium_buttons(self):
         """Add premium promotion buttons."""
