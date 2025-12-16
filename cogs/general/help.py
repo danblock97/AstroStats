@@ -64,8 +64,8 @@ class HelpCog(commands.Cog):
         embed.add_field(
             name="💬 Support & Feedback",
             value=(
-                "`/feedback` - Submit feature requests via Jira form\n"
-                "`/bug` - Report bugs via Jira form"
+                "`/issues` - View known issues & upcoming features\n"
+                "`/support` - Report bugs or request features"
             ),
             inline=False
         )
@@ -79,9 +79,9 @@ class HelpCog(commands.Cog):
         embed.add_field(
             name="🆘 Need Help?",
             value=(
-                "Use `/bug` to report issues or `/feedback` to suggest features.\n"
-                "Both commands link directly to our tracker for quick support!\n\n"
-                "Visit our [Support Site](https://astrostats.info/bug) for more information."
+                "Use `/support` to report issues or suggest features.\n"
+                "The command links directly to our support center!\n\n"
+                "Visit our [Support Site](https://astrostats.info/support) for more information."
             ),
             inline=False
         )

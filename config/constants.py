@@ -61,10 +61,11 @@ SPECIAL_EMOJI_NAMES = {
 # Latest bot updates
 
 LATEST_UPDATES = (
-    "## 🎉 Version 2.10.3\n\n"
+    "## 🎉 Version 2.10.4\n\n"
     "### 🔧 Improvements\n\n"
-    "**League Timeouts**\n"
-    "• Increased timeout duration for League profile views to 60 minutes\n"
+    "**Support & Images**\n"
+    "• Corrected links in Support related views\n"
+    "• Changed Would you Rather Image\n"
     "Visit [astrostats.info](https://astrostats.info) for more information."
 )
 

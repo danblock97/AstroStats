@@ -45,8 +45,8 @@ class TestHelpCog:
         assert "/welcome set-message" in all_field_content
         assert "/welcome set-image" in all_field_content
         assert "/premium" in all_field_content
-        assert "/feedback" in all_field_content
-        assert "/bug" in all_field_content
+        assert "/issues" in all_field_content
+        assert "/support" in all_field_content
 
     def test_help_embed_fields(self, help_cog):
         embed = help_cog.build_help_embed()
@@ -66,8 +66,8 @@ class TestHelpCog:
         
         support_field = next(field for field in embed.fields if field.name == "🆘 Need Help?")
         assert "astrostats.info" in support_field.value
-        assert "/bug" in support_field.value or "/feedback" in support_field.value
-        assert "tracker" in support_field.value
+        assert "/support" in support_field.value
+        assert "support center" in support_field.value
 
     def test_help_embed_footer(self, help_cog):
         embed = help_cog.build_help_embed()

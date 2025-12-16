@@ -13,51 +13,51 @@ class TestSupportCommands:
         return cog
 
     @pytest.mark.asyncio
-    async def test_feedback_command_structure(self, support_cog, mock_interaction):
-        """Test feedback command response structure"""
-        # Test feedback command exists and has proper structure
-        assert hasattr(support_cog, 'feedback_command') or True  # Would test actual implementation
+    async def test_issues_command_structure(self, support_cog, mock_interaction):
+        """Test issues command response structure"""
+        # Test issues command exists and has proper structure
+        assert hasattr(support_cog, 'issues_command') or True  # Would test actual implementation
 
     @pytest.mark.asyncio 
-    async def test_feedback_embed_content(self):
-        """Test feedback embed content and structure"""
+    async def test_issues_embed_content(self):
+        """Test issues embed content and structure"""
         expected_embed = {
-            "title": "Submit Feedback or Feature Requests",
-            "description": "We value your feedback! To submit a feature request or share your thoughts:",
+            "title": "📋 Issue Tracker & Features",
+            "description": "Want to see what we're working on? Check out our issue tracker!",
             "color": discord.Color.blue(),
             "instructions": [
-                "Visit the AstroStats Website",
-                "Click on the 'Need Help' button", 
-                "Fill out the form with your suggestion"
+                "View known bugs",
+                "upcoming features", 
+                "Planned maintenance"
             ]
         }
         
         # Should provide clear instructions
-        assert "feedback" in expected_embed["title"].lower()
+        assert "issue" in expected_embed["title"].lower()
         assert len(expected_embed["instructions"]) >= 3
         assert expected_embed["color"] == discord.Color.blue()
 
     @pytest.mark.asyncio
-    async def test_bug_command_structure(self, support_cog, mock_interaction):
-        """Test bug command response structure"""
-        # Test bug command exists and has proper structure
-        assert hasattr(support_cog, 'bug_command') or True  # Would test actual implementation
+    async def test_support_command_structure(self, support_cog, mock_interaction):
+        """Test support command response structure"""
+        # Test support command exists and has proper structure
+        assert hasattr(support_cog, 'support_command') or True  # Would test actual implementation
 
     @pytest.mark.asyncio
-    async def test_bug_embed_content(self):
-        """Test bug embed content and structure"""
+    async def test_support_embed_content(self):
+        """Test support embed content and structure"""
         expected_embed = {
-            "title": "Report a Bug",
-            "description": "Found a bug? Help us fix it by reporting it directly to the developer:",
+            "title": "🐛 Report Bugs & Request Features",
+            "description": "Found a bug or have a great idea? Let us know!",
             "color": discord.Color.red(),
             "instructions": [
-                "Visit the AstroStats Website",
-                "Click on 'Need Help' button",
-                "Describe the issue in detail (including steps to reproduce)"
+                "Visit Support Center",
+                "Clear description",
+                "Steps to reproduce"
             ]
         }
         
-        # Should provide clear bug reporting instructions
+        # Should provide clear reporting instructions
         assert "bug" in expected_embed["title"].lower()
         assert "reproduce" in str(expected_embed["instructions"]).lower()
         assert expected_embed["color"] == discord.Color.red()
@@ -67,21 +67,19 @@ class TestSupportCommands:
         """Test that support commands include proper URLs"""
         support_links = {
             "website": "https://astrostats.info",
-            "help_section": "Need Help",
-            "feedback_form": True,
-            "bug_report_form": True
+            "help_section": "issues",
+            "support_page": True
         }
         
         # Should have working support infrastructure
         assert "astrostats.info" in support_links["website"]
-        assert support_links["feedback_form"] is True
-        assert support_links["bug_report_form"] is True
+        assert support_links["support_page"] is True
 
     @pytest.mark.asyncio
     async def test_conditional_embed_integration(self):
         """Test conditional embed integration in support commands"""
         # Support commands should include conditional embeds
-        embed_types = ["FEEDBACK_EMBED", "BUG_EMBED"]
+        embed_types = ["ISSUES_EMBED", "SUPPORT_EMBED"]
         
         for embed_type in embed_types:
             assert len(embed_type) > 0
@@ -103,8 +101,8 @@ class TestSupportCommands:
     def test_support_command_accessibility(self):
         """Test that support commands are easily accessible"""
         command_properties = {
-            "feedback_accessible": True,
-            "bug_accessible": True,
+            "issues_accessible": True,
+            "support_accessible": True,
             "clear_naming": True,
             "help_integration": True
         }
@@ -138,22 +136,22 @@ class TestSupportCommands:
         for requirement in bug_report_requirements:
             assert len(requirement) > 0
 
-    def test_feedback_vs_bug_distinction(self):
-        """Test clear distinction between feedback and bug reports"""
+    def test_issues_vs_support_distinction(self):
+        """Test clear distinction between tracking issues and raising support requests"""
         command_purposes = {
-            "feedback": {
-                "purpose": "feature requests and suggestions",
+            "issues": {
+                "purpose": "tracking progress and planned features",
                 "color": "blue",
-                "tone": "positive"
+                "tone": "informative"
             },
-            "bug": {
-                "purpose": "issue reporting and fixes",
+            "support": {
+                "purpose": "reporting bugs and requesting features",
                 "color": "red", 
-                "tone": "problem-solving"
+                "tone": "action-oriented"
             }
         }
         
         # Should have clear distinction
-        assert command_purposes["feedback"]["color"] != command_purposes["bug"]["color"]
-        assert "feature" in command_purposes["feedback"]["purpose"]
-        assert "issue" in command_purposes["bug"]["purpose"]
+        assert command_purposes["issues"]["color"] != command_purposes["support"]["color"]
+        assert "tracking" in command_purposes["issues"]["purpose"]
+        assert "reporting" in command_purposes["support"]["purpose"]
