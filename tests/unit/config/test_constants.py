@@ -107,15 +107,12 @@ class TestConfigConstants:
         
         # Test contains version information
         assert "Version" in LATEST_UPDATES
-        assert "2.8.1" in LATEST_UPDATES
+        assert "2.11.0" in LATEST_UPDATES
         
         # Test contains key feature mentions for current version
-        assert "bug" in LATEST_UPDATES.lower() or "Bug" in LATEST_UPDATES
-        assert "feedback" in LATEST_UPDATES.lower() or "Feedback" in LATEST_UPDATES
-        assert "help" in LATEST_UPDATES.lower() or "Help" in LATEST_UPDATES
-        assert "jira" in LATEST_UPDATES.lower() or "Jira" in LATEST_UPDATES
-        
-        # Test formatting markers
+        assert "cosmos" in LATEST_UPDATES.lower() or "Cosmos" in LATEST_UPDATES
+        assert "space" in LATEST_UPDATES.lower() or "Space" in LATEST_UPDATES
+        assert "command" in LATEST_UPDATES.lower() or "Command" in LATEST_UPDATES
         assert "**" in LATEST_UPDATES  # Bold formatting
         assert "\n" in LATEST_UPDATES   # Line breaks
 
@@ -300,10 +297,10 @@ class TestConfigConstants:
         from config.constants import LATEST_UPDATES
         
         # Test version format
-        assert "Version 2.8.1" in LATEST_UPDATES
+        assert "Version 2.11.0" in LATEST_UPDATES
         
         # Test contains feature descriptions for current version
-        feature_keywords = ["bug", "feedback", "help", "jira", "support", "command"]
+        feature_keywords = ["cosmos", "nasa", "iss", "launch", "space", "command"]
         found_features = 0
         for keyword in feature_keywords:
             if keyword.lower() in LATEST_UPDATES.lower():

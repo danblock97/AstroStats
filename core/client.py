@@ -159,6 +159,7 @@ class AstroStatsBot(commands.Bot):
         from cogs.games.truthordare import setup as setup_truth_or_dare # Add this import
         from cogs.games.wouldyourather import setup as setup_would_you_rather
         from cogs.games.catfight import setup as setup_catfight
+        from cogs.general.cosmos import setup as setup_cosmos
 
         # Setup all cogs concurrently to reduce startup time
         await asyncio.gather(
@@ -181,6 +182,7 @@ class AstroStatsBot(commands.Bot):
             setup_truth_or_dare(self),
             setup_would_you_rather(self),
             setup_catfight(self),
+            setup_cosmos(self),
         )
 
         # Setup error handlers

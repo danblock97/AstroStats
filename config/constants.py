@@ -61,11 +61,13 @@ SPECIAL_EMOJI_NAMES = {
 # Latest bot updates
 
 LATEST_UPDATES = (
-    "## 🎉 Version 2.10.4\n\n"
-    "### 🔧 Improvements\n\n"
-    "**Support & Images**\n"
-    "• Corrected links in Support related views\n"
-    "• Changed Would you Rather Image\n"
+    "## 🚀 Version 2.11.0\n\n"
+    "### 🌌 New Features: Cosmos\n\n"
+    "**Space Commands**\n"
+    "• **/apod**: Astronomy Picture of the Day from NASA\n"
+    "• **/iss**: Real-time location of the International Space Station\n"
+    "• **/people**: List of humans currently in space\n"
+    "• **/launch**: Information on the next upcoming rocket launch\n\n"
     "Visit [astrostats.info](https://astrostats.info) for more information."
 )
 
