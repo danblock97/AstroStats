@@ -61,7 +61,10 @@ SPECIAL_EMOJI_NAMES = {
 # Latest bot updates
 
 LATEST_UPDATES = (
-    "## 🚀 Version 2.11.0\n\n"
+    "## 🚀 Version 2.11.1\n\n"
+    "### 🌌 League Cog Fixes\n\n"
+    "**Stability Updates**\n"
+    "• **League Profile**: Fixed a bug where viewing a profile for too long could cause an 'Invalid Webhook Token' error. The view now times out gracefully after 14 minutes.\n\n"
     "### 🌌 New Features: Cosmos\n\n"
     "**Space Commands**\n"
     "• **/apod**: Astronomy Picture of the Day from NASA\n"

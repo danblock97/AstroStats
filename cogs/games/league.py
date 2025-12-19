@@ -599,7 +599,7 @@ class LeagueCog(commands.GroupCog, group_name="league"):
 class LeagueProfileView(View):
     """View with Match History and Champion Mastery buttons for League profile."""
     def __init__(self, cog: 'LeagueCog', puuid: str, region: str, riotid: str, user_id: str):
-        super().__init__(timeout=3600)
+        super().__init__(timeout=840)
         self.cog = cog
         self.puuid = puuid
         self.region = region
@@ -617,8 +617,15 @@ class LeagueProfileView(View):
             
             if self.message:
                 await self.message.edit(view=self)
+        except discord.HTTPException as e:
+            if e.code == 50027:
+                # 50027: Invalid Webhook Token (token expired after 15 mins)
+                # No need to log this as an error since it's expected behavior for old messages
+                logger.debug(f"Interaction token expired while handling timeout for LeagueProfileView")
+            else:
+                logger.error(f"HTTP error handling timeout for LeagueProfileView: {e}")
         except Exception as e:
-            logger.error(f"Error handling timeout for LeagueProfileView: {e}")
+            logger.error(f"Unexpected error handling timeout for LeagueProfileView: {e}")
 
     def _add_premium_buttons(self):
         """Add premium promotion buttons."""
