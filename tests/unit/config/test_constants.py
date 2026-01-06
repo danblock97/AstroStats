@@ -98,24 +98,6 @@ class TestConfigConstants:
             assert champion_name in SPECIAL_EMOJI_NAMES
             assert SPECIAL_EMOJI_NAMES[champion_name] == emoji_name
 
-    def test_latest_updates_format(self):
-        """Test latest updates string format"""
-        from config.constants import LATEST_UPDATES
-        
-        assert isinstance(LATEST_UPDATES, str)
-        assert len(LATEST_UPDATES) > 0
-        
-        # Test contains version information
-        assert "Version" in LATEST_UPDATES
-        assert "2.11.0" in LATEST_UPDATES
-        
-        # Test contains key feature mentions for current version
-        assert "cosmos" in LATEST_UPDATES.lower() or "Cosmos" in LATEST_UPDATES
-        assert "space" in LATEST_UPDATES.lower() or "Space" in LATEST_UPDATES
-        assert "command" in LATEST_UPDATES.lower() or "Command" in LATEST_UPDATES
-        assert "**" in LATEST_UPDATES  # Bold formatting
-        assert "\n" in LATEST_UPDATES   # Line breaks
-
     def test_sfw_truths_content(self):
         """Test SFW truth questions"""
         from config.constants import SFW_TRUTHS
@@ -291,22 +273,6 @@ class TestConfigConstants:
         for content in all_content:
             # Discord embed field value limit is 1024 characters
             assert len(content) <= 1000, f"Content too long: {content[:100]}..."
-
-    def test_latest_updates_version_info(self):
-        """Test latest updates contain proper version information"""
-        from config.constants import LATEST_UPDATES
-        
-        # Test version format
-        assert "Version 2.11.0" in LATEST_UPDATES
-        
-        # Test contains feature descriptions for current version
-        feature_keywords = ["cosmos", "nasa", "iss", "launch", "space", "command"]
-        found_features = 0
-        for keyword in feature_keywords:
-            if keyword.lower() in LATEST_UPDATES.lower():
-                found_features += 1
-        
-        assert found_features >= 4, "Latest updates should mention key features from current version"
 
     def test_region_code_validity(self):
         """Test League region codes follow expected patterns"""

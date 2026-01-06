@@ -638,8 +638,6 @@ class LeagueProfileView(View):
             else:
                 btn = Button(label="Manage Account", style=discord.ButtonStyle.link, url="https://astrostats.info/account", emoji="⚙️")
             self.add_item(btn)
-            nom_btn = Button(label="Nominate AstroStats", style=discord.ButtonStyle.link, url="https://top.gg/bot/1088929834748616785", emoji="🏅")
-            self.add_item(nom_btn)
         except Exception:
             pass
 

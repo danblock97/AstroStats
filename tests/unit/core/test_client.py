@@ -49,7 +49,6 @@ class TestAstroStatsBot:
             stack.enter_context(patch('cogs.general.horoscope.setup', new=AsyncMock()))
             stack.enter_context(patch('cogs.general.review.setup', new=AsyncMock()))
             stack.enter_context(patch('cogs.general.premium.setup', new=AsyncMock()))
-            stack.enter_context(patch('cogs.general.show_update.setup', new=AsyncMock()))
             stack.enter_context(patch('cogs.general.support.setup', new=AsyncMock()))
             stack.enter_context(patch('cogs.systems.pet_battles.setup', new=AsyncMock()))
             stack.enter_context(patch('cogs.admin.kick.setup', new=AsyncMock()))
@@ -84,7 +83,6 @@ class TestAstroStatsBot:
             mock_horoscope = stack.enter_context(patch('cogs.general.horoscope.setup', new=AsyncMock()))
             mock_review = stack.enter_context(patch('cogs.general.review.setup', new=AsyncMock()))
             mock_premium = stack.enter_context(patch('cogs.general.premium.setup', new=AsyncMock()))
-            mock_show_update = stack.enter_context(patch('cogs.general.show_update.setup', new=AsyncMock()))
             mock_support = stack.enter_context(patch('cogs.general.support.setup', new=AsyncMock()))
             mock_pet_battles = stack.enter_context(patch('cogs.systems.pet_battles.setup', new=AsyncMock()))
             mock_kick = stack.enter_context(patch('cogs.admin.kick.setup', new=AsyncMock()))
@@ -100,7 +98,7 @@ class TestAstroStatsBot:
             setup_mocks = [
                 mock_apex, mock_league, mock_fortnite, mock_tft,
                 mock_help, mock_horoscope, mock_review, mock_premium,
-                mock_show_update, mock_support, mock_pet_battles,
+                mock_support, mock_pet_battles,
                 mock_kick, mock_servers, mock_squib_game,
                 mock_truthordare, mock_wouldyourather, mock_catfight
             ]
@@ -123,7 +121,6 @@ class TestAstroStatsBot:
             stack.enter_context(patch('cogs.general.horoscope.setup', new=AsyncMock()))
             stack.enter_context(patch('cogs.general.review.setup', new=AsyncMock()))
             stack.enter_context(patch('cogs.general.premium.setup', new=AsyncMock()))
-            stack.enter_context(patch('cogs.general.show_update.setup', new=AsyncMock()))
             stack.enter_context(patch('cogs.general.support.setup', new=AsyncMock()))
             stack.enter_context(patch('cogs.systems.pet_battles.setup', new=AsyncMock()))
             stack.enter_context(patch('cogs.admin.kick.setup', new=AsyncMock()))

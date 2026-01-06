@@ -99,4 +99,3 @@ AstroStats uses Discord's slash commands (`/`). Here's a breakdown of available 
 - `/help` - List all available commands
 - `/horoscope <sign>` - Check your daily horoscope
 - `/review` - Leave a review on Top.gg
-- `/show_update` - Show the latest bot updates

@@ -10,7 +10,6 @@ from pymongo import MongoClient, UpdateOne # Import UpdateOne
 from bson import ObjectId # Import ObjectId
 
 from config.settings import TOKEN, BLACKLISTED_GUILDS, MONGODB_URI # Import MONGODB_URI
-from config.constants import LATEST_UPDATES
 from core.errors import setup_error_handlers
 from services.database.welcome import get_welcome_settings
 
@@ -148,7 +147,6 @@ class AstroStatsBot(commands.Bot):
         from cogs.general.horoscope import setup as setup_horoscope
         from cogs.general.review import setup as setup_review
         from cogs.general.premium import setup as setup_premium
-        from cogs.general.show_update import setup as setup_show_update
         from cogs.general.support import setup as setup_support
         from cogs.systems.pet_battles import setup as setup_pet_battles
         from cogs.systems.squib_game import setup as setup_squib_game
@@ -171,7 +169,6 @@ class AstroStatsBot(commands.Bot):
             setup_horoscope(self),
             setup_review(self),
             setup_premium(self),
-            setup_show_update(self),
             setup_support(self),
             setup_pet_battles(self),
             setup_kick(self),
