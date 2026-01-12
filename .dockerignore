@@ -23,3 +23,5 @@ docker-compose.yml
 
 # Pytest
 .pytest_cache/
+
+.env
