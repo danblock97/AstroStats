@@ -253,8 +253,8 @@ class AstroStatsBot(commands.Bot):
             name="📊 **Game Statistics**",
             value=(
                 "**🎯 Apex Legends** - `/apex <platform> <username>`\n"
-                "**⚔️ League of Legends** - `/league profile` • `/league championmastery`\n"
-                "**🏆 Teamfight Tactics** - `/tft <region> <RiotID#Tag>`\n"
+                "**⚔️ League of Legends** - `/league profile <region> <riotid>`\n"
+                "**🏆 Teamfight Tactics** - `/tft <region> <riotid>`\n"
                 "**🏗️ Fortnite** - `/fortnite <timeframe> <username>`"
             ),
             inline=False
@@ -278,7 +278,7 @@ class AstroStatsBot(commands.Bot):
             name="✨ **Entertainment & More**",
             value=(
                 "**🔮 Daily Horoscope** - `/horoscope <sign>`\n"
-                "**❓ Help & Support** - `/help` • `/feedback` • `/bug`\n"
+                "**❓ Help & Support** - `/help` • `/support` • `/issues`\n"
                 "**⭐ Show Love** - `/review` (Leave us a review!)"
             ),
             inline=False
@@ -290,8 +290,9 @@ class AstroStatsBot(commands.Bot):
             value=(
                 "Unlock **unlimited players** in Squib Games, **extended pet capacity**, "
                 "and exclusive features!\n\n"
+                "**💰 Pricing:** Supporter £3/mo • Sponsor £5/mo • VIP £10/mo\n\n"
                 "**🚀 Get Premium** - `/premium`\n"
-                "**💰 View Pricing** - [astrostats.info/pricing](https://astrostats.info/pricing)"
+                "**📖 View Details** - [astrostats.info/pricing](https://astrostats.info/pricing)"
             ),
             inline=False
         )
@@ -301,7 +302,7 @@ class AstroStatsBot(commands.Bot):
             name="🔗 **Quick Links**",
             value=(
                 "[📖 Documentation](https://astrostats.info) • "
-                "[💬 Support](https://astrostats.info/bug) • "
+                "[💬 Support](https://www.astrostats.info/support) • "
                 "[🐛 Report Issues](https://astrostats.info) • "
                 "[❤️ Support Us](https://astrostats.info/pricing)"
             ),

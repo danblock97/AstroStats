@@ -34,8 +34,8 @@ class TestHelpCog:
         
         # Check command examples
         assert "/apex <platform> <username>" in all_field_content
-        assert "/league profile" in all_field_content
-        assert "/tft <Summoner#0001>" in all_field_content
+        assert "/league profile <region> <riotid>" in all_field_content
+        assert "/tft <region> <riotid>" in all_field_content
         assert "/fortnite <time> <name>" in all_field_content
         assert "/horoscope <sign>" in all_field_content
         assert "/petbattles summon" in all_field_content
@@ -47,6 +47,14 @@ class TestHelpCog:
         assert "/premium" in all_field_content
         assert "/issues" in all_field_content
         assert "/support" in all_field_content
+        assert "/review" in all_field_content
+        assert "/truthordare" in all_field_content
+        assert "/wouldyourather" in all_field_content
+        assert "/bingo start" in all_field_content
+        assert "/astronauts" in all_field_content
+        assert "/apod" in all_field_content
+        assert "/iss" in all_field_content
+        assert "/launch" in all_field_content
 
     def test_help_embed_fields(self, help_cog):
         embed = help_cog.build_help_embed()
@@ -54,6 +62,7 @@ class TestHelpCog:
         field_names = [field.name for field in embed.fields]
         assert "🎮 Gaming Stats Commands" in field_names
         assert "🎲 Fun & Games" in field_names
+        assert "🌌 Space & NASA" in field_names
         assert "⚙️ Server & Premium" in field_names
         assert "💬 Support & Feedback" in field_names
         assert "Check Out My Other Apps" in field_names
@@ -134,21 +143,32 @@ class TestHelpCog:
 
     def test_pet_battles_commands_coverage(self, help_cog):
         embed = help_cog.build_help_embed()
-        games_field = next(field for field in embed.fields if field.name == "🎲 Fun & Games")
+        all_field_content = " ".join([field.value for field in embed.fields])
         
-        # Verify all pet battle commands are mentioned
+        # Verify all pet battle commands are mentioned (basic + advanced)
         pet_commands = [
             "/petbattles summon",
+            "/petbattles pets",
+            "/petbattles setactive",
+            "/petbattles release",
             "/petbattles battle", 
             "/petbattles stats",
             "/petbattles quests",
             "/petbattles achievements",
             "/petbattles leaderboard",
-            "/petbattles vote"
+            "/petbattles globalrank",
+            "/petbattles vote",
+            "/petbattles shop",
+            "/petbattles buy",
+            "/petbattles train",
+            "/petbattles rename",
+            "/petbattles profile",
+            "/petbattles daily",
+            "/petbattles hunt"
         ]
         
         for command in pet_commands:
-            assert command in games_field.value
+            assert command in all_field_content
 
     def test_guild_count_integration(self, mock_bot):
         # Test with different guild counts
@@ -176,6 +196,53 @@ class TestHelpCog:
         
         for command in welcome_commands:
             assert command in server_field.value
+
+    def test_space_nasa_commands_coverage(self, help_cog):
+        """Test that all Space & NASA commands are included"""
+        embed = help_cog.build_help_embed()
+        space_field = next(field for field in embed.fields if field.name == "🌌 Space & NASA")
+        
+        space_commands = [
+            "/apod",
+            "/iss",
+            "/astronauts",
+            "/launch"
+        ]
+        
+        for command in space_commands:
+            assert command in space_field.value
+
+    def test_bingo_commands_coverage(self, help_cog):
+        """Test that all Bingo commands are included"""
+        embed = help_cog.build_help_embed()
+        all_field_content = " ".join([field.value for field in embed.fields])
+        
+        bingo_commands = [
+            "/bingo start",
+            "/bingo run",
+            "/bingo status",
+            "/bingo cancel",
+            "/bingo stats",
+            "/bingo leaderboard"
+        ]
+        
+        for command in bingo_commands:
+            assert command in all_field_content
+
+    def test_squib_games_commands_coverage(self, help_cog):
+        """Test that all Squib Games commands are included"""
+        embed = help_cog.build_help_embed()
+        all_field_content = " ".join([field.value for field in embed.fields])
+        
+        squib_commands = [
+            "/squibgames start",
+            "/squibgames run",
+            "/squibgames status",
+            "/squibgames cancel"
+        ]
+        
+        for command in squib_commands:
+            assert command in all_field_content
 
     def test_premium_tagging_in_help(self, help_cog):
         embed = help_cog.build_help_embed()

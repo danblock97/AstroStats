@@ -91,7 +91,7 @@ async def test_people_success(cosmos_cog, mock_interaction):
         mock_resp.json.return_value = mock_data
         mock_get.return_value.__aenter__.return_value = mock_resp
 
-        await cosmos_cog.people.callback(cosmos_cog, mock_interaction)
+        await cosmos_cog.astronauts.callback(cosmos_cog, mock_interaction)
 
         mock_interaction.followup.send.assert_called_once()
         args, kwargs = mock_interaction.followup.send.call_args

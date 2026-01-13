@@ -95,8 +95,8 @@ class Cosmos(commands.Cog):
             except Exception as e:
                 await interaction.followup.send(f"❌ An error occurred: {str(e)}", ephemeral=True)
 
-    @app_commands.command(name="people", description="See who is currently in space")
-    async def people(self, interaction: discord.Interaction):
+    @app_commands.command(name="astronauts", description="See who is currently in space")
+    async def astronauts(self, interaction: discord.Interaction):
         """Lists all humans currently in space."""
         await interaction.response.defer()
         

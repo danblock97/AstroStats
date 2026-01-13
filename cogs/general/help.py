@@ -26,9 +26,9 @@ class HelpCog(commands.Cog):
                 "**Apex Legends**\n"
                 "`/apex <platform> <username>`\n\n"
                 "**League of Legends**\n"
-                "`/league profile`, `/league championmastery`\n\n"
+                "`/league profile <region> <riotid>`\n\n"
                 "**TFT**\n"
-                "`/tft <Summoner#0001>`\n\n"
+                "`/tft <region> <riotid>`\n\n"
                 "**Fortnite**\n"
                 "`/fortnite <time> <name>`"
             ),
@@ -39,12 +39,34 @@ class HelpCog(commands.Cog):
             value=(
                 "**Horoscope**\n"
                 "`/horoscope <sign>`\n\n"
+                "**Truth or Dare**\n"
+                "`/truthordare`\n\n"
+                "**Would You Rather**\n"
+                "`/wouldyourather`\n\n"
                 "**Pet Battles**\n"
-                "`/petbattles summon`, `/petbattles battle`, `/petbattles stats`, `/petbattles quests`, `/petbattles achievements`, `/petbattles leaderboard`, `/petbattles vote`\n\n"
+                "`/petbattles summon`, `/petbattles pets`, `/petbattles setactive`, `/petbattles release`, `/petbattles stats`, `/petbattles battle`, `/petbattles quests`, `/petbattles achievements`, `/petbattles leaderboard`, `/petbattles globalrank`, `/petbattles vote`\n\n"
+                "**Pet Battles (Advanced)**\n"
+                "`/petbattles shop`, `/petbattles buy`, `/petbattles train`, `/petbattles rename`, `/petbattles profile`, `/petbattles daily`, `/petbattles hunt`\n\n"
                 "**Squib Games**\n"
-                "`/squibgames start`, `/squibgames run`, `/squibgames status`\n\n"
+                "`/squibgames start`, `/squibgames run`, `/squibgames status`, `/squibgames cancel`\n\n"
+                "**Bingo Games**\n"
+                "`/bingo start`, `/bingo run`, `/bingo status`, `/bingo cancel`, `/bingo stats`, `/bingo leaderboard`\n\n"
                 "**Catfight PvP**\n"
                 "`/catfight @user`, `/catfight-leaderboard`, `/catfight-stats`"
+            ),
+            inline=False
+        )
+        embed.add_field(
+            name="🌌 Space & NASA",
+            value=(
+                "**Astronomy Picture of the Day**\n"
+                "`/apod`\n\n"
+                "**International Space Station**\n"
+                "`/iss`\n\n"
+                "**People in Space**\n"
+                "`/astronauts`\n\n"
+                "**Next Rocket Launch**\n"
+                "`/launch`"
             ),
             inline=False
         )
@@ -65,7 +87,8 @@ class HelpCog(commands.Cog):
             name="💬 Support & Feedback",
             value=(
                 "`/issues` - View known issues & upcoming features\n"
-                "`/support` - Report bugs or request features"
+                "`/support` - Report bugs or request features\n"
+                "`/review` - Leave a review on Top.gg"
             ),
             inline=False
         )
