@@ -1,4 +1,4 @@
-﻿import pytest
+import pytest
 import discord
 from unittest.mock import AsyncMock, MagicMock, patch
 from discord.ext import commands
@@ -714,6 +714,51 @@ class TestWelcomeCogCommands:
             interaction.response.send_message.assert_called_once()
             # Should be ephemeral
             assert interaction.response.send_message.call_args.kwargs.get('ephemeral') is True
+
+    @pytest.mark.asyncio
+    async def test_status_command_success(self):
+        from cogs.admin.welcome import WelcomeCog
+        from services.database.models import WelcomeSettings
+
+        settings = WelcomeSettings(
+            guild_id="123456789",
+            enabled=True,
+            custom_message="Welcome {user} to {server}! See {#rules}",
+            custom_image_data="base64data",
+            custom_image_filename="welcome.png"
+        )
+
+        class MockPermissions:
+            def __init__(self, send_messages=True):
+                self.send_messages = send_messages
+
+        system_channel = MagicMock()
+        system_channel.mention = "#welcome"
+        system_channel.permissions_for.return_value = MockPermissions(send_messages=True)
+
+        interaction = AsyncMock()
+        interaction.guild = MagicMock()
+        interaction.guild.id = 123456789
+        interaction.guild.name = "TestGuild"
+        interaction.guild.system_channel = system_channel
+        interaction.guild.me = MagicMock()
+        interaction.guild.text_channels = []
+        interaction.user = MagicMock()
+        interaction.user.mention = "<@user>"
+        interaction.user.display_name = "TestUser"
+        interaction.response = AsyncMock()
+
+        with patch('cogs.admin.welcome.get_welcome_settings', return_value=settings):
+            cog = WelcomeCog(MagicMock())
+            await WelcomeCog.status.callback(cog, interaction)
+
+            interaction.response.send_message.assert_called_once()
+            args, kwargs = interaction.response.send_message.call_args
+            embed = kwargs.get("embed")
+
+            assert embed is not None
+            assert "Welcome Settings Status" in embed.title
+            assert any(field.name == "Message Preview" for field in embed.fields)
 
     @pytest.mark.asyncio
     async def test_set_message_success(self):

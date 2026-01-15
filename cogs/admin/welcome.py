@@ -1,4 +1,4 @@
-﻿import asyncio
+import asyncio
 import io
 import logging
 import base64
@@ -199,6 +199,70 @@ class WelcomeCog(commands.GroupCog, group_name="welcome"):
                 inline=False
             )
         
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @app_commands.command(name="status", description="View current welcome settings for this server")
+    @has_manage_guild_permission()
+    async def status(self, interaction: discord.Interaction):
+        """Show current welcome settings."""
+        guild_id = str(interaction.guild.id)
+        welcome_settings = get_welcome_settings(guild_id)
+
+        is_enabled = welcome_settings.enabled if welcome_settings else False
+        embed = discord.Embed(
+            title="📌 Welcome Settings Status",
+            color=discord.Color.green() if is_enabled else discord.Color.red()
+        )
+        embed.add_field(
+            name="Status",
+            value="Enabled ✅" if is_enabled else "Disabled ❌",
+            inline=False
+        )
+
+        # Determine target channel (system or first writable)
+        target_channel = interaction.guild.system_channel
+        if target_channel is None or not target_channel.permissions_for(interaction.guild.me).send_messages:
+            for channel in interaction.guild.text_channels:
+                if channel.permissions_for(interaction.guild.me).send_messages:
+                    target_channel = channel
+                    break
+
+        channel_value = target_channel.mention if target_channel else "No available channel"
+        embed.add_field(name="Channel", value=channel_value, inline=False)
+
+        # Build preview message
+        if welcome_settings and welcome_settings.custom_message:
+            message_content = welcome_settings.custom_message.replace(
+                "{user}", interaction.user.mention
+            ).replace(
+                "{username}", interaction.user.display_name
+            ).replace(
+                "{server}", interaction.guild.name
+            )
+
+            import re
+            def replace_channel_mention(match):
+                channel_name = match.group(1)
+                for channel in interaction.guild.text_channels:
+                    if channel.name.lower() == channel_name.lower():
+                        return channel.mention
+                return f"#{channel_name}"
+
+            message_content = re.sub(r'\{#([^}]+)\}', replace_channel_mention, message_content)
+        else:
+            message_content = (
+                f"Welcome {interaction.user.mention} to **{interaction.guild.name}**! "
+                "Please verify yourself and get to know everyone!"
+            )
+
+        preview = message_content[:500] + ("..." if len(message_content) > 500 else "")
+        embed.add_field(name="Message Preview", value=preview, inline=False)
+
+        image_status = "Custom image set" if (welcome_settings and welcome_settings.custom_image_data) else "No custom image"
+        if welcome_settings and welcome_settings.custom_image_filename:
+            image_status = f"{image_status} ({welcome_settings.custom_image_filename})"
+        embed.add_field(name="Image", value=image_status, inline=False)
+
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @app_commands.command(name="set-message", description="Set a custom welcome message (Premium feature)")

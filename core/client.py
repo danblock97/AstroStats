@@ -278,6 +278,7 @@ class AstroStatsBot(commands.Bot):
             name="✨ **Entertainment & More**",
             value=(
                 "**🔮 Daily Horoscope** - `/horoscope <sign>`\n"
+                "**🪐 Space Commands** - `/apod` • `/iss` • `/iss-pass` • `/astronauts` • `/launch` • `/spacefact`\n"
                 "**❓ Help & Support** - `/help` • `/support` • `/issues`\n"
                 "**⭐ Show Love** - `/review` (Leave us a review!)"
             ),

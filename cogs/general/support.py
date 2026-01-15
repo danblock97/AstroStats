@@ -1,6 +1,7 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
+from discord.ui import View, Button
 import os
 from core.utils import get_conditional_embed
 from ui.embeds import create_base_embed, get_premium_promotion_view
@@ -71,6 +72,39 @@ class SupportCog(commands.Cog):
         premium_view = get_premium_promotion_view(str(interaction.user.id))
 
         await interaction.response.send_message(embeds=embeds, view=premium_view)
+
+    @app_commands.command(name="invite", description="Get an invite link to add AstroStats")
+    async def invite_command(self, interaction: discord.Interaction):
+        """Send an invite link for the bot."""
+        bot_id = self.bot.user.id if self.bot.user else None
+        if not bot_id:
+            await interaction.response.send_message(
+                "❌ Could not determine bot ID. Please try again shortly.",
+                ephemeral=True
+            )
+            return
+
+        permissions = discord.Permissions(
+            send_messages=True,
+            embed_links=True,
+            attach_files=True,
+            read_message_history=True
+        )
+        invite_url = discord.utils.oauth_url(bot_id, permissions=permissions, scopes=("bot", "applications.commands"))
+
+        embed = create_base_embed(
+            title="🔗 Invite AstroStats",
+            description=(
+                "Add AstroStats to your server and unlock stats, games, and space commands.\n\n"
+                f"[Click here to invite]({invite_url})"
+            ),
+            color=discord.Color.blue()
+        )
+
+        view = View()
+        view.add_item(Button(label="Invite AstroStats", url=invite_url, style=discord.ButtonStyle.link))
+
+        await interaction.response.send_message(embed=embed, view=view)
 
 
 async def setup(bot: commands.Bot):

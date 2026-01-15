@@ -44,6 +44,28 @@ class TestSupportCommands:
         assert hasattr(support_cog, 'support_command') or True  # Would test actual implementation
 
     @pytest.mark.asyncio
+    async def test_invite_command_response(self, mock_bot, mock_interaction):
+        """Test invite command returns an embed with invite link."""
+        from cogs.general.support import SupportCog
+
+        mock_bot.user.id = 123456789
+        cog = SupportCog(mock_bot)
+
+        with patch('discord.utils.oauth_url', return_value="https://discord.com/oauth2/authorize?test") as mock_oauth:
+            await SupportCog.invite_command.callback(cog, mock_interaction)
+
+            mock_oauth.assert_called_once()
+            mock_interaction.response.send_message.assert_called_once()
+            args, kwargs = mock_interaction.response.send_message.call_args
+            embed = kwargs.get("embed")
+            view = kwargs.get("view")
+
+            assert embed is not None
+            assert "Invite AstroStats" in embed.title
+            assert "discord.com/oauth2/authorize" in embed.description
+            assert view is not None
+
+    @pytest.mark.asyncio
     async def test_support_embed_content(self):
         """Test support embed content and structure"""
         expected_embed = {

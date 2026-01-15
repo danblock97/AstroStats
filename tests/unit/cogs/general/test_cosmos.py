@@ -141,3 +141,65 @@ async def test_launch_success_and_cache(cosmos_cog, mock_interaction):
         assert mock_get.call_count == 1 # Verification of Cache
         
         mock_interaction2.followup.send.assert_called_once()
+
+@pytest.mark.asyncio
+async def test_iss_pass_success(cosmos_cog, mock_interaction):
+    """Test ISS pass retrieval"""
+    mock_geo_data = [
+        {"lat": "51.5074", "lon": "-0.1278", "display_name": "London, UK"}
+    ]
+    mock_pass_data = {
+        "passes": [
+            {"startUTC": 1234567890, "duration": 600}
+        ]
+    }
+
+    mock_geo_resp = AsyncMock()
+    mock_geo_resp.status = 200
+    mock_geo_resp.json.return_value = mock_geo_data
+
+    mock_pass_resp = AsyncMock()
+    mock_pass_resp.status = 200
+    mock_pass_resp.json.return_value = mock_pass_data
+
+    def _mock_context(resp):
+        ctx = AsyncMock()
+        ctx.__aenter__.return_value = resp
+        return ctx
+
+    with patch.dict('os.environ', {"N2YO_API_KEY": "test_key"}):
+        with patch('aiohttp.ClientSession.get', side_effect=[_mock_context(mock_geo_resp), _mock_context(mock_pass_resp)]):
+            await cosmos_cog.iss_pass.callback(cosmos_cog, mock_interaction, "London")
+
+            mock_interaction.followup.send.assert_called_once()
+            args, kwargs = mock_interaction.followup.send.call_args
+            embed = kwargs['embed']
+
+            assert "Upcoming ISS Passes" in embed.title
+            assert "London" in embed.description
+
+@pytest.mark.asyncio
+async def test_spacefact_success(cosmos_cog, mock_interaction):
+    """Test spacefact retrieval"""
+    mock_data = {
+        "title": "Test Fact",
+        "date": "2024-01-01",
+        "explanation": "This is a test explanation. It has another sentence.",
+        "media_type": "image",
+        "url": "http://example.com/fact.jpg"
+    }
+
+    with patch('aiohttp.ClientSession.get') as mock_get:
+        mock_resp = AsyncMock()
+        mock_resp.status = 200
+        mock_resp.json.return_value = mock_data
+        mock_get.return_value.__aenter__.return_value = mock_resp
+
+        await cosmos_cog.spacefact.callback(cosmos_cog, mock_interaction)
+
+        mock_interaction.followup.send.assert_called_once()
+        args, kwargs = mock_interaction.followup.send.call_args
+        embed = kwargs['embed']
+
+        assert "Test Fact" in embed.title
+        assert "This is a test explanation" in embed.description

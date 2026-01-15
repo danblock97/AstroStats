@@ -62,11 +62,14 @@ class HelpCog(commands.Cog):
                 "**Astronomy Picture of the Day**\n"
                 "`/apod`\n\n"
                 "**International Space Station**\n"
-                "`/iss`\n\n"
+                "`/iss`\n"
+                "`/iss-pass <city> [country]`\n\n"
                 "**People in Space**\n"
                 "`/astronauts`\n\n"
                 "**Next Rocket Launch**\n"
-                "`/launch`"
+                "`/launch`\n\n"
+                "**Space Fact**\n"
+                "`/spacefact`"
             ),
             inline=False
         )
@@ -75,6 +78,7 @@ class HelpCog(commands.Cog):
             value=(
                 "**Welcome System** (Admin Only)\n"
                 "`/welcome toggle` - Enable/disable welcome messages\n"
+                "`/welcome status` - View current welcome settings\n"
                 "`/welcome set-message` 🔒 **Premium** - Custom welcome messages\n"
                 "`/welcome set-image` 🔒 **Sponsor/VIP** - Custom welcome images\n"
                 "`/welcome remove-message`, `/welcome remove-image`, `/welcome test`\n\n"
@@ -88,7 +92,8 @@ class HelpCog(commands.Cog):
             value=(
                 "`/issues` - View known issues & upcoming features\n"
                 "`/support` - Report bugs or request features\n"
-                "`/review` - Leave a review on Top.gg"
+                "`/review` - Leave a review on Top.gg\n"
+                "`/invite` - Invite AstroStats to your server"
             ),
             inline=False
         )
