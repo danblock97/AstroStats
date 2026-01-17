@@ -35,7 +35,7 @@ AstroStats is a feature-rich Discord bot that helps you track gaming statistics 
 
 ### Inviting the Bot
 
-1. [Click here to invite AstroStats to your server](https://discord.com/oauth2/authorize?client_id=1088929834748616785&scope=bot&permissions=535727096896)
+1. [Click here to invite AstroStats to your server](https://discord.com/oauth2/authorize?client_id=1088929834748616785&permissions=378944&integration_type=0&scope=bot+applications.commands)
 2. Select the server where you want to add AstroStats
 3. Authorize the required permissions
 4. The bot will send a welcome message with getting started information
