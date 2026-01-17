@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import sys
 from logging.handlers import RotatingFileHandler
 from core.client import run_bot
 
@@ -13,9 +14,16 @@ root_logger.setLevel(getattr(logging, log_level, logging.INFO))
 formatter = logging.Formatter("%(asctime)s %(levelname)s [%(name)s] %(message)s")
 
 # Always log to console
-stream_handler = logging.StreamHandler()
-stream_handler.setFormatter(formatter)
-root_logger.addHandler(stream_handler)
+stdout_handler = logging.StreamHandler(sys.stdout)
+stdout_handler.setLevel(logging.DEBUG)
+stdout_handler.addFilter(lambda record: record.levelno <= logging.INFO)
+stdout_handler.setFormatter(formatter)
+root_logger.addHandler(stdout_handler)
+
+stderr_handler = logging.StreamHandler(sys.stderr)
+stderr_handler.setLevel(logging.WARNING)
+stderr_handler.setFormatter(formatter)
+root_logger.addHandler(stderr_handler)
 
 # Optionally log to file with rotation; disable if not writable
 if os.getenv("LOG_TO_FILE", "1") not in {"0", "false", "False"}:
