@@ -4,6 +4,7 @@ import os
 import sys
 from logging.handlers import RotatingFileHandler
 from core.client import run_bot
+from config.settings import ERROR_WEBHOOK_URL
 
 # Configure logging with safe file handler
 # Default to INFO (tests expect this). Override with LOG_LEVEL in production if needed.
@@ -40,6 +41,17 @@ if os.getenv("LOG_TO_FILE", "1") not in {"0", "false", "False"}:
     except OSError:
         # Fall back to console-only logging if file is not writable
         pass
+
+# Add Discord webhook handler for errors if webhook URL is configured
+if ERROR_WEBHOOK_URL:
+    try:
+        from core.webhook_logger import DiscordWebhookHandler
+        webhook_handler = DiscordWebhookHandler(ERROR_WEBHOOK_URL, level=logging.ERROR)
+        webhook_handler.setFormatter(formatter)
+        root_logger.addHandler(webhook_handler)
+    except Exception as e:
+        # Don't fail startup if webhook handler fails to initialize
+        logging.warning(f"Failed to initialize Discord webhook handler: {e}")
 
 # Reduce exception spew from logging backend in constrained environments
 logging.raiseExceptions = False

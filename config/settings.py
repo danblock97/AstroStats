@@ -20,3 +20,6 @@ TOPGG_TOKEN = os.getenv('TOPGG_TOKEN')
 
 # MongoDB configuration
 MONGODB_URI = os.getenv('MONGODB_URI')
+
+# Discord webhook for error logging
+ERROR_WEBHOOK_URL = os.getenv('ERROR_WEBHOOK_URL')

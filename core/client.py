@@ -154,6 +154,7 @@ class AstroStatsBot(commands.Bot):
         from cogs.admin.kick import setup as setup_kick
         from cogs.admin.servers import setup as setup_servers
         from cogs.admin.welcome import setup as setup_welcome
+        from cogs.admin.test_error import setup as setup_test_error
         from cogs.games.truthordare import setup as setup_truth_or_dare # Add this import
         from cogs.games.wouldyourather import setup as setup_would_you_rather
         from cogs.games.catfight import setup as setup_catfight
@@ -174,6 +175,7 @@ class AstroStatsBot(commands.Bot):
             setup_kick(self),
             setup_servers(self),
             setup_welcome(self),
+            setup_test_error(self),
             setup_squib_game(self),
             setup_bingo_game(self),
             setup_truth_or_dare(self),
