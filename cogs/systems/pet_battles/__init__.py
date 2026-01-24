@@ -8,6 +8,8 @@ import aiohttp
 import json
 import logging
 from typing import List, Dict, Any, Optional, Tuple # Added Tuple
+from pathlib import Path
+from urllib.parse import urlparse
 
 import discord
 from discord.ext import commands, tasks
@@ -111,6 +113,44 @@ def get_unlocked_user_pets(user_id: str, guild_id: str) -> List[Dict[str, Any]]:
         "guild_id": guild_id,
         "is_locked": {"$ne": True}
     }).sort([("_id", -1)]))
+
+_ASSET_DIR = Path(__file__).resolve().parents[3] / "images"
+
+def resolve_pet_icon_asset(pet: Optional[Dict[str, Any]]) -> Tuple[Optional[str], Optional[discord.File]]:
+    """Resolve a pet icon to a usable URL and optional local attachment."""
+    if not pet:
+        return None, None
+    icon = pet.get("icon")
+    if not icon:
+        return None, None
+    if icon.startswith("attachment://"):
+        return icon, None
+    parsed = urlparse(icon)
+    filename = Path(parsed.path).name
+    if filename:
+        local_path = _ASSET_DIR / filename
+        if local_path.is_file():
+            return f"attachment://{filename}", discord.File(local_path, filename=filename)
+    return icon, None
+
+def get_pet_icon_asset(user_id: str, guild_id: str, preferred_pet: Optional[Dict[str, Any]] = None) -> Tuple[Optional[str], Optional[discord.File]]:
+    """Return a pet icon URL and attachment, preferring the provided pet."""
+    if preferred_pet:
+        url, icon_file = resolve_pet_icon_asset(preferred_pet)
+        if url:
+            return url, icon_file
+    for pet in get_unlocked_user_pets(user_id, guild_id):
+        url, icon_file = resolve_pet_icon_asset(pet)
+        if url:
+            return url, icon_file
+    return None, None
+
+def apply_pet_thumbnail(embed: discord.Embed, pet: Optional[Dict[str, Any]]) -> Optional[discord.File]:
+    """Attach a pet thumbnail to the embed and return a file if needed."""
+    url, icon_file = resolve_pet_icon_asset(pet)
+    if url:
+        embed.set_thumbnail(url=url)
+    return icon_file
 
 def count_user_pets(user_id: str, guild_id: str) -> int:
     return pets_collection.count_documents({"user_id": user_id, "guild_id": guild_id})
@@ -556,7 +596,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                 description=f"Welcome, {name} the {pet.name}! Get ready for adventure!",
                 color=random_color_hex
             )
-            embed.set_thumbnail(url=new_pet_data['icon'])
+            icon_file = apply_pet_thumbnail(embed, new_pet_data)
 
             # Add stats fields using code blocks for better alignment
             stats_text = (
@@ -585,7 +625,10 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             premium_view = get_premium_promotion_view(user_id)
             embeds = [embed]
             
-            await interaction.response.send_message(embeds=embeds, view=premium_view)
+            if icon_file:
+                await interaction.response.send_message(embeds=embeds, view=premium_view, file=icon_file)
+            else:
+                await interaction.response.send_message(embeds=embeds, view=premium_view)
 
         except Exception as e:
             logger.error(f"Error in summon command for user {user_id}: {e}", exc_info=True)
@@ -639,8 +682,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                 description="\n".join(lines),
                 color=discord.Color.blue()
             )
-            if active_pet and active_pet.get('icon'):
-                embed.set_thumbnail(url=active_pet['icon'])
+            icon_file = apply_pet_thumbnail(embed, active_pet)
             from_here_unlocked = count_unlocked_user_pets(user_id, guild_id)
             embed.add_field(name="Capacity (Unlocked)", value=f"{from_here_unlocked}/{capacity}", inline=True)
             embed.add_field(name="Tips", value=(
@@ -652,7 +694,10 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             premium_view = get_premium_promotion_view(user_id)
             embeds = [embed]
             
-            await interaction.response.send_message(embeds=embeds, ephemeral=True)
+            if icon_file:
+                await interaction.response.send_message(embeds=embeds, ephemeral=True, file=icon_file)
+            else:
+                await interaction.response.send_message(embeds=embeds, ephemeral=True)
         except Exception as e:
             logger.error(f"Error listing pets for {user_id}: {e}", exc_info=True)
             await interaction.response.send_message(embed=create_error_embed("Error", "Failed to list your pets."), ephemeral=True)
@@ -787,7 +832,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                 title=f"{interaction.user.display_name}'s Pet: {pet['name']}{active_marker}{badge}",
                 color=pet.get('color', discord.Color.blue()) # Use .get for safety
             )
-            embed.set_thumbnail(url=pet['icon'])
+            icon_file = apply_pet_thumbnail(embed, pet)
 
             # --- Core Stats Field ---
             core_stats_text = (
@@ -857,7 +902,10 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             premium_view = get_premium_promotion_view(user_id)
             embeds = [embed]
             
-            await interaction.response.send_message(embeds=embeds, view=premium_view)
+            if icon_file:
+                await interaction.response.send_message(embeds=embeds, view=premium_view, file=icon_file)
+            else:
+                await interaction.response.send_message(embeds=embeds, view=premium_view)
 
         except Exception as e:
             logger.error(f"Error in stats command for user {user_id}: {e}", exc_info=True)
@@ -879,16 +927,16 @@ class PetBattles(commands.GroupCog, name="petbattles"):
         battle_message: Optional[Any] = None # To store the message for editing (WebhookMessage or Message)
         use_channel_fallback: bool = False
 
-        async def send_reply(*, embed: Optional[discord.Embed] = None, embeds: Optional[list] = None, ephemeral: bool = False):
+        async def send_reply(*, embed: Optional[discord.Embed] = None, embeds: Optional[list] = None, ephemeral: bool = False, file: Optional[discord.File] = None):
             """Send a reply using followup if interaction acknowledged, else fallback to channel.send."""
             if use_channel_fallback:
                 if embeds is not None:
-                    return await interaction.channel.send(embeds=embeds)
-                return await interaction.channel.send(embed=embed)
+                    return await interaction.channel.send(embeds=embeds, file=file)
+                return await interaction.channel.send(embed=embed, file=file)
             else:
                 if embeds is not None:
-                    return await interaction.followup.send(embeds=embeds, ephemeral=ephemeral)
-                return await interaction.followup.send(embed=embed, ephemeral=ephemeral)
+                    return await interaction.followup.send(embeds=embeds, ephemeral=ephemeral, file=file)
+                return await interaction.followup.send(embed=embed, ephemeral=ephemeral, file=file)
 
         try:
             # Defer response immediately to prevent interaction expiry
@@ -1032,9 +1080,12 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             )
             embed.add_field(name=f"{interaction.user.display_name}'s {user_pet['name']}", value=f"HP: {user_current_health}/{user_max_health}", inline=True)
             embed.add_field(name=f"{opponent.display_name}'s {opponent_pet['name']}", value=f"HP: {opponent_current_health}/{opponent_max_health}", inline=True)
-            embed.set_thumbnail(url=user_pet['icon'])
+            thumbnail_icon, thumbnail_file = get_pet_icon_asset(user_id, guild_id, user_pet)
+            if thumbnail_icon:
+                embed.set_thumbnail(url=thumbnail_icon)
             # embed.set_image(url=opponent_pet['icon']) # Maybe too large, thumbnail is often enough
-            battle_message = await send_reply(embed=embed)
+            battle_message = await send_reply(embed=embed, file=thumbnail_file)
+            battle_thumbnail_url = thumbnail_icon
             await asyncio.sleep(3) # Pause for suspense
 
             # --- Battle Loop ---
@@ -1173,7 +1224,13 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                 description=f"{winner_owner.mention}'s **{winner['name']}** defeated {loser_owner.mention}'s **{loser['name']}**!",
                 color=winner.get('color', discord.Color.gold())
             )
-            result_embed.set_thumbnail(url=winner['icon'])
+            winner_icon, winner_icon_file = get_pet_icon_asset(str(winner_owner.id), guild_id, winner)
+            if battle_thumbnail_url and battle_thumbnail_url.startswith("attachment://"):
+                result_embed.set_thumbnail(url=battle_thumbnail_url)
+            elif winner_icon and winner_icon_file is None:
+                result_embed.set_thumbnail(url=winner_icon)
+            elif battle_thumbnail_url:
+                result_embed.set_thumbnail(url=battle_thumbnail_url)
 
             # Rewards Section
             rewards_text = (
@@ -1253,7 +1310,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             bonus_claimed = pet.get('claimed_daily_completion_bonus', False)
 
             embed = discord.Embed(title="📅 Your Daily Quests", color=discord.Color.blue())
-            embed.set_thumbnail(url=pet.get('icon')) # Add pet icon
+            icon_file = apply_pet_thumbnail(embed, pet)
 
             if not pet.get('daily_quests'):
                  embed.description = "You currently have no daily quests assigned. They reset daily at midnight UTC."
@@ -1299,7 +1356,10 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             premium_view = get_premium_promotion_view(user_id)
             embeds = [embed]
             
-            await interaction.response.send_message(embeds=embeds, view=premium_view)
+            if icon_file:
+                await interaction.response.send_message(embeds=embeds, view=premium_view, file=icon_file)
+            else:
+                await interaction.response.send_message(embeds=embeds, view=premium_view)
 
         except Exception as e:
             logger.error(f"Error in quests command for user {user_id}: {e}", exc_info=True)
@@ -1327,7 +1387,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             achievements_list = pet.get('achievements', [])
 
             embed = discord.Embed(title="🏆 Your Achievements 🏆", color=discord.Color.gold())
-            embed.set_thumbnail(url=pet.get('icon')) # Add pet icon
+            icon_file = apply_pet_thumbnail(embed, pet)
             embed.description = "Track your long-term progress and earn big rewards!"
 
             if not achievements_list:
@@ -1356,7 +1416,10 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             premium_view = get_premium_promotion_view(user_id)
             embeds = [embed]
             
-            await interaction.response.send_message(embeds=embeds, view=premium_view)
+            if icon_file:
+                await interaction.response.send_message(embeds=embeds, view=premium_view, file=icon_file)
+            else:
+                await interaction.response.send_message(embeds=embeds, view=premium_view)
 
         except Exception as e:
             logger.error(f"Error in achievements command for user {user_id}: {e}", exc_info=True)
@@ -1385,6 +1448,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                 color=discord.Color.gold() # Gold color for leaderboards
             )
 
+            icon_file = None
             if not top_pets_list:
                 embed.description = "No pets found in this server yet. Be the first!"
             else:
@@ -1413,8 +1477,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
 
                 embed.description = "\n\n".join(leaderboard_entries)
                 # Set thumbnail to the #1 pet's icon if available
-                if top_pets_list and top_pets_list[0].get('icon'):
-                     embed.set_thumbnail(url=top_pets_list[0]['icon'])
+                icon_file = apply_pet_thumbnail(embed, top_pets_list[0] if top_pets_list else None)
 
 
             embed.timestamp = datetime.now(timezone.utc)
@@ -1424,7 +1487,10 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             premium_view = get_premium_promotion_view(user_id)
             embeds = [embed]
             
-            await interaction.followup.send(embeds=embeds, view=premium_view)
+            if icon_file:
+                await interaction.followup.send(embeds=embeds, view=premium_view, file=icon_file)
+            else:
+                await interaction.followup.send(embeds=embeds, view=premium_view)
 
         except Exception as e:
             logger.error(f"Error in leaderboard command for guild {guild_id}: {e}", exc_info=True)
@@ -1767,7 +1833,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             )
             
             # Set thumbnail to user's pet icon
-            embed.set_thumbnail(url=pet['icon'])
+            icon_file = apply_pet_thumbnail(embed, pet)
             
             # Top pets section (always shows top 3 and the user if not in top 3)
             rank_emojis = ["🥇", "🥈", "🥉"]
@@ -1817,7 +1883,10 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             premium_view = get_premium_promotion_view(user_id)
             embeds = [embed]
             
-            await interaction.followup.send(embeds=embeds, view=premium_view)
+            if icon_file:
+                await interaction.followup.send(embeds=embeds, view=premium_view, file=icon_file)
+            else:
+                await interaction.followup.send(embeds=embeds, view=premium_view)
             
         except Exception as e:
             logger.error(f"Error in globalrank command for user {user_id}: {e}", exc_info=True)
@@ -1995,13 +2064,16 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                     f"**{old_name}** is now known as **{new_name}**!\n"
                     f"New balance: **{format_currency(pet['balance'])}**"
                 )
-                embed.set_thumbnail(url=pet['icon'])
+                icon_file = apply_pet_thumbnail(embed, pet)
                 
                 # Add premium promotion view
                 premium_view = get_premium_promotion_view(user_id)
                 embeds = [embed]
                 
-                await interaction.response.send_message(embeds=embeds, view=premium_view)
+                if icon_file:
+                    await interaction.response.send_message(embeds=embeds, view=premium_view, file=icon_file)
+                else:
+                    await interaction.response.send_message(embeds=embeds, view=premium_view)
             else:
                 embed = create_error_embed(
                     "Rename Error",
@@ -2051,7 +2123,7 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             )
             
             # Set the pet image as the thumbnail
-            embed.set_thumbnail(url=pet['icon'])
+            icon_file = apply_pet_thumbnail(embed, pet)
             
             # Add owner field
             try:
@@ -2129,7 +2201,10 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             embed.set_footer(text="Use /petbattles help for more commands")
             embed.timestamp = datetime.now(timezone.utc)
             
-            await interaction.followup.send(embed=embed)
+            if icon_file:
+                await interaction.followup.send(embed=embed, file=icon_file)
+            else:
+                await interaction.followup.send(embed=embed)
             
         except Exception as e:
             logger.error(f"Error in profile command for user {user_id}: {e}", exc_info=True)
@@ -2467,13 +2542,16 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                 embed.set_footer(text=f"Better luck next time! | Next hunt available in {HUNT_COOLDOWN_HOURS} hours")
             
             # Add thumbnail of pet
-            embed.set_thumbnail(url=pet['icon'])
+            icon_file = apply_pet_thumbnail(embed, pet)
             
             # Add premium promotion view
             premium_view = get_premium_promotion_view(user_id)
             embeds = [embed]
             
-            await interaction.followup.send(embeds=embeds, view=premium_view)
+            if icon_file:
+                await interaction.followup.send(embeds=embeds, view=premium_view, file=icon_file)
+            else:
+                await interaction.followup.send(embeds=embeds, view=premium_view)
             
         except Exception as e:
             logger.error(f"Error in hunt command for user {user_id}: {e}", exc_info=True)
@@ -2489,4 +2567,3 @@ async def setup(bot: commands.Bot):
     """Adds the PetBattles cog to the bot."""
     await bot.add_cog(PetBattles(bot))
     logger.debug("PetBattles Cog loaded.")
-

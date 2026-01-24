@@ -12,6 +12,7 @@ from io import BytesIO
 import discord
 from discord.ext import commands
 from discord import app_commands, Interaction
+from discord.utils import escape_markdown, escape_mentions
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure
 
@@ -21,6 +22,11 @@ from ui.embeds import get_premium_promotion_view
 from core.utils import get_conditional_embed
 
 logger = logging.getLogger(__name__)
+
+def sanitize_display_name(name: str) -> str:
+    """Escape display names to avoid markdown/mention formatting issues."""
+    cleaned = " ".join(name.replace("\n", " ").replace("\r", " ").replace("\t", " ").split())
+    return escape_mentions(escape_markdown(cleaned, as_needed=True))
 
 # MongoDB setup
 mongo_client: Optional[MongoClient] = None
@@ -258,6 +264,8 @@ class CatfightCog(commands.Cog):
             user2_hp = 100
             round_num = 1
             battle_log = []
+            user1_name = sanitize_display_name(user1.display_name)
+            user2_name = sanitize_display_name(user2.display_name)
             
             # Create dynamic battle image
             battle_image = None
@@ -279,7 +287,7 @@ class CatfightCog(commands.Cog):
             # Create initial battle embed
             embed = discord.Embed(
                 title="⚔️ EPIC CATFIGHT BATTLE BEGINS!",
-                description=f"**{user1.display_name}** VS **{user2.display_name}**\n\nPrepare for an epic showdown!",
+                description=f"**{user1_name}** VS **{user2_name}**\n\nPrepare for an epic showdown!",
                 color=discord.Color.blue()
             )
             
@@ -287,12 +295,12 @@ class CatfightCog(commands.Cog):
             
             # Add HP bars
             embed.add_field(
-                name=f"💖 {user1.display_name}",
+                name=f"💖 {user1_name}",
                 value=self.create_hp_bar(user1_hp),
                 inline=False
             )
             embed.add_field(
-                name=f"💖 {user2.display_name}",
+                name=f"💖 {user2_name}",
                 value=self.create_hp_bar(user2_hp),
                 inline=False
             )
@@ -337,17 +345,19 @@ class CatfightCog(commands.Cog):
                 
                 # Create battle log entry
                 if attack_result["missed"]:
-                    log_entry = f"**{attacker.display_name}** {attack_result['attack']['emoji']} {attack_result['attack']['name']} but {attack_result['message']}"
+                    attacker_name = sanitize_display_name(attacker.display_name)
+                    log_entry = f"**{attacker_name}** {attack_result['attack']['emoji']} {attack_result['attack']['name']} but {attack_result['message']}"
                 else:
                     critical_text = " ⚡**CRITICAL**⚡" if attack_result["critical"] else ""
-                    log_entry = f"**{attacker.display_name}** {attack_result['attack']['emoji']} {attack_result['attack']['name']} and {attack_result['message']}! **{damage} damage**{critical_text}"
+                    attacker_name = sanitize_display_name(attacker.display_name)
+                    log_entry = f"**{attacker_name}** {attack_result['attack']['emoji']} {attack_result['attack']['name']} and {attack_result['message']}! **{damage} damage**{critical_text}"
                 
                 battle_log.append(log_entry)
                 
                 # Update embed
                 embed = discord.Embed(
                     title=f"⚔️ CATFIGHT BATTLE - Round {round_num}",
-                    description=f"**{user1.display_name}** VS **{user2.display_name}**",
+                    description=f"**{user1_name}** VS **{user2_name}**",
                     color=discord.Color.red() if min(user1_hp, user2_hp) < 30 else discord.Color.orange()
                 )
                 
@@ -355,12 +365,12 @@ class CatfightCog(commands.Cog):
                 
                 # Add HP bars with updated values
                 embed.add_field(
-                    name=f"💖 {user1.display_name}",
+                    name=f"💖 {user1_name}",
                     value=self.create_hp_bar(user1_hp),
                     inline=False
                 )
                 embed.add_field(
-                    name=f"💖 {user2.display_name}",
+                    name=f"💖 {user2_name}",
                     value=self.create_hp_bar(user2_hp),
                     inline=False
                 )
@@ -397,8 +407,8 @@ class CatfightCog(commands.Cog):
                 title="🏆 BATTLE COMPLETE! 🏆",
                 description=(
                     f"After **{round_num}** intense rounds...\n\n"
-                    f"🎉 **WINNER: {winner.display_name}!** 🎉\n"
-                    f"💔 **Defeated: {loser.display_name}**"
+                    f"🎉 **WINNER: {sanitize_display_name(winner.display_name)}!** 🎉\n"
+                    f"💔 **Defeated: {sanitize_display_name(loser.display_name)}**"
                 ),
                 color=discord.Color.gold()
             )
@@ -419,7 +429,7 @@ class CatfightCog(commands.Cog):
             
             # Stats display
             final_embed.add_field(
-                name=f"📊 {user1.display_name}'s Stats",
+                name=f"📊 {user1_name}'s Stats",
                 value=(
                     f"🏆 Wins: **{updated_user1_stats['wins']}**\n"
                     f"💔 Losses: **{updated_user1_stats['losses']}**\n"
@@ -429,7 +439,7 @@ class CatfightCog(commands.Cog):
             )
             
             final_embed.add_field(
-                name=f"📊 {user2.display_name}'s Stats",
+                name=f"📊 {user2_name}'s Stats",
                 value=(
                     f"🏆 Wins: **{updated_user2_stats['wins']}**\n"
                     f"💔 Losses: **{updated_user2_stats['losses']}**\n"
@@ -494,7 +504,7 @@ class CatfightCog(commands.Cog):
                 leaderboard_text = []
                 for i, stats in enumerate(leaderboard):
                     position = i + 1
-                    username = stats.get('username', 'Unknown')
+                    username = sanitize_display_name(stats.get('username', 'Unknown'))
                     wins = stats.get('wins', 0)
                     losses = stats.get('losses', 0)
                     win_streak = stats.get('win_streak', 0)
