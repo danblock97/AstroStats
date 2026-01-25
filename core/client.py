@@ -124,7 +124,7 @@ class AstroStatsBot(commands.Bot):
         intents.members = True  # Required for member join events
         # Add message content intent if needed, but be mindful of verification requirements
         # intents.message_content = True
-        super().__init__(command_prefix="/", intents=intents)
+        super().__init__(command_prefix=None, intents=intents)
         self._emoji_cache = {}
         self.processed_issues = {}
 
