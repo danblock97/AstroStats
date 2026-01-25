@@ -13,7 +13,7 @@ class TestAstroStatsBot:
         bot = AstroStatsBot()
         
         assert isinstance(bot, discord.ext.commands.Bot)
-        assert bot.command_prefix is None
+        assert bot.command_prefix == discord.ext.commands.when_mentioned
         assert hasattr(bot, '_emoji_cache')
         assert hasattr(bot, 'processed_issues')
         assert isinstance(bot._emoji_cache, dict)
@@ -251,7 +251,7 @@ class TestClientFunctions:
         bot = create_bot()
         
         assert isinstance(bot, AstroStatsBot)
-        assert bot.command_prefix is None
+        assert bot.command_prefix == discord.ext.commands.when_mentioned
 
     @pytest.mark.asyncio
     async def test_run_bot_no_token(self):
