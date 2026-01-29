@@ -9,7 +9,7 @@ from discord import app_commands
 from discord.ext import commands
 
 from config.constants import APEX_PLATFORM_MAPPING
-from core.errors import send_error_embed, ResourceNotFoundError
+from core.errors import send_error_embed, ResourceNotFoundError, APIError
 from services.api.apex import fetch_apex_stats, format_stat_value
 from core.utils import get_conditional_embed
 from ui.embeds import get_premium_promotion_view
@@ -53,8 +53,16 @@ class ApexCog(commands.Cog):
                     "Please ensure the username and platform are correct and the profile exists on [Apex Tracker](https://apex.tracker.gg)."
                 )
                 return
-            except Exception as e:
+            except APIError as e:
                 logger.error(f"API Error: {e}", exc_info=True)
+                await send_error_embed(
+                    interaction,
+                    "API Error",
+                    str(e)
+                )
+                return
+            except Exception as e:
+                logger.error(f"Unexpected API Error: {e}", exc_info=True)
                 await send_error_embed(
                     interaction,
                     "API Error",

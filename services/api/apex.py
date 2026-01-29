@@ -52,6 +52,12 @@ def fetch_apex_stats(platform: str, name: str) -> Dict:
                 f"Access forbidden (403) when fetching stats for {name} on {api_platform}."
             )
             raise APIError("Invalid API key or insufficient permissions")
+        elif status_code in (502, 503, 520, 521, 522, 523, 524):
+            # Cloudflare/origin server errors
+            logger.warning(
+                f"Tracker.gg API unavailable (HTTP {status_code}) when fetching stats for {name} on {api_platform}."
+            )
+            raise APIError("The Apex Tracker API is currently unavailable. Please try again in a few minutes.")
         else:
             logger.error(
                 f"Failed to fetch stats for {name} on {api_platform}. HTTP {status_code} received."
