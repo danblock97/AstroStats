@@ -26,12 +26,21 @@ class ValidationError(AstroStatsError):
     pass
 
 
-async def send_error_embed(interaction: discord.Interaction, title: str, description: str):
-    """Send an error embed for a command failure."""
+async def send_error_embed(interaction: discord.Interaction, title: str, description: str, notify_logged: bool = True):
+    """Send an error embed for a command failure.
+
+    Args:
+        interaction: The Discord interaction
+        title: The error title
+        description: The error description
+        notify_logged: Whether to show "This issue has been raised to the devs" message (default True)
+    """
+    logged_notice = "\n\n*This issue has been automatically logged and will be investigated by our team.*" if notify_logged else ""
+
     embed = discord.Embed(
         title=title,
         description=(
-            f"{description}\n\nFor more assistance, visit "
+            f"{description}{logged_notice}\n\nFor more assistance, visit "
             "[AstroStats Support](https://www.astrostats.info/support) or report issues on our [Issue Tracker](https://www.astrostats.info/support)"
         ),
         color=discord.Color.red(),

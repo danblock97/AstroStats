@@ -38,7 +38,8 @@ class ApexCog(commands.Cog):
                 await send_error_embed(
                     interaction,
                     "Missing Username",
-                    "You need to provide a username for the stats."
+                    "You need to provide a username for the stats.",
+                    notify_logged=False
                 )
                 return
 
@@ -50,7 +51,8 @@ class ApexCog(commands.Cog):
                     interaction,
                     "Account Not Found",
                     f"No stats found for the username: **{name}** on **{platform}**. "
-                    "Please ensure the username and platform are correct and the profile exists on [Apex Tracker](https://apex.tracker.gg)."
+                    "Please ensure the username and platform are correct and the profile exists on [Apex Tracker](https://apex.tracker.gg).",
+                    notify_logged=False
                 )
                 return
             except APIError as e:
@@ -75,7 +77,8 @@ class ApexCog(commands.Cog):
                     interaction,
                     "Account Not Found",
                     f"No stats found for the username: **{name}** on {platform}. "
-                    "Please double-check your details are up to date on [Apex Tracker](https://apex.tracker.gg)."
+                    "Please double-check your details are up to date on [Apex Tracker](https://apex.tracker.gg).",
+                    notify_logged=False
                 )
                 return
 
@@ -84,7 +87,8 @@ class ApexCog(commands.Cog):
                 await send_error_embed(
                     interaction,
                     "No Data Available",
-                    f"No data found for the user: **{name}**."
+                    f"No data found for the user: **{name}**.",
+                    notify_logged=False
                 )
                 return
 

@@ -19,6 +19,7 @@ def is_owner():
     app_commands.Choice(name="Critical Error", value="critical"),
     app_commands.Choice(name="Nested Exception", value="nested"),
     app_commands.Choice(name="Division by Zero", value="division"),
+    app_commands.Choice(name="Notion Task Test", value="notion"),
 ])
 @is_owner()
 async def test_error_command(interaction: discord.Interaction, error_type: str = "generic"):
@@ -48,6 +49,11 @@ async def test_error_command(interaction: discord.Interaction, error_type: str =
             result = 1 / 0
         except ZeroDivisionError:
             logger.error("Test division by zero error", exc_info=True)
+    elif error_type == "notion":
+        try:
+            raise RuntimeError("Test error for Notion task creation - please verify task was created in Notion tracker")
+        except Exception:
+            logger.error("Notion integration test error", exc_info=True)
     else:
         logger.error(f"Unknown error type: {error_type}")
 
