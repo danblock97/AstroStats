@@ -254,10 +254,10 @@ class AstroStatsBot(commands.Bot):
         embed.add_field(
             name="📊 **Game Statistics**",
             value=(
-                "**🎯 Apex Legends** - `/apex <platform> <username>`\n"
-                "**⚔️ League of Legends** - `/league profile <region> <riotid>`\n"
-                "**🏆 Teamfight Tactics** - `/tft <region> <riotid>`\n"
-                "**🏗️ Fortnite** - `/fortnite <timeframe> <username>`"
+                "**🎯 Apex Legends** - `/apex stats <platform> <username>` • `/apex compare`\n"
+                "**⚔️ League of Legends** - `/league profile <region> <riotid>` • `/league compare`\n"
+                "**🏆 Teamfight Tactics** - `/tft stats <region> <riotid>` • `/tft compare`\n"
+                "**🏗️ Fortnite** - `/fortnite stats <timeframe> <username>` • `/fortnite compare`"
             ),
             inline=False
         )

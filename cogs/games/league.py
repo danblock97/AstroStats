@@ -18,6 +18,7 @@ from config.constants import LEAGUE_REGIONS, LEAGUE_QUEUE_TYPE_NAMES, SPECIAL_EM
 from core.errors import send_error_embed
 from core.utils import get_conditional_embed
 from ui.embeds import get_premium_promotion_view
+from services.compare_image import compare_image_generator, compare_values
 from discord.ui import View, Button
 
 logger = logging.getLogger(__name__)
@@ -594,6 +595,165 @@ class LeagueCog(commands.GroupCog, group_name="league"):
         embed.description = "\n".join(description_lines)
         embed.set_footer(text="AstroStats | astrostats.info")
         return embed
+
+
+    async def _fetch_player_profile(self, session, game_name, tag_line, region, headers):
+        """Fetch all profile data for a League player. Returns dict with profile info or None."""
+        regional_url = (
+            "https://europe.api.riotgames.com/"
+            f"riot/account/v1/accounts/by-riot-id/{game_name}/{tag_line}"
+        )
+        account_data = await self.fetch_data(session, regional_url, headers)
+        puuid = account_data.get('puuid') if account_data else None
+        if not puuid:
+            return None
+
+        summoner_data = await self.fetch_summoner_data(session, puuid, region, headers)
+        if not summoner_data:
+            return None
+
+        league_data = await self.fetch_league_data(session, puuid, region, headers)
+
+        ranked_info = {
+            "Ranked Solo/Duo": {"display": "Unranked", "tier": "Unranked", "rank": "", "lp": 0, "wins": 0, "losses": 0, "winrate": 0},
+            "Ranked Flex 5v5": {"display": "Unranked", "tier": "Unranked", "rank": "", "lp": 0, "wins": 0, "losses": 0, "winrate": 0}
+        }
+
+        if league_data:
+            for league_info in league_data:
+                if league_info.get('queueType') in ["RANKED_SOLO_5x5", "RANKED_FLEX_SR"]:
+                    queue_type = LEAGUE_QUEUE_TYPE_NAMES.get(league_info['queueType'], "Other")
+                    tier = league_info.get('tier', 'Unranked').capitalize()
+                    rank = league_info.get('rank', '').upper()
+                    lp = league_info.get('leaguePoints', 0)
+                    wins = league_info.get('wins', 0)
+                    losses = league_info.get('losses', 0)
+                    total_games = wins + losses
+                    winrate = int((wins / total_games) * 100) if total_games > 0 else 0
+                    ranked_info[queue_type] = {
+                        "display": f"{tier} {rank} {lp} LP\nW: {wins} / L: {losses} ({winrate}%)",
+                        "tier": tier, "rank": rank, "lp": lp,
+                        "wins": wins, "losses": losses, "winrate": winrate
+                    }
+
+        return {
+            "puuid": puuid,
+            "summoner_data": summoner_data,
+            "league_data": league_data,
+            "ranked_info": ranked_info,
+            "game_name": game_name,
+            "tag_line": tag_line,
+            "riotid": f"{game_name}#{tag_line}",
+            "level": summoner_data.get('summonerLevel', 0),
+            "profile_icon_id": summoner_data.get('profileIconId'),
+        }
+
+    @app_commands.command(name="compare", description="Compare two League of Legends players side-by-side")
+    async def compare(
+            self,
+            interaction: discord.Interaction,
+            region: Literal["EUW1", "EUN1", "TR1", "RU", "NA1", "BR1", "LA1", "LA2", "JP1", "KR", "OC1", "SG2", "TW2", "VN2"],
+            riotid1: str,
+            riotid2: str
+    ):
+        try:
+            await interaction.response.defer()
+
+            for rid, label in [(riotid1, "first"), (riotid2, "second")]:
+                if "#" not in rid:
+                    await send_error_embed(
+                        interaction,
+                        "Invalid Riot ID",
+                        f"The {label} Riot ID must be in the format gameName#tagLine."
+                    )
+                    return
+
+            game_name1, tag_line1 = riotid1.split("#", 1)
+            game_name2, tag_line2 = riotid2.split("#", 1)
+
+            riot_api_key = LOL_API
+            if not riot_api_key:
+                await send_error_embed(interaction, "Configuration Error", "Riot API key is not configured.")
+                return
+            headers = {'X-Riot-Token': riot_api_key}
+
+            async with aiohttp.ClientSession() as session:
+                p1, p2 = await asyncio.gather(
+                    self._fetch_player_profile(session, game_name1, tag_line1, region, headers),
+                    self._fetch_player_profile(session, game_name2, tag_line2, region, headers)
+                )
+
+                errors = []
+                if not p1:
+                    errors.append(f"Could not find **{riotid1}** in **{region}**.")
+                if not p2:
+                    errors.append(f"Could not find **{riotid2}** in **{region}**.")
+                if errors:
+                    await send_error_embed(interaction, "Player Not Found", "\n".join(errors), notify_logged=False)
+                    return
+
+                rows = self._build_compare_rows(p1, p2)
+                img_buf = compare_image_generator.create_image(
+                    title="League of Legends Comparison",
+                    player1_name=p1['riotid'],
+                    player2_name=p2['riotid'],
+                    rows=rows,
+                    accent_color=(26, 120, 174),
+                    subtitle=f"Region: {region}",
+                )
+
+                if img_buf:
+                    await interaction.followup.send(
+                        file=discord.File(img_buf, "league_compare.png")
+                    )
+                else:
+                    await send_error_embed(interaction, "Image Error", "Failed to generate comparison image.")
+
+        except aiohttp.ClientError as e:
+            logger.error(f"Request Error in compare: {e}")
+            await send_error_embed(interaction, "API Error", "Could not retrieve League of Legends stats. Please try again later.")
+        except Exception as e:
+            logger.error(f"Unexpected Error in compare: {e}")
+            await send_error_embed(interaction, "Unexpected Error", "An unexpected error occurred. Please try again later.")
+
+    def _build_compare_rows(self, p1, p2):
+        """Build comparison rows for the image generator."""
+        rows = []
+
+        # Level
+        lvl1, lvl2 = p1['level'], p2['level']
+        s1, s2 = compare_values(lvl1, lvl2, str(lvl1), str(lvl2))
+        rows.append(("Level", s1, s2))
+
+        # Solo/Duo
+        solo1 = p1['ranked_info']['Ranked Solo/Duo']
+        solo2 = p2['ranked_info']['Ranked Solo/Duo']
+        solo1_display = f"{solo1['tier']} {solo1['rank']} {solo1['lp']} LP" if solo1['tier'] != "Unranked" else "Unranked"
+        solo2_display = f"{solo2['tier']} {solo2['rank']} {solo2['lp']} LP" if solo2['tier'] != "Unranked" else "Unranked"
+        rows.append(("Solo/Duo Rank", solo1_display, solo2_display))
+
+        # Solo/Duo W/L
+        if solo1['tier'] != "Unranked" or solo2['tier'] != "Unranked":
+            w1 = f"W: {solo1['wins']} / L: {solo1['losses']} ({solo1['winrate']}%)"
+            w2 = f"W: {solo2['wins']} / L: {solo2['losses']} ({solo2['winrate']}%)"
+            sw1, sw2 = compare_values(solo1['winrate'], solo2['winrate'], w1, w2)
+            rows.append(("Solo/Duo W/L", sw1, sw2))
+
+        # Flex
+        flex1 = p1['ranked_info']['Ranked Flex 5v5']
+        flex2 = p2['ranked_info']['Ranked Flex 5v5']
+        flex1_display = f"{flex1['tier']} {flex1['rank']} {flex1['lp']} LP" if flex1['tier'] != "Unranked" else "Unranked"
+        flex2_display = f"{flex2['tier']} {flex2['rank']} {flex2['lp']} LP" if flex2['tier'] != "Unranked" else "Unranked"
+        rows.append(("Flex 5v5 Rank", flex1_display, flex2_display))
+
+        # Flex W/L
+        if flex1['tier'] != "Unranked" or flex2['tier'] != "Unranked":
+            fw1 = f"W: {flex1['wins']} / L: {flex1['losses']} ({flex1['winrate']}%)"
+            fw2 = f"W: {flex2['wins']} / L: {flex2['losses']} ({flex2['winrate']}%)"
+            fw1, fw2 = compare_values(flex1['winrate'], flex2['winrate'], fw1, fw2)
+            rows.append(("Flex 5v5 W/L", fw1, fw2))
+
+        return rows
 
 
 class LeagueProfileView(View):

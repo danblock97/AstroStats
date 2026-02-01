@@ -16,12 +16,16 @@ from config.constants import LEAGUE_REGIONS, TFT_QUEUE_TYPE_NAMES, REGION_TO_ROU
 from core.utils import get_conditional_embed
 from core.errors import send_error_embed
 from ui.embeds import get_premium_promotion_view
+from services.compare_image import compare_image_generator, compare_values
 
 logger = logging.getLogger(__name__)
 
 
-class TFTCog(commands.Cog):
+class TFTCog(commands.GroupCog, group_name="tft"):
+    """A cog grouping TFT commands under `/tft`."""
+
     def __init__(self, bot: commands.Bot):
+        super().__init__()
         self.bot = bot
         self.base_path = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
         self.astrostats_img = os.path.join(self.base_path, 'images', 'astrostats.png')
@@ -115,8 +119,58 @@ class TFTCog(commands.Cog):
         embed.set_footer(text="AstroStats | astrostats.info")
         return embed
 
-    @app_commands.command(name="tft", description="Check your TFT Player Stats!")
-    async def tft(self, interaction: discord.Interaction, region: Literal[
+    async def _fetch_player_profile(self, session, game_name, tag_line, region, headers):
+        """Fetch all TFT profile data for a player. Returns dict or None."""
+        regional_url = f"https://europe.api.riotgames.com/riot/account/v1/accounts/by-riot-id/{game_name}/{tag_line}"
+        account_data = await self.fetch_data(session, regional_url, headers)
+        if not account_data:
+            return None
+
+        puuid = account_data.get('puuid')
+        if not puuid:
+            return None
+
+        summoner_url = f"https://{region.lower()}.api.riotgames.com/tft/summoner/v1/summoners/by-puuid/{puuid}"
+        summoner_data = await self.fetch_data(session, summoner_url, headers)
+        if not summoner_data:
+            return None
+
+        league_url = f"https://{region.lower()}.api.riotgames.com/tft/league/v1/by-puuid/{puuid}"
+        league_data = await self.fetch_data(session, league_url, headers)
+
+        ranked_info = {"display": "Unranked", "tier": "Unranked", "rank": "", "lp": 0, "wins": 0, "losses": 0, "winrate": 0}
+        if league_data:
+            for league_info in league_data:
+                queue_type = TFT_QUEUE_TYPE_NAMES.get(league_info.get('queueType'), None)
+                if queue_type:
+                    tier = league_info.get('tier', 'Unranked')
+                    rank = league_info.get('rank', '')
+                    lp = league_info.get('leaguePoints', 0)
+                    wins = league_info.get('wins', 0)
+                    losses = league_info.get('losses', 0)
+                    total_games = wins + losses
+                    winrate = int((wins / total_games) * 100) if total_games > 0 else 0
+                    ranked_info = {
+                        "display": f"{tier} {rank} {lp} LP\nW: {wins} / L: {losses} ({winrate}%)",
+                        "tier": tier, "rank": rank, "lp": lp,
+                        "wins": wins, "losses": losses, "winrate": winrate
+                    }
+                    break
+
+        return {
+            "puuid": puuid,
+            "summoner_data": summoner_data,
+            "league_data": league_data,
+            "ranked_info": ranked_info,
+            "game_name": game_name,
+            "tag_line": tag_line,
+            "riotid": f"{game_name}#{tag_line}",
+            "level": summoner_data.get('summonerLevel', 0),
+            "profile_icon_id": summoner_data.get('profileIconId'),
+        }
+
+    @app_commands.command(name="stats", description="Check your TFT Player Stats!")
+    async def stats(self, interaction: discord.Interaction, region: Literal[
         "EUW1", "EUN1", "TR1", "RU", "NA1", "BR1", "LA1", "LA2", "JP1", "KR", "OC1", "SG2", "TW2", "VN2"], riotid: str):
         try:
             await interaction.response.defer()
@@ -236,6 +290,114 @@ class TFTCog(commands.Cog):
                 "Unexpected Error",
                 "Oops! An unexpected error occurred while processing your request. Please try again later."
             )
+
+
+    @app_commands.command(name="compare", description="Compare two TFT players side-by-side")
+    async def compare(
+            self,
+            interaction: discord.Interaction,
+            region: Literal["EUW1", "EUN1", "TR1", "RU", "NA1", "BR1", "LA1", "LA2", "JP1", "KR", "OC1", "SG2", "TW2", "VN2"],
+            riotid1: str,
+            riotid2: str
+    ):
+        try:
+            await interaction.response.defer()
+
+            for rid, label in [(riotid1, "first"), (riotid2, "second")]:
+                if "#" not in rid:
+                    await send_error_embed(
+                        interaction,
+                        "Invalid Format",
+                        f"The {label} Riot ID must be in the format `gameName#tagLine`."
+                    )
+                    return
+
+            game_name1, tag_line1 = riotid1.split("#", 1)
+            game_name2, tag_line2 = riotid2.split("#", 1)
+
+            riot_api_key = TFT_API
+            if not riot_api_key:
+                await send_error_embed(interaction, "Configuration Error", "TFT API key is not configured.")
+                return
+            headers = {'X-Riot-Token': riot_api_key}
+
+            async with aiohttp.ClientSession() as session:
+                p1, p2 = await asyncio.gather(
+                    self._fetch_player_profile(session, game_name1, tag_line1, region, headers),
+                    self._fetch_player_profile(session, game_name2, tag_line2, region, headers)
+                )
+
+                errors = []
+                if not p1:
+                    errors.append(f"Could not find **{riotid1}** in **{region}**.")
+                if not p2:
+                    errors.append(f"Could not find **{riotid2}** in **{region}**.")
+                if errors:
+                    await send_error_embed(interaction, "Player Not Found", "\n".join(errors), notify_logged=False)
+                    return
+
+                rows = self._build_compare_rows(p1, p2)
+                img_buf = compare_image_generator.create_image(
+                    title="TFT Comparison",
+                    player1_name=p1['riotid'],
+                    player2_name=p2['riotid'],
+                    rows=rows,
+                    accent_color=(26, 120, 174),
+                    subtitle=f"Region: {region}",
+                )
+
+                if img_buf:
+                    await interaction.followup.send(
+                        file=discord.File(img_buf, "tft_compare.png")
+                    )
+                else:
+                    await send_error_embed(interaction, "Image Error", "Failed to generate comparison image.")
+
+        except aiohttp.ClientError as e:
+            logger.error(f"Request Error in TFT compare: {e}")
+            await send_error_embed(interaction, "API Error", "Could not retrieve TFT stats. Please try again later.")
+        except Exception as e:
+            logger.error(f"Unexpected Error in TFT compare: {e}")
+            await send_error_embed(interaction, "Unexpected Error", "An unexpected error occurred. Please try again later.")
+
+    def _build_compare_rows(self, p1, p2):
+        """Build comparison rows for the image generator."""
+        rows = []
+
+        # Level
+        lvl1, lvl2 = p1['level'], p2['level']
+        s1, s2 = compare_values(lvl1, lvl2, str(lvl1), str(lvl2))
+        rows.append(("Level", s1, s2))
+
+        ri1 = p1['ranked_info']
+        ri2 = p2['ranked_info']
+
+        # Rank tier
+        t1 = f"{ri1['tier']} {ri1['rank']}" if ri1['tier'] != "Unranked" else "Unranked"
+        t2 = f"{ri2['tier']} {ri2['rank']}" if ri2['tier'] != "Unranked" else "Unranked"
+        rows.append(("Ranked TFT", t1, t2))
+
+        # LP
+        lp1, lp2 = ri1['lp'], ri2['lp']
+        ls1, ls2 = compare_values(lp1, lp2, f"{lp1} LP", f"{lp2} LP")
+        rows.append(("League Points", ls1, ls2))
+
+        # Wins
+        w1, w2 = ri1['wins'], ri2['wins']
+        ws1, ws2 = compare_values(w1, w2, str(w1), str(w2))
+        rows.append(("Wins", ws1, ws2))
+
+        # Losses
+        l1, l2 = ri1['losses'], ri2['losses']
+        lls1, lls2 = compare_values(l1, l2, str(l1), str(l2), higher_is_better=False)
+        rows.append(("Losses", lls1, lls2))
+
+        # Winrate
+        wr1, wr2 = ri1['winrate'], ri2['winrate']
+        wrs1, wrs2 = compare_values(wr1, wr2, f"{wr1}%", f"{wr2}%")
+        rows.append(("Win Rate", wrs1, wrs2))
+
+        return rows
 
 
 class TFTMatchHistoryView(View):
