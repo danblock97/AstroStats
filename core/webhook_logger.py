@@ -3,6 +3,7 @@ import traceback
 import aiohttp
 import asyncio
 import os
+import base64
 from typing import Optional
 from datetime import datetime
 
@@ -12,7 +13,8 @@ class DiscordWebhookHandler(logging.Handler):
     def __init__(self, webhook_url: str, level: int = logging.ERROR):
         super().__init__(level)
         self.webhook_url = webhook_url
-        self.notion_data_source_id = os.getenv("NOTION_TRACKER_ID")
+        self.jira_base_url = os.getenv("JIRA_BASE_URL")
+        self.jira_project_key = os.getenv("JIRA_PROJECT_KEY")
         self.session: Optional[aiohttp.ClientSession] = None
         self._lock = asyncio.Lock()
         self._loop: Optional[asyncio.AbstractEventLoop] = None
@@ -41,10 +43,10 @@ class DiscordWebhookHandler(logging.Handler):
             # Schedule async webhook send
             asyncio.create_task(self._send_webhook(payload))
 
-            # Schedule Notion task creation if configured
-            if self.notion_data_source_id:
-                notion_task = self._create_notion_task_payload(record)
-                asyncio.create_task(self._create_notion_task(notion_task))
+            # Schedule Jira issue creation if configured
+            if self.jira_base_url and self.jira_project_key:
+                jira_issue = self._create_jira_issue_payload(record)
+                asyncio.create_task(self._create_jira_issue(jira_issue))
         except Exception:
             # Prevent logging errors from causing infinite loops
             self.handleError(record)
@@ -120,90 +122,101 @@ class DiscordWebhookHandler(logging.Handler):
             await self.session.close()
             self.session = None
 
-    def _create_notion_task_payload(self, record: logging.LogRecord) -> dict:
-        """Create Notion task payload from log record."""
+    def _create_jira_issue_payload(self, record: logging.LogRecord) -> dict:
+        """Create Jira issue payload from log record."""
         level_name = record.levelname.capitalize()  # "Error" instead of "ERROR"
         module_name = record.name.split('.')[-1] if record.name else "unknown"
 
-        # Build summary (title) - more readable format
         func_name = record.funcName if record.funcName and record.funcName != '<module>' else None
         if func_name:
             summary = f"{level_name} in {func_name}"
         else:
             summary = f"{level_name} in {module_name}"
 
-        # Build description with details
         description_parts = [
-            f"**Error Message:** {record.getMessage()}",
-            f"**Location:** `{record.pathname}:{record.lineno}`",
-            f"**Function:** `{record.funcName}`",
-            f"**Timestamp:** {datetime.utcnow().isoformat()}Z",
+            f"Error Message: {record.getMessage()}",
+            f"Location: {record.pathname}:{record.lineno}",
+            f"Function: {record.funcName}",
+            f"Timestamp (UTC): {datetime.utcnow().isoformat()}Z",
         ]
 
-        # Add traceback if available
+        traceback_text = None
         if record.exc_info:
-            exc_text = ''.join(traceback.format_exception(*record.exc_info))
-            # Truncate if too long for Notion
-            if len(exc_text) > 1500:
-                exc_text = exc_text[:1500] + "... (truncated)"
-            description_parts.append(f"\n**Traceback:**\n```\n{exc_text}\n```")
+            traceback_text = ''.join(traceback.format_exception(*record.exc_info))
+            if len(traceback_text) > 3000:
+                traceback_text = traceback_text[:3000] + "... (truncated)"
 
-        description = "\n".join(description_parts)
-
-        # Map priority based on log level
-        priority = "High" if record.levelno >= logging.CRITICAL else "Medium"
+        priority = "Highest" if record.levelno >= logging.CRITICAL else "High"
 
         return {
             "summary": summary,
-            "description": description,
+            "description_parts": description_parts,
+            "traceback": traceback_text,
             "priority": priority,
-            "task_type": ["🐞 Bug"],
-            "status": "Not started"
         }
 
-    async def _create_notion_task(self, task_data: dict):
-        """Create a task in Notion via the Notion API."""
+    def _build_jira_description(self, parts: list[str], traceback_text: Optional[str]) -> dict:
+        """Build Jira ADF description document."""
+        content = []
+        for part in parts:
+            content.append({
+                "type": "paragraph",
+                "content": [{"type": "text", "text": part}]
+            })
+
+        if traceback_text:
+            content.append({
+                "type": "paragraph",
+                "content": [{"type": "text", "text": "Traceback:"}]
+            })
+            content.append({
+                "type": "codeBlock",
+                "attrs": {"language": "python"},
+                "content": [{"type": "text", "text": traceback_text}]
+            })
+
+        return {"type": "doc", "version": 1, "content": content}
+
+    async def _create_jira_issue(self, issue_data: dict):
+        """Create an issue in Jira via the Jira Cloud API."""
         try:
+            jira_email = os.getenv("JIRA_EMAIL")
+            jira_api_token = os.getenv("JIRA_API_TOKEN")
+            if not jira_email or not jira_api_token:
+                return
+
             async with self._lock:
                 if not self.session or self.session.closed:
                     self.session = aiohttp.ClientSession()
                 session = self.session
 
-            # Notion API endpoint
-            url = "https://api.notion.com/v1/pages"
-
-            # Get Notion API key from environment
-            notion_api_key = os.getenv("NOTION_API_KEY")
-            if not notion_api_key:
-                return
+            auth_bytes = f"{jira_email}:{jira_api_token}".encode("utf-8")
+            auth_header = base64.b64encode(auth_bytes).decode("utf-8")
 
             headers = {
-                "Authorization": f"Bearer {notion_api_key}",
-                "Content-Type": "application/json",
-                "Notion-Version": "2022-06-28"
+                "Authorization": f"Basic {auth_header}",
+                "Content-Type": "application/json"
             }
 
-            # Build the Notion page payload
+            description_doc = self._build_jira_description(
+                issue_data["description_parts"],
+                issue_data["traceback"]
+            )
+
+            component_name = os.getenv("JIRA_COMPONENT", "Discord Bot")
+
             payload = {
-                "parent": {"database_id": self.notion_data_source_id},
-                "properties": {
-                    "Summary": {
-                        "title": [{"text": {"content": task_data["summary"]}}]
-                    },
-                    "Description": {
-                        "rich_text": [{"text": {"content": task_data["description"][:2000]}}]
-                    },
-                    "Priority": {
-                        "select": {"name": task_data["priority"]}
-                    },
-                    "Task type": {
-                        "multi_select": [{"name": name} for name in task_data["task_type"]]
-                    },
-                    "Status": {
-                        "status": {"name": task_data["status"]}
-                    }
+                "fields": {
+                    "project": {"key": self.jira_project_key},
+                    "summary": issue_data["summary"],
+                    "description": description_doc,
+                    "issuetype": {"name": "Bug"},
+                    "priority": {"name": issue_data["priority"]},
+                    "components": [{"name": component_name}],
                 }
             }
+
+            url = f"{self.jira_base_url.rstrip('/')}/rest/api/3/issue"
 
             async with session.post(
                 url,
@@ -212,11 +225,9 @@ class DiscordWebhookHandler(logging.Handler):
                 timeout=aiohttp.ClientTimeout(total=10)
             ) as response:
                 if response.status not in (200, 201):
-                    # Log to console for debugging (not through logger to avoid loops)
                     response_text = await response.text()
-                    print(f"[Notion API Error] Status: {response.status}, Response: {response_text}")
+                    print(f"[Jira API Error] Status: {response.status}, Response: {response_text}")
                 else:
-                    print(f"[Notion API] Task created successfully")
+                    print(f"[Jira API] Issue created successfully")
         except Exception as e:
-            # Log to console for debugging (not through logger to avoid loops)
-            print(f"[Notion API Exception] {type(e).__name__}: {e}")
+            print(f"[Jira API Exception] {type(e).__name__}: {e}")
