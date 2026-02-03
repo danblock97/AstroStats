@@ -18,6 +18,10 @@ TFT_API = os.getenv('TFT_API')
 FORTNITE_API_KEY = os.getenv('FORTNITE_API_KEY')
 TOPGG_TOKEN = os.getenv('TOPGG_TOKEN')
 
+# Statuspage configuration (public or authenticated)
+STATUSPAGE_API_BASE = os.getenv("STATUSPAGE_API_BASE")
+STATUSPAGE_API_KEY = os.getenv("STATUSPAGE_API_KEY")
+
 # MongoDB configuration
 MONGODB_URI = os.getenv('MONGODB_URI')
 

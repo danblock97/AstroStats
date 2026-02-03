@@ -147,3 +147,10 @@ class WouldYouRatherAutoSettings:
     recent_questions: Dict[str, List[str]] = field(default_factory=dict)  # Track recent questions to avoid repeats
     _id: Optional[Any] = None # Use Any for ObjectId compatibility
 
+@dataclass
+class StatusPageSettings:
+    guild_id: str
+    enabled: bool = False
+    channel_id: Optional[str] = None  # Channel ID where status updates should be sent
+    last_posted_update_ids: List[str] = field(default_factory=list)  # De-dupe incident updates
+    _id: Optional[Any] = None # Use Any for ObjectId compatibility

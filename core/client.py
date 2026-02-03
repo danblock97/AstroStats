@@ -148,6 +148,7 @@ class AstroStatsBot(commands.Bot):
         from cogs.general.review import setup as setup_review
         from cogs.general.premium import setup as setup_premium
         from cogs.general.support import setup as setup_support
+        from cogs.general.statuspage import setup as setup_statuspage
         from cogs.systems.pet_battles import setup as setup_pet_battles
         from cogs.systems.squib_game import setup as setup_squib_game
         from cogs.systems.bingo_game import setup as setup_bingo_game
@@ -171,6 +172,7 @@ class AstroStatsBot(commands.Bot):
             setup_review(self),
             setup_premium(self),
             setup_support(self),
+            setup_statuspage(self),
             setup_pet_battles(self),
             setup_kick(self),
             setup_servers(self),
