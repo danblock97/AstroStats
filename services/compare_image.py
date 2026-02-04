@@ -36,10 +36,10 @@ class CompareImageGenerator:
 
     # ── Final output dimensions (before 2x) ──────────────────────────────
     WIDTH = 800
-    HEADER_H = 80
-    NAME_ROW_H = 56
-    ROW_H = 48
-    FOOTER_H = 36
+    HEADER_H = 92
+    NAME_ROW_H = 64
+    ROW_H = 56
+    FOOTER_H = 40
     CORNER_R = 18
 
     # ── Colour palette ────────────────────────────────────────────────────
@@ -188,14 +188,14 @@ class CompareImageGenerator:
         draw = ImageDraw.Draw(canvas)
 
         # Fonts (sizes are pre-2x, _font handles scaling)
-        f_title = self._font(22, bold=True)
-        f_sub   = self._font(13)
-        f_name  = self._font(17, bold=True)
-        f_vs    = self._font(13, bold=True)
-        f_label = self._font(14)
-        f_val   = self._font(15, bold=True)
-        f_ind   = self._font(11, bold=True)
-        f_foot  = self._font(11)
+        f_title = self._font(26, bold=True)
+        f_sub   = self._font(15)
+        f_name  = self._font(20, bold=True)
+        f_vs    = self._font(14, bold=True)
+        f_label = self._font(16)
+        f_val   = self._font(18, bold=True)
+        f_ind   = self._font(12, bold=True)
+        f_foot  = self._font(12)
 
         mid = W // 2
         pad = _s(28)
@@ -215,14 +215,14 @@ class CompareImageGenerator:
         # Title text (centred)
         t_text = self._trunc(draw, title, f_title, W - _s(60))
         t_w = self._tw(draw, t_text, f_title)
-        draw.text(((W - t_w) // 2, _s(14)), t_text, font=f_title,
+        draw.text(((W - t_w) // 2, _s(16)), t_text, font=f_title,
                   fill=self.TEXT_WHITE)
 
         # Subtitle
         if subtitle:
             s_text = self._trunc(draw, subtitle, f_sub, W - _s(60))
             s_w = self._tw(draw, s_text, f_sub)
-            draw.text(((W - s_w) // 2, _s(44)), s_text, font=f_sub,
+            draw.text(((W - s_w) // 2, _s(52)), s_text, font=f_sub,
                       fill=self.TEXT_DIM)
 
         # ── Name row ──────────────────────────────────────────────────────
