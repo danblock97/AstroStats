@@ -116,19 +116,73 @@ class StatusPageCog(commands.GroupCog, group_name="statuspage"):
                 logger.error("Statuspage incidents fetch error: %s", e, exc_info=True)
                 return []
 
-    def _collect_updates(self, incidents: List[Dict[str, Any]]) -> List[Tuple[datetime, Dict[str, Any], Dict[str, Any]]]:
-        updates: List[Tuple[datetime, Dict[str, Any], Dict[str, Any]]] = []
+    async def fetch_maintenances(self) -> List[Dict[str, Any]]:
+        if not STATUSPAGE_API_BASE:
+            logger.warning("STATUSPAGE_API_BASE is not set; skipping statuspage polling.")
+            return []
+        url = f"{STATUSPAGE_API_BASE}/scheduled-maintenances.json"
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with session.get(url, headers=self._auth_headers()) as response:
+                    if response.status != 200:
+                        logger.warning("Statuspage maintenances fetch failed: HTTP %s", response.status)
+                        return []
+                    data = await response.json()
+                    maintenances = data.get("scheduled_maintenances", [])
+                    if not isinstance(maintenances, list):
+                        return []
+                    return maintenances
+            except Exception as e:
+                logger.error("Statuspage maintenances fetch error: %s", e, exc_info=True)
+                return []
+
+    def _collect_updates(
+        self,
+        incidents: List[Dict[str, Any]],
+        maintenances: Optional[List[Dict[str, Any]]] = None,
+    ) -> List[Tuple[datetime, Dict[str, Any], Dict[str, Any], str]]:
+        updates: List[Tuple[datetime, Dict[str, Any], Dict[str, Any], str]] = []
         for incident in incidents:
             for update in incident.get("incident_updates", []) or []:
                 ts = _parse_iso(update.get("updated_at")) or _parse_iso(update.get("created_at")) or datetime.now(timezone.utc)
-                updates.append((ts, incident, update))
+                updates.append((ts, incident, update, "incident"))
+        for maintenance in maintenances or []:
+            status_norm = (maintenance.get("status") or "").lower()
+            if status_norm in {"completed", "resolved"}:
+                continue
+
+            scheduled_for = _parse_iso(maintenance.get("scheduled_for"))
+            if scheduled_for and scheduled_for < datetime.now(timezone.utc) and status_norm not in {"in_progress", "verifying"}:
+                continue
+
+            maintenance_updates = (
+                maintenance.get("scheduled_maintenance_updates")
+                or maintenance.get("incident_updates")
+                or []
+            )
+            if maintenance_updates:
+                for update in maintenance_updates:
+                    ts = _parse_iso(update.get("updated_at")) or _parse_iso(update.get("created_at")) or scheduled_for or datetime.now(timezone.utc)
+                    updates.append((ts, maintenance, update, "maintenance"))
+            else:
+                fallback_id = maintenance.get("id")
+                update = {
+                    "id": f"{fallback_id}:scheduled" if fallback_id else None,
+                    "status": maintenance.get("status") or "scheduled",
+                    "body": maintenance.get("incident_description") or maintenance.get("name") or "Scheduled maintenance.",
+                    "updated_at": maintenance.get("updated_at") or maintenance.get("scheduled_for"),
+                    "created_at": maintenance.get("created_at") or maintenance.get("scheduled_for"),
+                }
+                ts = _parse_iso(update.get("updated_at")) or _parse_iso(update.get("created_at")) or datetime.now(timezone.utc)
+                updates.append((ts, maintenance, update, "maintenance"))
         updates.sort(key=lambda x: x[0])
         return updates
 
-    def _build_embed(self, incident: Dict[str, Any], update: Dict[str, Any]) -> discord.Embed:
+    def _build_embed(self, incident: Dict[str, Any], update: Dict[str, Any], kind: str = "incident") -> discord.Embed:
         name = incident.get("name") or "Incident Update"
         body = _truncate(update.get("body", ""))
-        impact = incident.get("impact", "")
+        is_maintenance = kind == "maintenance" or bool(incident.get("scheduled_for") or incident.get("scheduled_until"))
+        impact = incident.get("impact", "") or ("maintenance" if is_maintenance else "")
         status = update.get("status") or incident.get("status", "unknown")
 
         embed = discord.Embed(
@@ -140,6 +194,14 @@ class StatusPageCog(commands.GroupCog, group_name="statuspage"):
         embed.add_field(name="Status", value=str(status).replace("_", " ").title(), inline=True)
         embed.add_field(name="Impact", value=str(impact or "none").replace("_", " ").title(), inline=True)
 
+        if is_maintenance:
+            scheduled_for = _parse_iso(incident.get("scheduled_for"))
+            scheduled_until = _parse_iso(incident.get("scheduled_until"))
+            if scheduled_for:
+                embed.add_field(name="Scheduled For", value=f"<t:{int(scheduled_for.timestamp())}:f>", inline=True)
+            if scheduled_until:
+                embed.add_field(name="Scheduled Until", value=f"<t:{int(scheduled_until.timestamp())}:f>", inline=True)
+
         components = incident.get("components", [])
         if isinstance(components, list) and components:
             names = ", ".join([c.get("name") for c in components if c.get("name")])[:1000]
@@ -148,12 +210,17 @@ class StatusPageCog(commands.GroupCog, group_name="statuspage"):
 
         url = incident.get("shortlink") or incident.get("url")
         if url:
-            embed.add_field(name="View incident", value=url, inline=False)
+            label = "View maintenance" if is_maintenance else "View incident"
+            embed.add_field(name=label, value=url, inline=False)
 
         embed.set_footer(text="AstroStats Status")
         return embed
 
-    async def _post_updates_for_guild(self, guild_doc: Dict[str, Any], updates: List[Tuple[datetime, Dict[str, Any], Dict[str, Any]]]) -> None:
+    async def _post_updates_for_guild(
+        self,
+        guild_doc: Dict[str, Any],
+        updates: List[Tuple[datetime, Dict[str, Any], Dict[str, Any], str]],
+    ) -> None:
         guild_id = guild_doc.get("guild_id")
         channel_id = guild_doc.get("channel_id")
         if not guild_id or not channel_id:
@@ -175,24 +242,24 @@ class StatusPageCog(commands.GroupCog, group_name="statuspage"):
         settings = get_statuspage_settings(str(guild_id))
         last_ids = settings.last_posted_update_ids if settings else []
 
-        new_updates: List[Tuple[datetime, Dict[str, Any], Dict[str, Any]]] = []
-        for ts, incident, update in updates:
+        new_updates: List[Tuple[datetime, Dict[str, Any], Dict[str, Any], str]] = []
+        for ts, incident, update, kind in updates:
             update_id = update.get("id")
             if update_id and update_id not in last_ids:
-                new_updates.append((ts, incident, update))
+                new_updates.append((ts, incident, update, kind))
 
         if not new_updates:
             return
 
-        for _, incident, update in new_updates:
-            embed = self._build_embed(incident, update)
+        for _, incident, update, kind in new_updates:
+            embed = self._build_embed(incident, update, kind)
             try:
                 await channel.send(embed=embed)
             except Exception as e:
                 logger.error("Failed to send statuspage update to %s: %s", channel_id, e, exc_info=True)
 
         # Update de-dupe list
-        for _, _, update in new_updates:
+        for _, _, update, _ in new_updates:
             update_id = update.get("id")
             if update_id:
                 last_ids.append(update_id)
@@ -208,10 +275,11 @@ class StatusPageCog(commands.GroupCog, group_name="statuspage"):
                 return
 
             incidents = await self.fetch_incidents()
-            if not incidents:
+            maintenances = await self.fetch_maintenances()
+            if not incidents and not maintenances:
                 return
 
-            updates = self._collect_updates(incidents)
+            updates = self._collect_updates(incidents, maintenances)
             if not updates:
                 return
 
@@ -260,8 +328,9 @@ class StatusPageCog(commands.GroupCog, group_name="statuspage"):
 
         # Prime de-dupe list with current updates to avoid backfill spam
         incidents = await self.fetch_incidents()
-        updates = self._collect_updates(incidents)
-        existing_ids = [u.get("id") for _, _, u in updates if u.get("id")]
+        maintenances = await self.fetch_maintenances()
+        updates = self._collect_updates(incidents, maintenances)
+        existing_ids = [u.get("id") for _, _, u, _ in updates if u.get("id")]
         existing_ids = existing_ids[-MAX_DEDUPE_IDS:]
 
         success = update_statuspage_settings(
