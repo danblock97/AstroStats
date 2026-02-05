@@ -19,7 +19,7 @@ def is_owner():
     app_commands.Choice(name="Critical Error", value="critical"),
     app_commands.Choice(name="Nested Exception", value="nested"),
     app_commands.Choice(name="Division by Zero", value="division"),
-    app_commands.Choice(name="Jira Issue Test", value="jira"),
+    app_commands.Choice(name="Notion Issue Test", value="notion"),
 ])
 @is_owner()
 async def test_error_command(interaction: discord.Interaction, error_type: str = "generic"):
@@ -49,11 +49,11 @@ async def test_error_command(interaction: discord.Interaction, error_type: str =
             result = 1 / 0
         except ZeroDivisionError:
             logger.error("Test division by zero error", exc_info=True)
-    elif error_type == "jira":
+    elif error_type == "notion":
         try:
-            raise RuntimeError("Test error for Jira issue creation - please verify issue was created in Jira")
+            raise RuntimeError("Test error for Notion issue creation - please verify issue was created in Notion")
         except Exception:
-            logger.error("Jira integration test error", exc_info=True)
+            logger.error("Notion integration test error", exc_info=True)
     else:
         logger.error(f"Unknown error type: {error_type}")
 
