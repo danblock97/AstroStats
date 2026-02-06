@@ -929,14 +929,18 @@ class PetBattles(commands.GroupCog, name="petbattles"):
 
         async def send_reply(*, embed: Optional[discord.Embed] = None, embeds: Optional[list] = None, ephemeral: bool = False, file: Optional[discord.File] = None):
             """Send a reply using followup if interaction acknowledged, else fallback to channel.send."""
+            kwargs: Dict[str, Any] = {}
+            if file is not None:
+                kwargs["file"] = file
+
             if use_channel_fallback:
                 if embeds is not None:
-                    return await interaction.channel.send(embeds=embeds, file=file)
-                return await interaction.channel.send(embed=embed, file=file)
+                    return await interaction.channel.send(embeds=embeds, **kwargs)
+                return await interaction.channel.send(embed=embed, **kwargs)
             else:
                 if embeds is not None:
-                    return await interaction.followup.send(embeds=embeds, ephemeral=ephemeral, file=file)
-                return await interaction.followup.send(embed=embed, ephemeral=ephemeral, file=file)
+                    return await interaction.followup.send(embeds=embeds, ephemeral=ephemeral, **kwargs)
+                return await interaction.followup.send(embed=embed, ephemeral=ephemeral, **kwargs)
 
         try:
             # Defer response immediately to prevent interaction expiry
