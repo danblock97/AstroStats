@@ -1,5 +1,6 @@
 # cogs/general/statuspage.py
 import logging
+import asyncio
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional, Tuple
 
@@ -19,6 +20,8 @@ logger = logging.getLogger(__name__)
 
 POLL_INTERVAL_MINUTES = 5
 MAX_DEDUPE_IDS = 200
+FETCH_RETRIES = 3
+FETCH_RETRY_BASE_DELAY_SECONDS = 2
 
 MOCK_INCIDENT = {
     "id": "mock_incident_1",
@@ -96,45 +99,77 @@ class StatusPageCog(commands.GroupCog, group_name="statuspage"):
             return {"Authorization": STATUSPAGE_API_KEY}
         return {}
 
-    async def fetch_incidents(self) -> List[Dict[str, Any]]:
+    async def _fetch_statuspage_list(self, endpoint: str, root_key: str, label: str) -> List[Dict[str, Any]]:
         if not STATUSPAGE_API_BASE:
             logger.warning("STATUSPAGE_API_BASE is not set; skipping statuspage polling.")
             return []
-        url = f"{STATUSPAGE_API_BASE}/incidents.json"
-        async with aiohttp.ClientSession() as session:
-            try:
-                async with session.get(url, headers=self._auth_headers()) as response:
-                    if response.status != 200:
-                        logger.warning("Statuspage incidents fetch failed: HTTP %s", response.status)
+        url = f"{STATUSPAGE_API_BASE}/{endpoint}"
+        for attempt in range(1, FETCH_RETRIES + 1):
+            async with aiohttp.ClientSession() as session:
+                try:
+                    async with session.get(url, headers=self._auth_headers()) as response:
+                        if response.status == 200:
+                            data = await response.json()
+                            items = data.get(root_key, [])
+                            if isinstance(items, list):
+                                return items
+                            return []
+
+                        should_retry = response.status >= 500 or response.status in {429}
+                        logger.warning(
+                            "Statuspage %s fetch failed: HTTP %s (attempt %s/%s)",
+                            label,
+                            response.status,
+                            attempt,
+                            FETCH_RETRIES,
+                        )
+                        if not should_retry or attempt == FETCH_RETRIES:
+                            return []
+                except Exception as e:
+                    logger.warning(
+                        "Statuspage %s fetch error on attempt %s/%s: %s",
+                        label,
+                        attempt,
+                        FETCH_RETRIES,
+                        e,
+                    )
+                    if attempt == FETCH_RETRIES:
+                        logger.error("Statuspage %s fetch error: %s", label, e, exc_info=True)
                         return []
-                    data = await response.json()
-                    incidents = data.get("incidents", [])
-                    if not isinstance(incidents, list):
-                        return []
-                    return incidents
-            except Exception as e:
-                logger.error("Statuspage incidents fetch error: %s", e, exc_info=True)
-                return []
+
+            await asyncio.sleep(FETCH_RETRY_BASE_DELAY_SECONDS * attempt)
+        return []
+
+    async def fetch_incidents(self) -> List[Dict[str, Any]]:
+        return await self._fetch_statuspage_list(
+            endpoint="incidents.json",
+            root_key="incidents",
+            label="incidents",
+        )
 
     async def fetch_maintenances(self) -> List[Dict[str, Any]]:
-        if not STATUSPAGE_API_BASE:
-            logger.warning("STATUSPAGE_API_BASE is not set; skipping statuspage polling.")
-            return []
-        url = f"{STATUSPAGE_API_BASE}/scheduled-maintenances.json"
-        async with aiohttp.ClientSession() as session:
-            try:
-                async with session.get(url, headers=self._auth_headers()) as response:
-                    if response.status != 200:
-                        logger.warning("Statuspage maintenances fetch failed: HTTP %s", response.status)
-                        return []
-                    data = await response.json()
-                    maintenances = data.get("scheduled_maintenances", [])
-                    if not isinstance(maintenances, list):
-                        return []
-                    return maintenances
-            except Exception as e:
-                logger.error("Statuspage maintenances fetch error: %s", e, exc_info=True)
-                return []
+        return await self._fetch_statuspage_list(
+            endpoint="scheduled-maintenances.json",
+            root_key="scheduled_maintenances",
+            label="maintenances",
+        )
+
+    def _stable_update_id(self, record: Dict[str, Any], update: Dict[str, Any], kind: str) -> str:
+        update_id = update.get("id")
+        if update_id:
+            return str(update_id)
+
+        parent_id = str(record.get("id") or "unknown")
+        status = str(update.get("status") or record.get("status") or "unknown").lower()
+        timestamp = (
+            update.get("updated_at")
+            or update.get("created_at")
+            or record.get("updated_at")
+            or record.get("scheduled_for")
+            or record.get("created_at")
+            or "unknown"
+        )
+        return f"{kind}:{parent_id}:{status}:{timestamp}"
 
     def _collect_updates(
         self,
@@ -144,15 +179,15 @@ class StatusPageCog(commands.GroupCog, group_name="statuspage"):
         updates: List[Tuple[datetime, Dict[str, Any], Dict[str, Any], str]] = []
         for incident in incidents:
             for update in incident.get("incident_updates", []) or []:
-                ts = _parse_iso(update.get("updated_at")) or _parse_iso(update.get("created_at")) or datetime.now(timezone.utc)
-                updates.append((ts, incident, update, "incident"))
+                update_payload = dict(update or {})
+                update_payload["id"] = self._stable_update_id(incident, update_payload, "incident")
+                ts = _parse_iso(update_payload.get("updated_at")) or _parse_iso(update_payload.get("created_at")) or datetime.now(timezone.utc)
+                updates.append((ts, incident, update_payload, "incident"))
         for maintenance in maintenances or []:
             status_norm = (maintenance.get("status") or "").lower()
-            if status_norm in {"completed", "resolved"}:
-                continue
 
             scheduled_for = _parse_iso(maintenance.get("scheduled_for"))
-            if scheduled_for and scheduled_for < datetime.now(timezone.utc) and status_norm not in {"in_progress", "verifying"}:
+            if scheduled_for and scheduled_for < datetime.now(timezone.utc) and status_norm not in {"in_progress", "verifying", "completed", "resolved"}:
                 continue
 
             maintenance_updates = (
@@ -162,17 +197,21 @@ class StatusPageCog(commands.GroupCog, group_name="statuspage"):
             )
             if maintenance_updates:
                 for update in maintenance_updates:
-                    ts = _parse_iso(update.get("updated_at")) or _parse_iso(update.get("created_at")) or scheduled_for or datetime.now(timezone.utc)
-                    updates.append((ts, maintenance, update, "maintenance"))
+                    update_payload = dict(update or {})
+                    update_payload["id"] = self._stable_update_id(maintenance, update_payload, "maintenance")
+                    ts = _parse_iso(update_payload.get("updated_at")) or _parse_iso(update_payload.get("created_at")) or scheduled_for or datetime.now(timezone.utc)
+                    updates.append((ts, maintenance, update_payload, "maintenance"))
             else:
                 fallback_id = maintenance.get("id")
+                fallback_status = maintenance.get("status") or "scheduled"
                 update = {
-                    "id": f"{fallback_id}:scheduled" if fallback_id else None,
-                    "status": maintenance.get("status") or "scheduled",
+                    "id": f"{fallback_id}:{fallback_status}" if fallback_id else None,
+                    "status": fallback_status,
                     "body": maintenance.get("incident_description") or maintenance.get("name") or "Scheduled maintenance.",
                     "updated_at": maintenance.get("updated_at") or maintenance.get("scheduled_for"),
                     "created_at": maintenance.get("created_at") or maintenance.get("scheduled_for"),
                 }
+                update["id"] = self._stable_update_id(maintenance, update, "maintenance")
                 ts = _parse_iso(update.get("updated_at")) or _parse_iso(update.get("created_at")) or datetime.now(timezone.utc)
                 updates.append((ts, maintenance, update, "maintenance"))
         updates.sort(key=lambda x: x[0])
