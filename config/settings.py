@@ -16,6 +16,7 @@ TRN_API_KEY = os.getenv('TRN_API_KEY')
 LOL_API = os.getenv('LOL_API')
 TFT_API = os.getenv('TFT_API')
 FORTNITE_API_KEY = os.getenv('FORTNITE_API_KEY')
+MARVEL_RIVALS_API_KEY = os.getenv('MARVEL_RIVALS_API_KEY')
 TOPGG_TOKEN = os.getenv('TOPGG_TOKEN')
 
 # Statuspage configuration (public or authenticated)

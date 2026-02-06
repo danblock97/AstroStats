@@ -36,6 +36,23 @@ FORTNITE_TIME_MAPPING = {
     'Lifetime': 'lifetime',
 }
 
+# Marvel Rivals season mapping (API season IDs -> display labels)
+MARVEL_RIVALS_CURRENT_SEASON = 12
+MARVEL_RIVALS_SEASONS = {
+    12: "S6: Night at the Museum",
+    11: "S5.5: Love is a Battlefield",
+    10: "S5: Love is a Battlefield",
+    9: "S4.5: Heart of the Dragon",
+    8: "S4: Heart of the Dragon",
+    7: "S3.5: The Abyss Awakens",
+    6: "S3: The Abyss Awakens",
+    5: "S2.5: Hellfire Gala",
+    4: "S2: Hellfire Gala",
+    3: "S1.5: Eternal Night Falls",
+    2: "S1: Eternal Night Falls",
+    1: "S0: Doom's Rise",
+}
+
 # Special emoji name mappings for League of Legends
 SPECIAL_EMOJI_NAMES = {
     "Renata Glasc": "Renata",

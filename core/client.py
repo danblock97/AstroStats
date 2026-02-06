@@ -142,6 +142,7 @@ class AstroStatsBot(commands.Bot):
         from cogs.games.apex import setup as setup_apex
         from cogs.games.league import setup as setup_league
         from cogs.games.fortnite import setup as setup_fortnite
+        from cogs.games.marvel_rivals import setup as setup_marvel_rivals
         from cogs.games.tft import setup as setup_tft
         from cogs.general.help import setup as setup_help
         from cogs.general.horoscope import setup as setup_horoscope
@@ -166,6 +167,7 @@ class AstroStatsBot(commands.Bot):
             setup_apex(self),
             setup_league(self),
             setup_fortnite(self),
+            setup_marvel_rivals(self),
             setup_tft(self),
             setup_help(self),
             setup_horoscope(self),
