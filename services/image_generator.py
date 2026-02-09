@@ -9,6 +9,8 @@ from io import BytesIO
 from typing import Optional, Tuple
 import requests
 import unicodedata
+import math
+import random
 
 # Try to import PIL, fallback if not available
 try:
@@ -28,7 +30,7 @@ class BattleImageGenerator:
     
     def __init__(self):
         self.default_size = (520, 300)  # Larger for clearer UI layout
-        self.avatar_size = (132, 132)   # Prominent avatars
+        self.avatar_size = (168, 168)   # Poster-style fighter portraits
         self.pil_available = PIL_AVAILABLE
         
     async def download_avatar(self, avatar_url: str) -> Optional[Image.Image]:
@@ -80,70 +82,68 @@ class BattleImageGenerator:
         return avatar
     
     def create_gradient_background(self) -> Image.Image:
-        """Create a vibrant gradient background."""
-        # Create layered gradient for depth
-        background = Image.new('RGBA', self.default_size, (30, 30, 40, 255))
+        """Create a refreshed comic-style background with new colors."""
+        background = Image.new('RGBA', self.default_size, (8, 20, 46, 255))
         draw = ImageDraw.Draw(background)
-        
         width, height = self.default_size
-        
-        # Create horizontal gradient
-        for x in range(width):
-            # Calculate color transition
-            ratio = x / width
-            if ratio < 0.5:
-                local_ratio = ratio * 2
-                r = int(30 + (120 - 30) * local_ratio)
-                g = int(40 + (70 - 40) * local_ratio)
-                b = int(80 + (140 - 80) * local_ratio)
-            else:
-                local_ratio = (ratio - 0.5) * 2
-                r = int(120 + (255 - 120) * local_ratio)
-                g = int(70 + (140 - 70) * local_ratio)
-                b = int(140 - (140 - 60) * local_ratio)
-            
-            draw.line([(x, 0), (x, height)], fill=(r, g, b, 255))
-        
-        # Add some decorative elements
-        self.add_decorative_elements(draw, width, height)
+
+        # Vertical deep-blue to cyan-violet gradient.
+        for y in range(height):
+            ratio = y / max(1, height - 1)
+            r = int(8 + (38 - 8) * ratio)
+            g = int(20 + (86 - 20) * ratio)
+            b = int(46 + (124 - 46) * ratio)
+            draw.line([(0, y), (width, y)], fill=(r, g, b, 255))
+
+        # Add aurora-like wave strokes for texture.
+        for i in range(12):
+            y_base = int((i + 1) * height / 13)
+            amp = 9 + i % 4
+            color = (70 + i * 8, 120 + i * 6, 205 - i * 4, 74)
+            points = []
+            for x in range(0, width + 1, 14):
+                y = y_base + int(math.sin((x / 34.0) + i) * amp)
+                points.append((x, y))
+            draw.line(points, fill=color, width=3)
+
         self.add_light_bursts(background)
-        # Removed soft bars to avoid visible black strips at top/bottom
-        
+        self.add_decorative_elements(draw, width, height)
         return background
     
     def add_decorative_elements(self, draw: ImageDraw.Draw, width: int, height: int):
-        """Add decorative elements to the background."""
-        import random
-        
-        # Add some sparkle effects
-        for _ in range(15):
+        """Add confetti particles that match the command art style."""
+        confetti_colors = [
+            (255, 238, 0, 220), (52, 255, 118, 220), (255, 77, 123, 220),
+            (0, 230, 255, 220), (255, 156, 30, 220), (188, 134, 255, 220),
+        ]
+        for _ in range(85):
             x = random.randint(0, width)
             y = random.randint(0, height)
-            size = random.randint(3, 8)
-            
-            # Create star shape
+            w = random.randint(3, 7)
+            h = random.randint(2, 4)
+            color = random.choice(confetti_colors)
+            if random.random() < 0.4:
+                draw.ellipse((x, y, x + w, y + h), fill=color)
+                continue
+            angle = math.radians(random.randint(-35, 35))
+            cx, cy = x + (w / 2), y + (h / 2)
+            cos_a = math.cos(angle)
+            sin_a = math.sin(angle)
+            corners = [(-w / 2, -h / 2), (w / 2, -h / 2), (w / 2, h / 2), (-w / 2, h / 2)]
             points = []
-            for i in range(10):
-                angle = i * 36  # 360 / 10
-                if i % 2 == 0:
-                    radius = size
-                else:
-                    radius = size // 2
-                
-                import math
-                px = x + radius * math.cos(math.radians(angle))
-                py = y + radius * math.sin(math.radians(angle))
-                points.append((px, py))
-            
-            draw.polygon(points, fill=(255, 255, 255, 180))
+            for px, py in corners:
+                rx = cx + (px * cos_a - py * sin_a)
+                ry = cy + (px * sin_a + py * cos_a)
+                points.append((rx, ry))
+            draw.polygon(points, fill=color)
     
     def add_light_bursts(self, background: Image.Image):
         """Add soft light bursts for depth."""
         width, height = background.size
         overlay = Image.new("RGBA", background.size, (0, 0, 0, 0))
         draw = ImageDraw.Draw(overlay)
-        draw.ellipse((width * 0.05, height * 0.1, width * 0.45, height * 0.8), fill=(255, 255, 255, 30))
-        draw.ellipse((width * 0.55, height * 0.0, width * 0.95, height * 0.7), fill=(255, 180, 120, 28))
+        draw.ellipse((width * 0.02, height * 0.08, width * 0.46, height * 0.86), fill=(44, 255, 205, 34))
+        draw.ellipse((width * 0.52, height * 0.0, width * 0.98, height * 0.68), fill=(139, 87, 255, 32))
         background.alpha_composite(overlay)
 
     def add_soft_bars(self, background: Image.Image):
@@ -158,9 +158,11 @@ class BattleImageGenerator:
         candidates = []
         if bold:
             candidates.extend([
+                "Impact.ttf",
+                "Arial Black.ttf",
+                "Arial Bold.ttf",
                 "DejaVuSans-Bold.ttf",
                 "NotoSans-Bold.ttf",
-                "Arial Bold.ttf",
                 "arialbd.ttf",
             ])
         candidates.extend([
@@ -206,19 +208,11 @@ class BattleImageGenerator:
         return "..."
 
     def add_vs_badge(self, background: Image.Image) -> Image.Image:
-        """Add a VS badge in the center."""
+        """Add large center VS text with drop-shadow."""
         draw = ImageDraw.Draw(background)
         width, height = background.size
-        center_x, center_y = width // 2, height // 2
-        badge_radius = 30
-        badge_box = (
-            center_x - badge_radius,
-            center_y - badge_radius,
-            center_x + badge_radius,
-            center_y + badge_radius,
-        )
-        draw.ellipse(badge_box, fill=(15, 15, 20, 200), outline=(255, 255, 255, 200), width=2)
-        font = self.load_font(26, bold=True)
+        center_x, center_y = width // 2, int(height * 0.49)
+        font = self.load_font(56, bold=True)
         label = "VS"
         try:
             bbox = draw.textbbox((0, 0), label, font=font)
@@ -228,9 +222,58 @@ class BattleImageGenerator:
             text_width = 30
             text_height = 18
         text_x = center_x - text_width // 2
-        text_y = center_y - text_height // 2 - 1
-        draw.text((text_x, text_y), label, font=font, fill=(255, 255, 255, 255))
+        text_y = center_y - text_height // 2
+        draw.text((text_x + 4, text_y + 4), label, font=font, fill=(58, 14, 26, 235))
+        draw.text((text_x, text_y), label, font=font, fill=(248, 255, 255, 255))
         return background
+
+    def draw_title(self, background: Image.Image):
+        """Draw CATFIGHT title with heavy comic styling."""
+        draw = ImageDraw.Draw(background)
+        title = "CATFIGHT"
+        font = self.load_font(74, bold=True)
+        width, _ = background.size
+        bbox = draw.textbbox((0, 0), title, font=font)
+        text_width = bbox[2] - bbox[0]
+        x = (width - text_width) // 2
+        y = 10
+        # Shadow, then accent, then face.
+        draw.text((x + 6, y + 6), title, font=font, fill=(7, 15, 32, 245))
+        draw.text((x + 2, y + 1), title, font=font, fill=(57, 255, 220, 255))
+        draw.text((x, y), title, font=font, fill=(245, 253, 255, 255))
+
+    def style_avatar(self, avatar: Image.Image, grayscale: bool = False) -> Image.Image:
+        """Apply subtle color grading for each fighter side."""
+        portrait = avatar.copy().convert("RGBA")
+        if grayscale:
+            gray = portrait.convert("L")
+            portrait = Image.merge("RGBA", (gray, gray, gray, portrait.split()[-1]))
+            tint = Image.new("RGBA", portrait.size, (95, 110, 135, 74))
+        else:
+            tint = Image.new("RGBA", portrait.size, (255, 178, 86, 54))
+        portrait.alpha_composite(tint)
+        return portrait
+
+    def draw_panel(self, background: Image.Image, x: int, y: int, avatar: Image.Image, left_side: bool):
+        """Draw one fighter card panel."""
+        draw = ImageDraw.Draw(background)
+        panel_w = self.avatar_size[0] + 10
+        panel_h = self.avatar_size[1] + 40
+        fill = (14, 55, 86, 200) if left_side else (90, 36, 88, 210)
+        border = (48, 239, 210, 255) if left_side else (213, 124, 255, 255)
+        bar = (0, 219, 186, 255) if left_side else (178, 68, 255, 255)
+        draw.rectangle((x, y, x + panel_w, y + panel_h), fill=fill, outline=border, width=3)
+        draw.rectangle((x, y + panel_h - 28, x + panel_w, y + panel_h), fill=bar)
+        portrait = self.style_avatar(avatar, grayscale=not left_side)
+        background.paste(portrait, (x + 5, y + 5), portrait)
+
+    def draw_icon_badges(self, background: Image.Image):
+        """Add trophy and RIP icon badges near the bottom."""
+        draw = ImageDraw.Draw(background)
+        trophy_font = self.load_font(54, bold=False)
+        rip_font = self.load_font(56, bold=False)
+        draw.text((95, 220), "🏆", font=trophy_font, fill=(255, 255, 255, 255))
+        draw.text((332, 218), "🪦", font=rip_font, fill=(255, 255, 255, 255))
     
     async def create_battle_image(self, user1_avatar_url: str, user2_avatar_url: str, 
                                  user1_name: str, user2_name: str) -> Optional[BytesIO]:
@@ -254,31 +297,18 @@ class BattleImageGenerator:
             if not avatar2:
                 avatar2 = self.create_default_avatar()
             
-            # Position avatars (adjust for smaller image)
-            width, height = background.size
-            avatar_y = (height - self.avatar_size[1]) // 2
-            
-            # Left avatar position (closer to edges for smaller image)
-            left_x = 20
-            # Right avatar position  
-            right_x = width - self.avatar_size[0] - 20
-            
-            # Add glow effect to avatars
-            avatar1_glow = self.add_glow_effect(avatar1, (255, 100, 100, 100))
-            avatar2_glow = self.add_glow_effect(avatar2, (100, 100, 255, 100))
-            
-            # Paste avatars with glow
-            background.paste(avatar1_glow, (left_x - 10, avatar_y - 10), avatar1_glow)
-            background.paste(avatar1, (left_x, avatar_y), avatar1)
-            
-            background.paste(avatar2_glow, (right_x - 10, avatar_y - 10), avatar2_glow)
-            background.paste(avatar2, (right_x, avatar_y), avatar2)
-            
-            # Add center badge
+            # Compose poster style.
+            left_x, panel_y = 22, 64
+            right_x = self.default_size[0] - (self.avatar_size[0] + 10) - 22
+            self.draw_panel(background, left_x, panel_y, avatar1, left_side=True)
+            self.draw_panel(background, right_x, panel_y, avatar2, left_side=False)
             background = self.add_vs_badge(background)
-            
-            # Add user names
-            self.add_user_names(background, user1_name, user2_name, left_x, right_x, avatar_y)
+            self.draw_icon_badges(background)
+
+            # Add user names to panel bars.
+            self.add_user_names(background, user1_name, user2_name, left_x, right_x, panel_y + self.avatar_size[1] + 15)
+            # Keep title on top of all effects/elements.
+            self.draw_title(background)
             self.add_border(background)
             
             # Convert to BytesIO
@@ -312,30 +342,26 @@ class BattleImageGenerator:
         return glow
     
     def add_user_names(self, background: Image.Image, user1_name: str, user2_name: str,
-                      left_x: int, right_x: int, avatar_y: int):
-        """Add user names below avatars."""
+                      left_x: int, right_x: int, text_y: int):
+        """Add names centered over each panel footer."""
         draw = ImageDraw.Draw(background)
-        font = self.load_font(22, bold=True)
+        font = self.load_font(24, bold=True)
 
         user1_display = self.sanitize_name(user1_name)
         user2_display = self.sanitize_name(user2_name)
         
-        # Calculate text positions
-        nameplate_y = avatar_y + self.avatar_size[1] + 10
-        text_y = nameplate_y - 4
-        max_width = self.avatar_size[0] + 12
+        panel_w = self.avatar_size[0] + 10
+        max_width = panel_w - 14
         user1_display = self.fit_text(draw, user1_display, font, max_width)
         user2_display = self.fit_text(draw, user2_display, font, max_width)
 
-        outline_color = (0, 0, 0, 220)
-        text_color = (255, 255, 255, 255)
+        outline_color = (42, 8, 22, 230)
+        text_color = (245, 255, 245, 255)
 
         # User 1 name (left)
         bbox1 = draw.textbbox((0, 0), user1_display, font=font)
         text1_width = bbox1[2] - bbox1[0]
-        text1_height = bbox1[3] - bbox1[1]
-        text1_x = left_x + (self.avatar_size[0] - text1_width) // 2
-        self.draw_nameplate(draw, text1_x, nameplate_y, text1_width, text1_height, (255, 120, 120, 200))
+        text1_x = left_x + (panel_w - text1_width) // 2
         for dx in [-1, 0, 1]:
             for dy in [-1, 0, 1]:
                 if dx != 0 or dy != 0:
@@ -345,30 +371,12 @@ class BattleImageGenerator:
         # User 2 name (right)
         bbox2 = draw.textbbox((0, 0), user2_display, font=font)
         text2_width = bbox2[2] - bbox2[0]
-        text2_height = bbox2[3] - bbox2[1]
-        text2_x = right_x + (self.avatar_size[0] - text2_width) // 2
-        self.draw_nameplate(draw, text2_x, nameplate_y, text2_width, text2_height, (120, 160, 255, 200))
+        text2_x = right_x + (panel_w - text2_width) // 2
         for dx in [-1, 0, 1]:
             for dy in [-1, 0, 1]:
                 if dx != 0 or dy != 0:
                     draw.text((text2_x + dx, text_y + dy), user2_display, font=font, fill=outline_color)
         draw.text((text2_x, text_y), user2_display, font=font, fill=text_color)
-
-    def draw_nameplate(self, draw: ImageDraw.Draw, text_x: int, text_y: int, text_w: int, text_h: int,
-                       outline_color: Tuple[int, int, int, int]):
-        """Draw a nameplate behind text."""
-        pad_x = 10
-        pad_y = 4
-        rect = (
-            text_x - pad_x,
-            text_y - pad_y,
-            text_x + text_w + pad_x,
-            text_y + text_h + pad_y,
-        )
-        if hasattr(draw, "rounded_rectangle"):
-            draw.rounded_rectangle(rect, radius=8, fill=(0, 0, 0, 140), outline=outline_color, width=2)
-        else:
-            draw.rectangle(rect, fill=(0, 0, 0, 140), outline=outline_color, width=2)
 
     def add_border(self, background: Image.Image):
         """Add a thin border to frame the image."""
