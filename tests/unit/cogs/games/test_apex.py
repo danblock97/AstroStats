@@ -63,7 +63,7 @@ class TestApexCog:
             mock_conditional.return_value = None
             mock_premium_view.return_value = MagicMock()
             
-            await apex_cog.apex.callback(apex_cog, mock_interaction, "Xbox", "testuser")
+            await apex_cog.stats.callback(apex_cog, mock_interaction, "Xbox", "testuser")
             
             mock_interaction.response.defer.assert_called_once()
             mock_interaction.followup.send.assert_called_once()
@@ -76,7 +76,7 @@ class TestApexCog:
     @pytest.mark.asyncio
     async def test_apex_command_missing_username(self, apex_cog, mock_interaction):
         with patch('cogs.games.apex.send_error_embed') as mock_error:
-            await apex_cog.apex.callback(apex_cog, mock_interaction, "Xbox", "")
+            await apex_cog.stats.callback(apex_cog, mock_interaction, "Xbox", "")
             
             mock_interaction.response.defer.assert_called_once()
             mock_error.assert_called_once()
@@ -90,7 +90,7 @@ class TestApexCog:
             
             mock_thread.side_effect = ResourceNotFoundError("User not found")
             
-            await apex_cog.apex.callback(apex_cog, mock_interaction, "Xbox", "nonexistentuser")
+            await apex_cog.stats.callback(apex_cog, mock_interaction, "Xbox", "nonexistentuser")
             
             mock_error.assert_called_once()
             error_call = mock_error.call_args[0]
@@ -103,7 +103,7 @@ class TestApexCog:
             
             mock_thread.side_effect = Exception("API Error")
             
-            await apex_cog.apex.callback(apex_cog, mock_interaction, "Xbox", "testuser")
+            await apex_cog.stats.callback(apex_cog, mock_interaction, "Xbox", "testuser")
             
             mock_error.assert_called_once()
             error_call = mock_error.call_args[0]
@@ -116,7 +116,7 @@ class TestApexCog:
             
             mock_thread.return_value = {}
             
-            await apex_cog.apex.callback(apex_cog, mock_interaction, "Xbox", "testuser")
+            await apex_cog.stats.callback(apex_cog, mock_interaction, "Xbox", "testuser")
             
             mock_error.assert_called_once()
             error_call = mock_error.call_args[0]
@@ -129,7 +129,7 @@ class TestApexCog:
 
             mock_thread.return_value = {"data": {"segments": []}}
 
-            await apex_cog.apex.callback(apex_cog, mock_interaction, "Xbox", "testuser")
+            await apex_cog.stats.callback(apex_cog, mock_interaction, "Xbox", "testuser")
 
             mock_error.assert_called_once()
             error_call = mock_error.call_args[0]
@@ -226,6 +226,38 @@ class TestApexCog:
         assert "Wraith Kills: **200**" in result
         assert "Wraith Damage: **50000**" in result
 
+    def test_build_compare_embed_layout(self, apex_cog):
+        player1 = {
+            "lifetime": {
+                "level": {"value": 200},
+                "kills": {"value": 4000},
+                "damage": {"value": 1000000},
+                "matchesPlayed": {"value": 500},
+                "arenaWinStreak": {"value": 6},
+            },
+            "ranked": {"value": 6500, "metadata": {"rankName": "Master"}},
+            "peak_rank": {"value": 7000, "metadata": {"rankName": "Predator"}},
+        }
+        player2 = {
+            "lifetime": {
+                "level": {"value": 180},
+                "kills": {"value": 3500},
+                "damage": {"value": 850000},
+                "matchesPlayed": {"value": 520},
+                "arenaWinStreak": {"value": 4},
+            },
+            "ranked": {"value": 6200, "metadata": {"rankName": "Master"}},
+            "peak_rank": {"value": 6800, "metadata": {"rankName": "Master"}},
+        }
+
+        embed = apex_cog.build_compare_embed("player1", "Xbox", player1, "player2", "Playstation", player2)
+        assert embed.title == "Apex Legends Compare"
+        assert len(embed.fields) == 3
+        assert "Player 1: player1" == embed.fields[0].name
+        assert "Player 2: player2" == embed.fields[2].name
+        assert "Kills: **4,000**" in embed.fields[0].value
+        assert "Kills: **3,500**" in embed.fields[2].value
+
     @pytest.mark.asyncio
     async def test_apex_command_all_platforms(self, apex_cog, mock_interaction, mock_apex_data):
         platforms = ["Xbox", "Playstation", "Origin (PC)"]
@@ -239,7 +271,7 @@ class TestApexCog:
                 mock_conditional.return_value = None
                 mock_premium_view.return_value = MagicMock()
                 
-                await apex_cog.apex.callback(apex_cog, mock_interaction, platform, "testuser")
+                await apex_cog.stats.callback(apex_cog, mock_interaction, platform, "testuser")
                 
                 mock_interaction.followup.send.assert_called()
                 # Reset mock for next iteration

@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import logging
 import os
@@ -19,7 +20,7 @@ MARVEL_RIVALS_SEASON_CHOICES = [
 ]
 
 
-class MarvelRivalsCog(commands.Cog):
+class MarvelRivalsCog(commands.GroupCog, group_name="marvelrivals"):
     """A cog for Marvel Rivals stat commands."""
 
     def __init__(self, bot: commands.Bot):
@@ -29,10 +30,10 @@ class MarvelRivalsCog(commands.Cog):
         self.astrostats_img = os.path.join(self.base_path, 'images', 'astrostats.png')
         self.rank_icons_path = os.path.join(self.base_path, 'images', 'marvel_rivals', 'ranks')
 
-    @app_commands.command(name="marvelrivals", description="Search Marvel Rivals ranked stats only")
+    @app_commands.command(name="stats", description="Search Marvel Rivals ranked stats")
     @app_commands.describe(season="Season to query")
     @app_commands.choices(season=MARVEL_RIVALS_SEASON_CHOICES)
-    async def marvelrivals(
+    async def stats(
         self,
         interaction: discord.Interaction,
         name: str,
@@ -71,7 +72,140 @@ class MarvelRivalsCog(commands.Cog):
                 "An unexpected error occurred while fetching Marvel Rivals stats. Please try again later."
             )
 
+    @app_commands.command(name="compare", description="Compare two Marvel Rivals players")
+    @app_commands.describe(season="Season to query")
+    @app_commands.choices(season=MARVEL_RIVALS_SEASON_CHOICES)
+    async def compare(
+        self,
+        interaction: discord.Interaction,
+        name1: str,
+        name2: str,
+        season: int = MARVEL_RIVALS_CURRENT_SEASON,
+    ):
+        await interaction.response.defer()
+
+        results = await asyncio.gather(
+            fetch_marvel_rivals_player(name1, season=season),
+            fetch_marvel_rivals_player(name2, season=season),
+            return_exceptions=True,
+        )
+
+        errors = []
+        payloads: list[Optional[Dict[str, Any]]] = [None, None]
+        for idx, result in enumerate(results):
+            requested_name = name1 if idx == 0 else name2
+            if isinstance(result, ResourceNotFoundError):
+                errors.append(f"No Marvel Rivals stats found for **{requested_name}**.")
+            elif result is None:
+                errors.append(f"No Marvel Rivals stats found for **{requested_name}**.")
+            elif isinstance(result, APIError):
+                await send_error_embed(interaction, "API Error", str(result))
+                return
+            elif isinstance(result, Exception):
+                logger.error("Unexpected error in /marvelrivals compare: %s", result, exc_info=True)
+                await send_error_embed(
+                    interaction,
+                    "Unexpected Error",
+                    "An unexpected error occurred while fetching Marvel Rivals stats. Please try again later.",
+                )
+                return
+            else:
+                payloads[idx] = result
+
+        if errors:
+            await send_error_embed(interaction, "Account Not Found", "\n".join(errors), notify_logged=False)
+            return
+
+        season_name = MARVEL_RIVALS_SEASONS.get(season, f"Season {season}")
+        p1 = self._extract_player_summary(name1, payloads[0])
+        p2 = self._extract_player_summary(name2, payloads[1])
+        embed = self.build_compare_embed(p1, p2, season_name)
+
+        await interaction.followup.send(
+            embed=embed,
+            files=[discord.File(self.astrostats_img, "astrostats.png")],
+        )
+
     def build_embed(self, requested_name: str, response: Dict[str, Any]) -> tuple[discord.Embed, Optional[str]]:
+        summary = self._extract_player_summary(requested_name, response)
+        display_name = summary["display_name"]
+        rank_icon_path = summary["rank_icon_path"]
+
+        embed = discord.Embed(
+            title=f"Marvel Rivals - {display_name}",
+            color=0xE62429,
+            timestamp=datetime.datetime.now(datetime.timezone.utc)
+        )
+        if rank_icon_path:
+            embed.set_thumbnail(url="attachment://marvel_rank.png")
+
+        profile_lines = [
+            f"Player: **{display_name}**",
+            f"Level: **{self._format_value(summary['level'])}**",
+            f"Rank: **{self._format_value(summary['rank'])}**",
+            f"Rank Points: **{self._format_value(summary['rank_points'])}**",
+        ]
+        embed.add_field(name="Profile", value="\n".join(profile_lines), inline=True)
+
+        match_lines = [
+            f"Matches: **{self._format_value(summary['matches'])}**",
+            f"Wins: **{self._format_value(summary['wins'])}**",
+            f"Losses: **{self._format_value(summary['losses'])}**",
+            f"Win Rate: **{self._format_percent(summary['win_rate'])}**",
+        ]
+        embed.add_field(name="Match Stats", value="\n".join(match_lines), inline=True)
+
+        combat_lines = [
+            f"Kills: **{self._format_value(summary['kills'])}**",
+            f"Deaths: **{self._format_value(summary['deaths'])}**",
+            f"Assists: **{self._format_value(summary['assists'])}**",
+            f"KDA: **{self._format_value(summary['kda'])}**",
+        ]
+        embed.add_field(name="Combat Stats", value="\n".join(combat_lines), inline=False)
+
+        embed.set_footer(text="AstroStats | astrostats.info", icon_url="attachment://astrostats.png")
+        return embed, rank_icon_path
+
+    def build_compare_embed(self, player1: Dict[str, Any], player2: Dict[str, Any], season_name: str) -> discord.Embed:
+        p1_lines = [
+            f"Rank: **{self._format_value(player1['rank'])}**",
+            f"Season: **{season_name}**",
+        ]
+        p2_lines = [
+            f"Rank: **{self._format_value(player2['rank'])}**",
+            f"Season: **{season_name}**",
+        ]
+
+        rows = [
+            ("Level", player1["level_num"], player2["level_num"], self._format_value(player1["level"]), self._format_value(player2["level"]), True),
+            ("Rank Points", player1["rank_points_num"], player2["rank_points_num"], self._format_value(player1["rank_points"]), self._format_value(player2["rank_points"]), True),
+            ("Matches", player1["matches_num"], player2["matches_num"], self._format_value(player1["matches"]), self._format_value(player2["matches"]), True),
+            ("Wins", player1["wins_num"], player2["wins_num"], self._format_value(player1["wins"]), self._format_value(player2["wins"]), True),
+            ("Losses", player1["losses_num"], player2["losses_num"], self._format_value(player1["losses"]), self._format_value(player2["losses"]), False),
+            ("Win Rate", player1["win_rate_num"], player2["win_rate_num"], self._format_percent(player1["win_rate"]), self._format_percent(player2["win_rate"]), True),
+            ("Kills", player1["kills_num"], player2["kills_num"], self._format_value(player1["kills"]), self._format_value(player2["kills"]), True),
+            ("Deaths", player1["deaths_num"], player2["deaths_num"], self._format_value(player1["deaths"]), self._format_value(player2["deaths"]), False),
+            ("Assists", player1["assists_num"], player2["assists_num"], self._format_value(player1["assists"]), self._format_value(player2["assists"]), True),
+            ("KDA", player1["kda_num"], player2["kda_num"], self._format_value(player1["kda"]), self._format_value(player2["kda"]), True),
+        ]
+
+        for label, v1, v2, d1, d2, higher_is_better in rows:
+            p1_lines.append(f"{label}: **{d1}**")
+            p2_lines.append(f"{label}: **{d2}**")
+
+        embed = discord.Embed(
+            title="Marvel Rivals Compare",
+            description=f"**{player1['display_name']}** vs **{player2['display_name']}**",
+            color=0xE62429,
+            timestamp=datetime.datetime.now(datetime.timezone.utc),
+        )
+        embed.add_field(name=f"Player 1: {player1['display_name']}", value="\n".join(p1_lines), inline=False)
+        embed.add_field(name="━━━━━━━━━━━━━━━━━━", value="\u200b", inline=False)
+        embed.add_field(name=f"Player 2: {player2['display_name']}", value="\n".join(p2_lines), inline=False)
+        embed.set_footer(text="AstroStats | astrostats.info", icon_url="attachment://astrostats.png")
+        return embed
+
+    def _extract_player_summary(self, requested_name: str, response: Optional[Dict[str, Any]]) -> Dict[str, Any]:
         payload = response.get("data", response) if isinstance(response, dict) else {}
         player = payload.get("player", {}) if isinstance(payload, dict) else {}
         overall_stats = payload.get("overall_stats", {}) if isinstance(payload, dict) else {}
@@ -81,8 +215,7 @@ class MarvelRivalsCog(commands.Cog):
         rank = self._get_nested(player, "rank", "rank") or self._first_value(payload, ("rankName", "currentRank", "tier"))
         rank_icon_path = self._resolve_rank_icon_path(player, rank)
         rank_points = self._extract_latest_rank_score(player) or self._first_value(
-            payload,
-            ("rankPoints", "rankScore", "mmr", "score", "sr", "rp")
+            payload, ("rankPoints", "rankScore", "mmr", "score", "sr", "rp")
         )
 
         matches = self._first_value(payload, ("total_matches", "matches", "matchesPlayed", "gamesPlayed", "totalMatches", "games"))
@@ -95,22 +228,14 @@ class MarvelRivalsCog(commands.Cog):
         kda = self._first_value(payload, ("kda", "kd", "killDeathRatio"))
         win_rate = self._first_value(payload, ("winRate",))
 
-        # Prefer explicit overall totals in v1 schema.
         ranked_totals = overall_stats.get("ranked", {}) if isinstance(overall_stats, dict) else {}
         unranked_totals = overall_stats.get("unranked", {}) if isinstance(overall_stats, dict) else {}
 
-        summed_matches = self._sum_numeric(
-            ranked_totals.get("total_matches"),
-            unranked_totals.get("total_matches"),
-        )
-        summed_wins = self._sum_numeric(
-            ranked_totals.get("total_wins"),
-            unranked_totals.get("total_wins"),
-        )
+        summed_matches = self._sum_numeric(ranked_totals.get("total_matches"), unranked_totals.get("total_matches"))
+        summed_wins = self._sum_numeric(ranked_totals.get("total_wins"), unranked_totals.get("total_wins"))
 
         matches = self._coalesce(overall_stats.get("total_matches"), summed_matches, matches)
         wins = self._coalesce(overall_stats.get("total_wins"), summed_wins, wins)
-
         kills = self._coalesce(overall_stats.get("total_kills"), ranked_totals.get("total_kills"), unranked_totals.get("total_kills"), kills)
         deaths = self._coalesce(overall_stats.get("total_deaths"), ranked_totals.get("total_deaths"), unranked_totals.get("total_deaths"), deaths)
         assists = self._coalesce(overall_stats.get("total_assists"), ranked_totals.get("total_assists"), unranked_totals.get("total_assists"), assists)
@@ -142,40 +267,31 @@ class MarvelRivalsCog(commands.Cog):
                 else:
                     kda = (kills_num + assists_num) / deaths_num
 
-        embed = discord.Embed(
-            title=f"Marvel Rivals - {display_name}",
-            color=0xE62429,
-            timestamp=datetime.datetime.now(datetime.timezone.utc)
-        )
-        if rank_icon_path:
-            embed.set_thumbnail(url="attachment://marvel_rank.png")
-
-        profile_lines = [
-            f"Player: **{display_name}**",
-            f"Level: **{self._format_value(level)}**",
-            f"Rank: **{self._format_value(rank)}**",
-            f"Rank Points: **{self._format_value(rank_points)}**",
-        ]
-        embed.add_field(name="Profile", value="\n".join(profile_lines), inline=True)
-
-        match_lines = [
-            f"Matches: **{self._format_value(matches)}**",
-            f"Wins: **{self._format_value(wins)}**",
-            f"Losses: **{self._format_value(losses)}**",
-            f"Win Rate: **{self._format_percent(win_rate)}**",
-        ]
-        embed.add_field(name="Match Stats", value="\n".join(match_lines), inline=True)
-
-        combat_lines = [
-            f"Kills: **{self._format_value(kills)}**",
-            f"Deaths: **{self._format_value(deaths)}**",
-            f"Assists: **{self._format_value(assists)}**",
-            f"KDA: **{self._format_value(kda)}**",
-        ]
-        embed.add_field(name="Combat Stats", value="\n".join(combat_lines), inline=False)
-
-        embed.set_footer(text="AstroStats | astrostats.info", icon_url="attachment://astrostats.png")
-        return embed, rank_icon_path
+        return {
+            "display_name": display_name,
+            "level": level,
+            "rank": rank,
+            "rank_points": rank_points,
+            "matches": matches,
+            "wins": wins,
+            "losses": losses,
+            "kills": kills,
+            "deaths": deaths,
+            "assists": assists,
+            "kda": kda,
+            "win_rate": win_rate,
+            "rank_icon_path": rank_icon_path,
+            "level_num": self._to_float(level),
+            "rank_points_num": self._to_float(rank_points),
+            "matches_num": self._to_float(matches),
+            "wins_num": self._to_float(wins),
+            "losses_num": self._to_float(losses),
+            "kills_num": self._to_float(kills),
+            "deaths_num": self._to_float(deaths),
+            "assists_num": self._to_float(assists),
+            "kda_num": self._to_float(kda),
+            "win_rate_num": self._to_float(win_rate),
+        }
 
     def _first_value(self, data: Any, keys: Iterable[str]) -> Optional[Any]:
         key_set = {self._normalize(k) for k in keys}

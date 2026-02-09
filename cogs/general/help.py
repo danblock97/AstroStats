@@ -24,13 +24,19 @@ class HelpCog(commands.Cog):
             name="🎮 Gaming Stats Commands",
             value=(
                 "**Apex Legends**\n"
-                "`/apex <platform> <username>`\n\n"
+                "`/apex stats <platform> <username>`\n"
+                "`/apex compare <platform1> <username1> <platform2> <username2>`\n\n"
                 "**League of Legends**\n"
                 "`/league profile <region> <riotid>`\n\n"
                 "**TFT**\n"
-                "`/tft <region> <riotid>`\n\n"
+                "`/tft stats <region> <riotid>`\n"
+                "`/tft compare <region> <riotid1> <riotid2>`\n\n"
                 "**Fortnite**\n"
-                "`/fortnite <time> <name>`"
+                "`/fortnite stats <time> <name>`\n"
+                "`/fortnite compare <time> <name1> <name2>`\n\n"
+                "**Marvel Rivals**\n"
+                "`/marvelrivals stats <name> [season]`\n"
+                "`/marvelrivals compare <name1> <name2> [season]`"
             ),
             inline=False
         )

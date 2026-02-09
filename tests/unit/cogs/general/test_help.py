@@ -33,10 +33,13 @@ class TestHelpCog:
         assert "Premium" in all_field_content
         
         # Check command examples
-        assert "/apex <platform> <username>" in all_field_content
+        assert "/apex stats <platform> <username>" in all_field_content
+        assert "/apex compare <platform1> <username1> <platform2> <username2>" in all_field_content
         assert "/league profile <region> <riotid>" in all_field_content
-        assert "/tft <region> <riotid>" in all_field_content
-        assert "/fortnite <time> <name>" in all_field_content
+        assert "/tft stats <region> <riotid>" in all_field_content
+        assert "/fortnite stats <time> <name>" in all_field_content
+        assert "/fortnite compare <time> <name1> <name2>" in all_field_content
+        assert "/marvelrivals stats <name> [season]" in all_field_content
         assert "/horoscope <sign>" in all_field_content
         assert "/petbattles summon" in all_field_content
         assert "/squibgames start" in all_field_content
