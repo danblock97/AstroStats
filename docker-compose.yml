@@ -1,7 +1,13 @@
-version: '3.8'
 services:
   app:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: astrostats:latest
     restart: unless-stopped
+    # No host port mappings so this works in Coolify and local worker mode.
     env_file:
-      - .env
+      - path: .env
+        required: false
+    environment:
+      PYTHONUNBUFFERED: "1"
