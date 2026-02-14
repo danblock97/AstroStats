@@ -93,6 +93,33 @@ def test_collect_updates_generates_stable_id_when_missing():
     assert update["id"] == "maintenance:maint_3:completed:2026-02-05T14:20:00Z"
 
 
+def test_collect_updates_includes_resolved_incident_updates():
+    cog = _make_cog()
+    incidents = [
+        {
+            "id": "incident_1",
+            "name": "API outage",
+            "status": "resolved",
+            "incident_updates": [
+                {
+                    "id": "incident_update_1",
+                    "status": "resolved",
+                    "body": "Issue resolved.",
+                    "updated_at": "2026-02-05T14:20:00Z",
+                }
+            ],
+        }
+    ]
+
+    updates = cog._collect_updates(incidents, [])
+
+    assert len(updates) == 1
+    _, _, update, kind = updates[0]
+    assert kind == "incident"
+    assert update["id"] == "incident_update_1"
+    assert update["status"] == "resolved"
+
+
 class _FakeResponse:
     def __init__(self, status: int, payload: dict):
         self.status = status
@@ -123,6 +150,22 @@ class _FakeSession:
         return _FakeResponse(self._status, self._payload)
 
 
+class _RoutingSession:
+    def __init__(self, routes):
+        self._routes = routes
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        return False
+
+    def get(self, url, headers=None):  # noqa: ARG002
+        queue = self._routes[url]
+        status, payload = queue.pop(0)
+        return _FakeResponse(status, payload)
+
+
 @pytest.mark.asyncio
 async def test_fetch_maintenances_retries_after_503_and_recovers(monkeypatch):
     cog = _make_cog()
@@ -145,3 +188,70 @@ async def test_fetch_maintenances_retries_after_503_and_recovers(monkeypatch):
     assert maintenances == [{"id": "maint_4"}]
     assert attempts["count"] == 2
     sleep_mock.assert_awaited_once_with(statuspage_module.FETCH_RETRY_BASE_DELAY_SECONDS)
+
+
+@pytest.mark.asyncio
+async def test_fetch_maintenances_falls_back_to_active_and_upcoming(monkeypatch):
+    cog = _make_cog()
+    base = "https://example.statuspage.io/api/v2"
+    routes = {
+        f"{base}/scheduled-maintenances.json": [
+            (503, {}),
+            (503, {}),
+            (503, {}),
+        ],
+        f"{base}/scheduled-maintenances/active.json": [
+            (200, {"scheduled_maintenances": [{"id": "maint_5"}]}),
+        ],
+        f"{base}/scheduled-maintenances/upcoming.json": [
+            (200, {"scheduled_maintenances": [{"id": "maint_6"}, {"id": "maint_5"}]}),
+        ],
+    }
+
+    def fake_client_session(*args, **kwargs):  # noqa: ARG001, ARG002
+        return _RoutingSession(routes)
+
+    sleep_mock = AsyncMock()
+
+    monkeypatch.setattr(statuspage_module, "STATUSPAGE_API_BASE", base)
+    monkeypatch.setattr(statuspage_module.aiohttp, "ClientSession", fake_client_session)
+    monkeypatch.setattr(statuspage_module.asyncio, "sleep", sleep_mock)
+
+    maintenances = await cog.fetch_maintenances()
+
+    assert maintenances == [{"id": "maint_5"}, {"id": "maint_6"}]
+    assert sleep_mock.await_count == 2
+
+
+@pytest.mark.asyncio
+async def test_fetch_maintenances_fallback_with_empty_results_has_no_warning_noise(monkeypatch, caplog):
+    cog = _make_cog()
+    base = "https://example.statuspage.io/api/v2"
+    routes = {
+        f"{base}/scheduled-maintenances.json": [
+            (503, {}),
+            (503, {}),
+            (503, {}),
+        ],
+        f"{base}/scheduled-maintenances/active.json": [
+            (200, {"scheduled_maintenances": []}),
+        ],
+        f"{base}/scheduled-maintenances/upcoming.json": [
+            (200, {"scheduled_maintenances": []}),
+        ],
+    }
+
+    def fake_client_session(*args, **kwargs):  # noqa: ARG001, ARG002
+        return _RoutingSession(routes)
+
+    sleep_mock = AsyncMock()
+
+    monkeypatch.setattr(statuspage_module, "STATUSPAGE_API_BASE", base)
+    monkeypatch.setattr(statuspage_module.aiohttp, "ClientSession", fake_client_session)
+    monkeypatch.setattr(statuspage_module.asyncio, "sleep", sleep_mock)
+
+    with caplog.at_level("WARNING"):
+        maintenances = await cog.fetch_maintenances()
+
+    assert maintenances == []
+    assert "Statuspage maintenances fetch failed: HTTP 503" not in caplog.text

@@ -99,11 +99,17 @@ class StatusPageCog(commands.GroupCog, group_name="statuspage"):
             return {"Authorization": STATUSPAGE_API_KEY}
         return {}
 
-    async def _fetch_statuspage_list(self, endpoint: str, root_key: str, label: str) -> List[Dict[str, Any]]:
+    async def _fetch_statuspage_list(
+        self,
+        endpoint: str,
+        root_key: str,
+        label: str,
+        quiet_failure: bool = False,
+    ) -> Optional[List[Dict[str, Any]]]:
         if not STATUSPAGE_API_BASE:
             logger.warning("STATUSPAGE_API_BASE is not set; skipping statuspage polling.")
             return []
-        url = f"{STATUSPAGE_API_BASE}/{endpoint}"
+        url = f"{STATUSPAGE_API_BASE.rstrip('/')}/{endpoint.lstrip('/')}"
         for attempt in range(1, FETCH_RETRIES + 1):
             async with aiohttp.ClientSession() as session:
                 try:
@@ -116,43 +122,104 @@ class StatusPageCog(commands.GroupCog, group_name="statuspage"):
                             return []
 
                         should_retry = response.status >= 500 or response.status in {429}
-                        logger.warning(
-                            "Statuspage %s fetch failed: HTTP %s (attempt %s/%s)",
+                        if not should_retry or attempt == FETCH_RETRIES:
+                            log_method = logger.debug if quiet_failure else logger.warning
+                            log_method(
+                                "Statuspage %s fetch failed: HTTP %s from %s (attempt %s/%s)",
+                                label,
+                                response.status,
+                                url,
+                                attempt,
+                                FETCH_RETRIES,
+                            )
+                            return None
+                        logger.debug(
+                            "Statuspage %s fetch retrying after HTTP %s from %s (attempt %s/%s)",
                             label,
                             response.status,
+                            url,
                             attempt,
                             FETCH_RETRIES,
                         )
-                        if not should_retry or attempt == FETCH_RETRIES:
-                            return []
                 except Exception as e:
-                    logger.warning(
-                        "Statuspage %s fetch error on attempt %s/%s: %s",
+                    if attempt == FETCH_RETRIES:
+                        if quiet_failure:
+                            logger.debug(
+                                "Statuspage %s fetch error from %s on attempt %s/%s: %s",
+                                label,
+                                url,
+                                attempt,
+                                FETCH_RETRIES,
+                                e,
+                            )
+                        else:
+                            logger.error(
+                                "Statuspage %s fetch error from %s on attempt %s/%s: %s",
+                                label,
+                                url,
+                                attempt,
+                                FETCH_RETRIES,
+                                e,
+                                exc_info=True,
+                            )
+                        return None
+                    log_method = logger.debug if quiet_failure else logger.warning
+                    log_method(
+                        "Statuspage %s fetch error from %s on attempt %s/%s: %s",
                         label,
+                        url,
                         attempt,
                         FETCH_RETRIES,
                         e,
                     )
-                    if attempt == FETCH_RETRIES:
-                        logger.error("Statuspage %s fetch error: %s", label, e, exc_info=True)
-                        return []
 
             await asyncio.sleep(FETCH_RETRY_BASE_DELAY_SECONDS * attempt)
-        return []
+        return None
 
     async def fetch_incidents(self) -> List[Dict[str, Any]]:
-        return await self._fetch_statuspage_list(
+        incidents = await self._fetch_statuspage_list(
             endpoint="incidents.json",
             root_key="incidents",
             label="incidents",
         )
+        return incidents or []
 
     async def fetch_maintenances(self) -> List[Dict[str, Any]]:
-        return await self._fetch_statuspage_list(
+        maintenances = await self._fetch_statuspage_list(
             endpoint="scheduled-maintenances.json",
             root_key="scheduled_maintenances",
             label="maintenances",
+            quiet_failure=True,
         )
+        if maintenances is not None:
+            return maintenances
+
+        logger.debug(
+            "Statuspage maintenances fetch failed for scheduled-maintenances.json; "
+            "falling back to active/upcoming endpoints."
+        )
+
+        active = await self._fetch_statuspage_list(
+            endpoint="scheduled-maintenances/active.json",
+            root_key="scheduled_maintenances",
+            label="maintenances_active",
+        )
+        upcoming = await self._fetch_statuspage_list(
+            endpoint="scheduled-maintenances/upcoming.json",
+            root_key="scheduled_maintenances",
+            label="maintenances_upcoming",
+        )
+
+        deduped: List[Dict[str, Any]] = []
+        seen_ids = set()
+        for item in (active or []) + (upcoming or []):
+            maintenance_id = item.get("id")
+            if maintenance_id and maintenance_id in seen_ids:
+                continue
+            if maintenance_id:
+                seen_ids.add(maintenance_id)
+            deduped.append(item)
+        return deduped
 
     def _stable_update_id(self, record: Dict[str, Any], update: Dict[str, Any], kind: str) -> str:
         update_id = update.get("id")
