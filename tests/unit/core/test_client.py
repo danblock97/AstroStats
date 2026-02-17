@@ -44,6 +44,7 @@ class TestAstroStatsBot:
             stack.enter_context(patch('cogs.games.apex.setup', new=AsyncMock()))
             stack.enter_context(patch('cogs.games.league.setup', new=AsyncMock()))
             stack.enter_context(patch('cogs.games.fortnite.setup', new=AsyncMock()))
+            stack.enter_context(patch('cogs.games.marvel_rivals.setup', new=AsyncMock()))
             stack.enter_context(patch('cogs.games.tft.setup', new=AsyncMock()))
             stack.enter_context(patch('cogs.general.help.setup', new=AsyncMock()))
             stack.enter_context(patch('cogs.general.horoscope.setup', new=AsyncMock()))
@@ -51,12 +52,16 @@ class TestAstroStatsBot:
             stack.enter_context(patch('cogs.general.premium.setup', new=AsyncMock()))
             stack.enter_context(patch('cogs.general.support.setup', new=AsyncMock()))
             stack.enter_context(patch('cogs.systems.pet_battles.setup', new=AsyncMock()))
+            stack.enter_context(patch('cogs.systems.bingo_game.setup', new=AsyncMock()))
             stack.enter_context(patch('cogs.admin.kick.setup', new=AsyncMock()))
             stack.enter_context(patch('cogs.admin.servers.setup', new=AsyncMock()))
+            stack.enter_context(patch('cogs.admin.welcome.setup', new=AsyncMock()))
+            stack.enter_context(patch('cogs.admin.test_error.setup', new=AsyncMock()))
             stack.enter_context(patch('cogs.systems.squib_game.setup', new=AsyncMock()))
             stack.enter_context(patch('cogs.games.truthordare.setup', new=AsyncMock()))
             stack.enter_context(patch('cogs.games.wouldyourather.setup', new=AsyncMock()))
             stack.enter_context(patch('cogs.games.catfight.setup', new=AsyncMock()))
+            stack.enter_context(patch('cogs.general.cosmos.setup', new=AsyncMock()))
             
             await bot.setup_hook()
             
@@ -78,6 +83,7 @@ class TestAstroStatsBot:
             mock_apex = stack.enter_context(patch('cogs.games.apex.setup', new=AsyncMock()))
             mock_league = stack.enter_context(patch('cogs.games.league.setup', new=AsyncMock()))
             mock_fortnite = stack.enter_context(patch('cogs.games.fortnite.setup', new=AsyncMock()))
+            mock_marvel_rivals = stack.enter_context(patch('cogs.games.marvel_rivals.setup', new=AsyncMock()))
             mock_tft = stack.enter_context(patch('cogs.games.tft.setup', new=AsyncMock()))
             mock_help = stack.enter_context(patch('cogs.general.help.setup', new=AsyncMock()))
             mock_horoscope = stack.enter_context(patch('cogs.general.horoscope.setup', new=AsyncMock()))
@@ -85,22 +91,26 @@ class TestAstroStatsBot:
             mock_premium = stack.enter_context(patch('cogs.general.premium.setup', new=AsyncMock()))
             mock_support = stack.enter_context(patch('cogs.general.support.setup', new=AsyncMock()))
             mock_pet_battles = stack.enter_context(patch('cogs.systems.pet_battles.setup', new=AsyncMock()))
+            mock_bingo_game = stack.enter_context(patch('cogs.systems.bingo_game.setup', new=AsyncMock()))
             mock_kick = stack.enter_context(patch('cogs.admin.kick.setup', new=AsyncMock()))
             mock_servers = stack.enter_context(patch('cogs.admin.servers.setup', new=AsyncMock()))
+            mock_welcome = stack.enter_context(patch('cogs.admin.welcome.setup', new=AsyncMock()))
+            mock_test_error = stack.enter_context(patch('cogs.admin.test_error.setup', new=AsyncMock()))
             mock_squib_game = stack.enter_context(patch('cogs.systems.squib_game.setup', new=AsyncMock()))
             mock_truthordare = stack.enter_context(patch('cogs.games.truthordare.setup', new=AsyncMock()))
             mock_wouldyourather = stack.enter_context(patch('cogs.games.wouldyourather.setup', new=AsyncMock()))
             mock_catfight = stack.enter_context(patch('cogs.games.catfight.setup', new=AsyncMock()))
+            mock_cosmos = stack.enter_context(patch('cogs.general.cosmos.setup', new=AsyncMock()))
             
             await bot.setup_hook()
             
             # Verify all setup functions were called
             setup_mocks = [
-                mock_apex, mock_league, mock_fortnite, mock_tft,
+                mock_apex, mock_league, mock_fortnite, mock_marvel_rivals, mock_tft,
                 mock_help, mock_horoscope, mock_review, mock_premium,
-                mock_support, mock_pet_battles,
-                mock_kick, mock_servers, mock_squib_game,
-                mock_truthordare, mock_wouldyourather, mock_catfight
+                mock_support, mock_pet_battles, mock_bingo_game,
+                mock_kick, mock_servers, mock_welcome, mock_test_error, mock_squib_game,
+                mock_truthordare, mock_wouldyourather, mock_catfight, mock_cosmos
             ]
             for mock_func in setup_mocks:
                 mock_func.assert_called_once_with(bot)
@@ -116,6 +126,7 @@ class TestAstroStatsBot:
             stack.enter_context(patch('cogs.games.apex.setup', new=AsyncMock()))
             stack.enter_context(patch('cogs.games.league.setup', new=AsyncMock()))
             stack.enter_context(patch('cogs.games.fortnite.setup', new=AsyncMock()))
+            stack.enter_context(patch('cogs.games.marvel_rivals.setup', new=AsyncMock()))
             stack.enter_context(patch('cogs.games.tft.setup', new=AsyncMock()))
             stack.enter_context(patch('cogs.general.help.setup', new=AsyncMock()))
             stack.enter_context(patch('cogs.general.horoscope.setup', new=AsyncMock()))
@@ -123,12 +134,16 @@ class TestAstroStatsBot:
             stack.enter_context(patch('cogs.general.premium.setup', new=AsyncMock()))
             stack.enter_context(patch('cogs.general.support.setup', new=AsyncMock()))
             stack.enter_context(patch('cogs.systems.pet_battles.setup', new=AsyncMock()))
+            stack.enter_context(patch('cogs.systems.bingo_game.setup', new=AsyncMock()))
             stack.enter_context(patch('cogs.admin.kick.setup', new=AsyncMock()))
             stack.enter_context(patch('cogs.admin.servers.setup', new=AsyncMock()))
+            stack.enter_context(patch('cogs.admin.welcome.setup', new=AsyncMock()))
+            stack.enter_context(patch('cogs.admin.test_error.setup', new=AsyncMock()))
             stack.enter_context(patch('cogs.systems.squib_game.setup', new=AsyncMock()))
             stack.enter_context(patch('cogs.games.truthordare.setup', new=AsyncMock()))
             stack.enter_context(patch('cogs.games.wouldyourather.setup', new=AsyncMock()))
             stack.enter_context(patch('cogs.games.catfight.setup', new=AsyncMock()))
+            stack.enter_context(patch('cogs.general.cosmos.setup', new=AsyncMock()))
             
             mock_sync = stack.enter_context(patch.object(bot.tree, 'sync', new=AsyncMock(return_value=[])))
             mock_update_presence = stack.enter_context(patch.object(bot, 'update_presence'))

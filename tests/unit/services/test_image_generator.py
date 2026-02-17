@@ -35,8 +35,8 @@ class TestBattleImageGenerator:
 
     def test_image_generator_initialization(self, mock_image_generator):
         """Test image generator initialization with correct settings"""
-        assert mock_image_generator.default_size == (400, 250)
-        assert mock_image_generator.avatar_size == (120, 120)
+        assert mock_image_generator.default_size == (520, 300)
+        assert mock_image_generator.avatar_size == (168, 168)
         assert mock_image_generator.pil_available is True
 
     def test_image_generator_no_pil_initialization(self, mock_image_generator_no_pil):
@@ -118,7 +118,11 @@ class TestBattleImageGenerator:
                 result = mock_image_generator.create_default_avatar()
                 
                 # Should create image with correct size
-                mock_image_class.new.assert_called_with('RGBA', (120, 120), (100, 100, 100, 255))
+                mock_image_class.new.assert_called_with(
+                    'RGBA',
+                    mock_image_generator.avatar_size,
+                    (100, 100, 100, 255),
+                )
                 
                 # Should draw cat silhouette (ellipse + polygons for ears)
                 assert mock_draw.ellipse.called
@@ -128,52 +132,61 @@ class TestBattleImageGenerator:
         """Test gradient background creation"""
         with patch('services.image_generator.Image') as mock_image_class:
             mock_image = MagicMock()
+            mock_image.size = mock_image_generator.default_size
             mock_image_class.new.return_value = mock_image
             
             with patch('services.image_generator.ImageDraw') as mock_draw_class:
                 mock_draw = MagicMock()
                 mock_draw_class.Draw.return_value = mock_draw
                 
-                with patch.object(mock_image_generator, 'add_decorative_elements'):
+                with patch.object(mock_image_generator, 'add_light_bursts') as mock_bursts, \
+                     patch.object(mock_image_generator, 'add_decorative_elements') as mock_decor:
                     result = mock_image_generator.create_gradient_background()
                     
                     # Should create image with correct size
-                    mock_image_class.new.assert_called_with('RGBA', (400, 250), (255, 255, 255, 255))
+                    mock_image_class.new.assert_called_with(
+                        'RGBA',
+                        mock_image_generator.default_size,
+                        (8, 20, 46, 255),
+                    )
                     
                     # Should draw gradient lines
                     assert mock_draw.line.called
+                    mock_bursts.assert_called_once_with(mock_image)
+                    mock_decor.assert_called_once_with(
+                        mock_draw,
+                        mock_image_generator.default_size[0],
+                        mock_image_generator.default_size[1],
+                    )
 
     def test_add_decorative_elements(self, mock_image_generator):
         """Test decorative elements (sparkles) addition"""
         mock_draw = MagicMock()
         width, height = 400, 250
         
-        with patch('random.randint') as mock_randint:
-            mock_randint.side_effect = [200, 125, 5] * 15  # x, y, size for each sparkle
-            
+        with patch('random.randint', return_value=5), \
+             patch('random.choice', return_value=(255, 238, 0, 220)), \
+             patch('random.random', return_value=0.9):
             mock_image_generator.add_decorative_elements(mock_draw, width, height)
-            
-            # Should draw sparkle polygons
-            assert mock_draw.polygon.call_count >= 10  # Should add multiple sparkles
 
-    def test_add_sword_emoji(self, mock_image_generator):
-        """Test sword emoji addition to background"""
-        with patch('services.image_generator.Image') as mock_image_class:
-            mock_background = MagicMock()
-            mock_background.size = (400, 250)
-            
-            with patch('services.image_generator.ImageDraw') as mock_draw_class:
-                mock_draw = MagicMock()
-                mock_draw_class.Draw.return_value = mock_draw
-                
-                with patch('services.image_generator.ImageFont'):
-                    result = mock_image_generator.add_sword_emoji(mock_background)
-                    
-                    # Should draw text (emoji and outline)
-                    assert mock_draw.text.called
-                    
-                    # Should draw multiple times for outline effect
-                    assert mock_draw.text.call_count >= 2
+            # Current implementation draws 85 confetti elements.
+            assert mock_draw.polygon.call_count == 85
+
+    def test_add_vs_badge(self, mock_image_generator):
+        """Test VS badge drawing in the center panel"""
+        mock_background = MagicMock()
+        mock_background.size = mock_image_generator.default_size
+
+        with patch('services.image_generator.ImageDraw') as mock_draw_class:
+            mock_draw = MagicMock()
+            mock_draw.textbbox.return_value = (0, 0, 80, 40)
+            mock_draw_class.Draw.return_value = mock_draw
+
+            with patch.object(mock_image_generator, 'load_font', return_value=MagicMock()):
+                result = mock_image_generator.add_vs_badge(mock_background)
+
+                assert result == mock_background
+                assert mock_draw.text.call_count >= 2
 
     @pytest.mark.asyncio
     async def test_create_battle_image_success(self, mock_image_generator):
@@ -185,21 +198,29 @@ class TestBattleImageGenerator:
         
         mock_avatar = MagicMock()
         mock_background = MagicMock()
-        mock_background.size = (400, 250)
+        mock_background.size = mock_image_generator.default_size
         
         with patch.object(mock_image_generator, 'create_gradient_background', return_value=mock_background):
             with patch.object(mock_image_generator, 'download_avatar', return_value=mock_avatar):
-                with patch.object(mock_image_generator, 'add_glow_effect', return_value=mock_avatar):
-                    with patch.object(mock_image_generator, 'add_sword_emoji', return_value=mock_background):
-                        with patch.object(mock_image_generator, 'add_user_names'):
-                            mock_background.save = MagicMock()
-                            
-                            result = await mock_image_generator.create_battle_image(
-                                user1_avatar_url, user2_avatar_url, user1_name, user2_name
-                            )
-                            
-                            assert isinstance(result, BytesIO)
-                            mock_background.save.assert_called_once()
+                with patch.object(mock_image_generator, 'draw_panel') as mock_draw_panel, \
+                     patch.object(mock_image_generator, 'add_vs_badge', return_value=mock_background), \
+                     patch.object(mock_image_generator, 'draw_icon_badges') as mock_draw_icon_badges, \
+                     patch.object(mock_image_generator, 'add_user_names') as mock_add_user_names, \
+                     patch.object(mock_image_generator, 'draw_title') as mock_draw_title, \
+                     patch.object(mock_image_generator, 'add_border') as mock_add_border:
+                    mock_background.save = MagicMock()
+
+                    result = await mock_image_generator.create_battle_image(
+                        user1_avatar_url, user2_avatar_url, user1_name, user2_name
+                    )
+
+                    assert isinstance(result, BytesIO)
+                    mock_draw_panel.assert_called()
+                    mock_draw_icon_badges.assert_called_once_with(mock_background)
+                    mock_add_user_names.assert_called_once()
+                    mock_draw_title.assert_called_once_with(mock_background)
+                    mock_add_border.assert_called_once_with(mock_background)
+                    mock_background.save.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_create_battle_image_no_pil(self, mock_image_generator_no_pil):
@@ -239,10 +260,14 @@ class TestBattleImageGenerator:
                 result = mock_image_generator.add_glow_effect(mock_avatar, glow_color)
                 
                 # Should create glow image
-                mock_image_class.new.assert_called_with('RGBA', (140, 140), (0, 0, 0, 0))
+                expected_size = (
+                    mock_image_generator.avatar_size[0] + 20,
+                    mock_image_generator.avatar_size[1] + 20,
+                )
+                mock_image_class.new.assert_called_with('RGBA', expected_size, (0, 0, 0, 0))
                 
                 # Should draw multiple ellipses for glow layers
-                assert mock_draw.ellipse.call_count >= 3
+                assert mock_draw.ellipse.call_count >= 5
 
     def test_add_user_names(self, mock_image_generator):
         """Test user name addition below avatars"""
@@ -295,7 +320,11 @@ class TestBattleImageGenerator:
                 result = mock_image_generator.create_fallback_image()
                 
                 # Should create basic image
-                mock_image_class.new.assert_called_with('RGB', (400, 200), (100, 100, 100))
+                mock_image_class.new.assert_called_with(
+                    'RGB',
+                    mock_image_generator.default_size,
+                    (100, 100, 100),
+                )
                 
                 # Should draw fallback text
                 mock_draw.text.assert_called_once()
@@ -310,8 +339,8 @@ class TestBattleImageGenerator:
         assert mock_image_generator.default_size[1] <= 400  # Height constraint
         
         # Avatar size should be visible but not too large
-        assert 100 <= mock_image_generator.avatar_size[0] <= 150
-        assert 100 <= mock_image_generator.avatar_size[1] <= 150
+        assert 100 <= mock_image_generator.avatar_size[0] <= 200
+        assert 100 <= mock_image_generator.avatar_size[1] <= 200
 
     def test_color_validation(self):
         """Test color values are valid RGBA"""
@@ -387,23 +416,16 @@ class TestBattleImageGenerator:
 
     def test_font_fallback_handling(self, mock_image_generator):
         """Test font loading with graceful fallbacks"""
-        mock_background = MagicMock()
-        mock_background.size = (400, 250)
-        
         with patch('services.image_generator.ImageFont') as mock_font:
             # Simulate font loading failures
-            mock_font.truetype.side_effect = [OSError("Font not found"), OSError("Font not found")]
-            mock_font.load_default.return_value = MagicMock()
-            
-            with patch('services.image_generator.ImageDraw'):
-                # Should not raise exception even with font failures
-                try:
-                    mock_image_generator.add_sword_emoji(mock_background)
-                    success = True
-                except:
-                    success = False
-                
-                assert success is True
+            fallback_font = MagicMock()
+            mock_font.truetype.side_effect = OSError("Font not found")
+            mock_font.load_default.return_value = fallback_font
+
+            result = mock_image_generator.load_font(24, bold=True)
+
+            assert result == fallback_font
+            mock_font.load_default.assert_called_once()
 
     def test_star_sparkle_geometry(self):
         """Test star sparkle geometric calculations"""
