@@ -356,11 +356,42 @@ class TestPetBattlesComplete:
                 mock_mongo_setup['pets'].find.assert_called_once()
 
     @pytest.mark.asyncio
+    async def test_resolve_guild_member_prefers_cached_member(self):
+        """Test guild member resolution uses cache before fetch."""
+        from cogs.systems.pet_battles import resolve_guild_member
+
+        guild = MagicMock(spec=discord.Guild)
+        member = MagicMock(spec=discord.Member)
+        guild.get_member.return_value = member
+        guild.fetch_member = AsyncMock()
+
+        result = await resolve_guild_member(guild, 123456789)
+
+        assert result is member
+        guild.fetch_member.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_resolve_guild_member_fetches_on_cache_miss(self):
+        """Test guild member resolution fetches when cache misses."""
+        from cogs.systems.pet_battles import resolve_guild_member
+
+        guild = MagicMock(spec=discord.Guild)
+        member = MagicMock(spec=discord.Member)
+        guild.get_member.return_value = None
+        guild.fetch_member = AsyncMock(return_value=member)
+
+        result = await resolve_guild_member(guild, 123456789)
+
+        assert result is member
+        guild.fetch_member.assert_awaited_once_with(123456789)
+
+    @pytest.mark.asyncio
     async def test_pet_battles_cog_initialization(self):
         """Test PetBattles cog initialization"""
         from cogs.systems.pet_battles import PetBattles
         
         mock_bot = MagicMock()
+        mock_bot.loop.create_task = MagicMock(side_effect=lambda coro: coro.close())
         
         with patch('cogs.systems.pet_battles.TOPGG_TOKEN', 'test_token'):
             with patch.object(PetBattles, 'reset_daily_quests') as mock_reset_quests:
@@ -395,6 +426,45 @@ class TestPetBattlesComplete:
                         
                         assert cog.topgg_token is None
                         mock_logger.warning.assert_called()
+
+    @pytest.mark.asyncio
+    async def test_pet_battles_cog_app_command_error_handles_transformer_error(self):
+        """Test transformer errors return a user-facing response."""
+        from cogs.systems.pet_battles import PetBattles
+
+        mock_bot = MagicMock()
+        mock_bot.loop.create_task = MagicMock(side_effect=lambda coro: coro.close())
+
+        with patch.object(PetBattles, 'reset_daily_quests') as mock_reset_quests:
+            with patch.object(PetBattles, 'reset_daily_training') as mock_reset_training:
+                mock_reset_quests.start = MagicMock()
+                mock_reset_training.start = MagicMock()
+
+                cog = PetBattles(mock_bot)
+
+        interaction = MagicMock(spec=discord.Interaction)
+        interaction.response = MagicMock()
+        interaction.response.is_done.return_value = False
+        interaction.response.send_message = AsyncMock()
+        interaction.followup = MagicMock()
+        interaction.followup.send = AsyncMock()
+        interaction.command = MagicMock()
+        interaction.command.name = "battle"
+
+        transformer = MagicMock()
+        transformer._error_display_name = "Member"
+        error = discord.app_commands.TransformerError(
+            "king_conair",
+            discord.AppCommandOptionType.user,
+            transformer
+        )
+
+        await cog.cog_app_command_error(interaction, error)
+
+        interaction.response.send_message.assert_awaited_once()
+        embed = interaction.response.send_message.await_args.kwargs["embed"]
+        assert "couldn't resolve that user" in embed.description.lower()
+        assert interaction.response.send_message.await_args.kwargs["ephemeral"] is True
 
     def test_initialize_topgg_client_success(self):
         """Test successful TopGG client initialization"""

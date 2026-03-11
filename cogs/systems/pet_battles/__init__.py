@@ -165,6 +165,26 @@ def count_unlocked_user_pets(user_id: str, guild_id: str) -> int:
 def get_active_pet_document(user_id: str, guild_id: str) -> Optional[Dict[str, Any]]:
     return pets_collection.find_one({"user_id": user_id, "guild_id": guild_id, "is_active": True})
 
+async def resolve_guild_member(guild: Optional[discord.Guild], user_id: int) -> Optional[discord.Member]:
+    """Resolve a guild member from cache first, then fall back to an API fetch."""
+    if guild is None:
+        return None
+
+    member = guild.get_member(user_id)
+    if member is not None:
+        return member
+
+    try:
+        return await guild.fetch_member(user_id)
+    except discord.NotFound:
+        logger.warning(f"Member {user_id} not found in guild {guild.id}.")
+    except discord.Forbidden:
+        logger.warning(f"Missing permissions to fetch member {user_id} in guild {guild.id}.")
+    except discord.HTTPException as e:
+        logger.error(f"HTTP error fetching member {user_id} in guild {guild.id}: {e}")
+
+    return None
+
 def set_active_pet(user_id: str, guild_id: str, pet_id: ObjectId) -> bool:
     try:
         # Unset others
@@ -917,12 +937,13 @@ class PetBattles(commands.GroupCog, name="petbattles"):
 
 
     @app_commands.command(name="battle", description="Challenge another user's pet to a battle!")
+    @app_commands.guild_only()
     @app_commands.describe(opponent="The user whose pet you want to battle")
-    async def battle(self, interaction: Interaction, opponent: discord.Member):
+    async def battle(self, interaction: Interaction, opponent: discord.User):
         """Initiates a battle between the user's pet and the opponent's pet."""
         user_id = str(interaction.user.id)
-        opponent_id = str(opponent.id)
-        guild_id = str(interaction.guild.id)
+        guild = interaction.guild
+        guild_id = str(guild.id) if guild else ""
 
         battle_message: Optional[Any] = None # To store the message for editing (WebhookMessage or Message)
         use_channel_fallback: bool = False
@@ -950,6 +971,26 @@ class PetBattles(commands.GroupCog, name="petbattles"):
             except discord.NotFound:
                 # Interaction expired before we could defer; fallback to channel messaging
                 use_channel_fallback = True
+
+            if guild is None:
+                embed = create_error_embed(
+                    "Battle Error",
+                    "Pet battles can only be used inside a server."
+                )
+                await send_reply(embed=embed, ephemeral=True)
+                return
+
+            opponent_member = await resolve_guild_member(guild, opponent.id)
+            if opponent_member is None:
+                embed = create_error_embed(
+                    "Battle Error",
+                    "I couldn't resolve that opponent as a current member of this server."
+                )
+                await send_reply(embed=embed, ephemeral=True)
+                return
+
+            opponent = opponent_member
+            opponent_id = str(opponent.id)
             
             # --- Initial Checks ---
             if user_id == opponent_id:
@@ -2565,6 +2606,27 @@ class PetBattles(commands.GroupCog, name="petbattles"):
                 await interaction.followup.send(embed=embed, ephemeral=True)
             else:
                 await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    async def cog_app_command_error(self, interaction: Interaction, error: app_commands.AppCommandError):
+        """Handle Pet Battles app command failures with an ephemeral response."""
+        if isinstance(error, app_commands.CommandOnCooldown):
+            description = f"This command is on cooldown. Try again in {error.retry_after:.2f} seconds."
+        elif isinstance(error, app_commands.CheckFailure):
+            description = "This command can only be used inside a server."
+        elif isinstance(error, app_commands.TransformerError):
+            description = "I couldn't resolve that user. Select a current server member and try again."
+        else:
+            logger.error(
+                f"Unhandled error in pet battles command '{interaction.command.name if interaction.command else 'Unknown'}': {error}",
+                exc_info=error
+            )
+            description = "An unexpected error occurred. Please try again later."
+
+        embed = create_error_embed("Pet Battles Error", description)
+        if interaction.response.is_done():
+            await interaction.followup.send(embed=embed, ephemeral=True)
+        else:
+            await interaction.response.send_message(embed=embed, ephemeral=True)
 
 # --- Setup Function ---
 async def setup(bot: commands.Bot):
