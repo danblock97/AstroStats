@@ -1,0 +1,37 @@
+name: Feature request
+description: Suggest an idea or enhancement for AstroStats.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for sharing an idea to improve AstroStats.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe the pain point or opportunity.
+      placeholder: It is currently difficult to...
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like to happen?
+      description: Describe the feature or improvement you want.
+      placeholder: I would like AstroStats to...
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe any workarounds or alternative approaches you have tried.
+      placeholder: I also considered...
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional context
+      description: Add any examples, mockups, or supporting details here.
