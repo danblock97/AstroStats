@@ -3,7 +3,3 @@
 __pycache__
 bot.log
 check_member_count.py
-
-# Keep repository GitHub metadata tracked.
-!.github/
-!.github/**
